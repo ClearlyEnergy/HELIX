@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>HELIX Index</title>
+    </head>
+    <body>
+        <form action="/helix/helix-hes/">
+            {% csrf_token %}
+            HES API Key:<br>
+            <input type="text" name="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"> <br>
+            HES Building ID:<br>
+            <input type="text" name="building_id" value="142543"><br>
+            <input type="submit" value="Press For HES Upload!">
+        </form>
+
+        <!--
+        <button onclick=get_hes_data()>Press For HES Upload!</button>
+        <script>
+            function get_hes_data() {
+                var req = new XMLHttpRequest()
+                req.open("GET","/helix/helix-hes/",false)
+                req.send(null)
+                alert(req.responseText)
+            }
+        </script>
+        -->
+    </body>
+</html>
