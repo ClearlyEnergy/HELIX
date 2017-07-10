@@ -27,8 +27,7 @@ def helix_hes(request):
 
     #There should be some way to query django to find what port it's
     #running on. Hardcoded port is no good.
-    authorization = {'authorization':request.user.get_username()+':'+request.user.api_key}
-    loader = autoload.AutoLoad("http://localhost:8000",authorization)
+    loader = autoload.AutoLoad("http://localhost:8000",request.user.get_username(),request.user.api_key)
 
     buf = StringIO.StringIO()
 
