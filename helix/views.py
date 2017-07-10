@@ -41,7 +41,6 @@ def helix_hes(request):
     buf = StringIO.StringIO(csv_file)
 
     org_id =  str(request.user.default_organization_id)
-    loader.autoload_file(buf,"hes-res","2",org_id,col_mappings)
+    response = loader.autoload_file(buf,"hes-res","2",org_id,col_mappings)
 
-    #Should respond with usefull information
-    return JsonResponse({'status': 'success'})
+    return JsonResponse(response)
