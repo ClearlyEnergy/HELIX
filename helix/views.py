@@ -25,9 +25,8 @@ def helix_hes(request):
                     {"from_field":"address","to_field":"address_line_1","to_table_name":"PropertyState"},
                     {"from_field":"zip_code","to_field":"postal_code","to_table_name":"PropertyState"}]
 
-    #There should be some way to query django to find what port it's
-    #running on. Hardcoded port is no good.
-    loader = autoload.AutoLoad("http://localhost:8000",request.user.get_username(),request.user.api_key)
+    url_base = "http://localhost:"+request.META["SERVER_PORT"]
+    loader = autoload.AutoLoad(url_base,request.user.get_username(),request.user.api_key)
 
     buf = StringIO.StringIO()
 
