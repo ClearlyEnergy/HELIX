@@ -1,27 +1,38 @@
+<!doctype html>
 <html>
     <head>
         <title>HELIX Index</title>
     </head>
     <body>
-        <form action="/helix/helix-hes/">
-            {% csrf_token %}
-            HES API Key:<br>
-            <input type="text" name="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"> <br>
-            HES Building ID:<br>
-            <input type="text" name="building_id" value="142543"><br>
-            <input type="submit" value="Press For HES Upload!">
-        </form>
 
-        <!--
+        HES API Key:<br>
+        <input type="text" id="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
+        HES Building ID:<br>
+        <input type="text" id="building_id" value="142543"><br>
         <button onclick=get_hes_data()>Press For HES Upload!</button>
+        <div id=result></div>
+
         <script>
+            //consider rewriting this using angular js to be consistent with
+            //existing seed javascript
             function get_hes_data() {
+                var user_key = document.getElementById('user_key').value
+                var building_id = document.getElementById('building_id').value
+
                 var req = new XMLHttpRequest()
-                req.open("GET","/helix/helix-hes/",false)
-                req.send(null)
-                alert(req.responseText)
+                req.onreadystatechange = function() {
+                    if (req.readyState == 4 ) {
+                        if (req.status == 200){
+                            document.getElementById('result').innerHTML = "Upload successfull"
+                        } else {
+                            document.getElementById('result').innerHTML = "Upload failed"
+                        }
+
+                    }
+                }
+                req.open("GET","/helix/helix-hes/?user_key="+user_key+"&building_id="+building_id)
+                req.send()
             }
         </script>
-        -->
     </body>
 </html>
