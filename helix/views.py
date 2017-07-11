@@ -6,6 +6,7 @@ from hes import hes
 from autoload import autoload
 import csv
 import StringIO
+from zeep.exceptions import Fault
 
 
 @login_required
@@ -15,7 +16,13 @@ def helix_home(request):
 def helix_hes(request):
     building_info={'user_key':request.GET['user_key'],'building_id':request.GET['building_id']}
 
-    hes_res = hes.hes_helix(building_info)
+
+    hes_res = {}
+    try:
+        hes_res = hes.hes_helix(building_info)
+    except Fault as f:
+        print f
+        return JsonResponse({"status":"error","message":f.message},status=404)
 
     col_mappings = [{"from_field":"city","to_field":"city","to_table_name":"PropertyState"},
                     {"from_field":"year_built","to_field":"year_built","to_table_name":"PropertyState"},
