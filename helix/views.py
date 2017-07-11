@@ -20,10 +20,20 @@ def helix_hes(request):
     col_mappings = [{"from_field":"city","to_field":"city","to_table_name":"PropertyState"},
                     {"from_field":"year_built","to_field":"year_built","to_table_name":"PropertyState"},
                     {"from_field":"conditioned_floor_area","to_field":"conditioned_floor_area","to_table_name":"PropertyState"},
-                    {"from_field":"base_score","to_field":"energy_score","to_table_name":"PropertyState"},
                     {"from_field":"state","to_field":"state","to_table_name":"PropertyState"},
                     {"from_field":"address","to_field":"address_line_1","to_table_name":"PropertyState"},
                     {"from_field":"zip_code","to_field":"postal_code","to_table_name":"PropertyState"}]
+
+    HES_ASSESSMENT_ID = 1 #this values was inserted manulay into the database
+    green_assessment_mapping = {
+        "source": hes_res["qualified_assessor_id"],
+        "status": hes_res["assessment_type"],
+        # "satus_date": ?
+        "metric": hes_res["base_score"],
+        "version": hes_res["hescore_version"],
+        "date": hes_res["assessment_date"],
+        "assessment": HES_ASSESSMENT_ID
+    }
 
     url_base = "http://localhost:"+request.META["SERVER_PORT"]
     loader = autoload.AutoLoad(url_base,request.user.get_username(),request.user.api_key)
@@ -41,5 +51,10 @@ def helix_hes(request):
 
     org_id =  str(request.user.default_organization_id)
     response = loader.autoload_file(buf,"hes-res","2",org_id,col_mappings)
+
+    if(response['status'] == 'error'):
+        return JsonResponse(response)
+
+    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,org_id)
 
     return JsonResponse(response)
