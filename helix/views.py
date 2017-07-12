@@ -1,13 +1,14 @@
-from django.http import JsonResponse
-from django.template.context import RequestContext
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from hes import hes
-from autoload import autoload
 import csv
 import StringIO
+
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
 from zeep.exceptions import Fault
 
+from autoload import autoload
+from hes import hes
 
 @login_required
 def helix_home(request):
@@ -16,12 +17,9 @@ def helix_home(request):
 def helix_hes(request):
     building_info={'user_key':request.GET['user_key'],'building_id':request.GET['building_id']}
 
-
-    hes_res = {}
     try:
         hes_res = hes.hes_helix(building_info)
     except Fault as f:
-        print f
         return JsonResponse({"status":"error","message":f.message},status=404)
 
     col_mappings = [{"from_field":"city","to_field":"city","to_table_name":"PropertyState"},
@@ -42,8 +40,7 @@ def helix_hes(request):
         "assessment": HES_ASSESSMENT_ID
     }
 
-    url_base = "http://localhost:"+request.META["SERVER_PORT"]
-    loader = autoload.AutoLoad(url_base,request.user.get_username(),request.user.api_key)
+    loader = autoload.AutoLoad(request.user,request.user.default_organization)
 
     buf = StringIO.StringIO()
 
@@ -52,16 +49,16 @@ def helix_hes(request):
     writer.writerow(hes_res)
 
     csv_file = buf.getvalue()
-    buf.close
+    buf.close()
 
     buf = StringIO.StringIO(csv_file)
 
     org_id =  str(request.user.default_organization_id)
-    response = loader.autoload_file(buf,"hes-res","2",org_id,col_mappings)
+    response = loader.autoload_file(buf,"hes-res","2",col_mappings)
 
     if(response['status'] == 'error'):
         return JsonResponse(response)
 
-    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,'2')
+#    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,'2')
 
     return JsonResponse(response)
