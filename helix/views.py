@@ -62,6 +62,6 @@ def helix_hes(request):
     if(response['status'] == 'error'):
         return JsonResponse(response)
 
-    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,org_id)
+    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,'2')
 
     return JsonResponse(response)
