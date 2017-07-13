@@ -1,0 +1,20 @@
+
+/* Color for the text */
+a {
+  color:#00a0af; 
+  text-decoration: none;
+}
+
+
+/* Color for the buttons */ 
+.btn-primary{
+    color: #fff ;
+    background-color: #00a0af;
+    border-color: #00a0af;
+}
+
+.btn-info{
+	color:#fff;
+	background-color:#00a0af;
+	border-color: #00a0af;
+}
