@@ -1,7 +1,9 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
+from seed.models import Cycle
 
 
 class TestHelixView(TestCase):
@@ -23,6 +25,9 @@ class TestHelixView(TestCase):
         self.user.save()
 
         self.client.login(username='test_user@demo.com',password='test_pass')
+
+        self.cycle = Cycle.objects.create(organization=self.org,user=self.user,name="test",start=timezone.now(),end=timezone.now())
+        self.cycle.save()
 
     def test_helix_home(self):
         res = self.client.get(reverse('helix:helix_home'))
