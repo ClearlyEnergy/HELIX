@@ -5,6 +5,8 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
+from seed.models.certification import GreenAssessment
+
 from zeep.exceptions import Fault
 
 from autoload import autoload
@@ -37,7 +39,7 @@ def helix_hes(request):
         "metric": hes_res["base_score"],
         "version": hes_res["hescore_version"],
         "date": hes_res["assessment_date"],
-        "assessment": HES_ASSESSMENT_ID
+        "assessment": GreenAssessment.objects.get(pk=HES_ASSESSMENT_ID)
     }
 
     loader = autoload.AutoLoad(request.user,request.user.default_organization)
@@ -59,6 +61,6 @@ def helix_hes(request):
     if(response['status'] == 'error'):
         return JsonResponse(response)
 
-#    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,'2')
+    response = loader.create_green_assessment_property(response['import_file_id'],green_assessment_mapping,'2',hes_res['address'])
 
     return JsonResponse(response)
