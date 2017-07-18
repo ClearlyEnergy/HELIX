@@ -53,8 +53,8 @@ class TestHelixView(TestCase):
 
     def test_helix_hes_bad_id_404(self):
         res = self.client.get(reverse('helix:helix_hes'),{'user_key':'ce4cdc28710349a1bbb4b7a047b65837','building_id':1425434})
-        self.assertEqual(404,res.status_code)
+        self.assertEqual(400,res.status_code)
 
     def test_helix_hes_bad_hes_key_404(self):
         res = self.client.get(reverse('helix:helix_hes'),{'user_key':'ce4cdc28710349a1bbb4b7a047b65827','building_id':142543})
-        self.assertEqual(404,res.status_code)
+        self.assertEqual(400,res.status_code)
