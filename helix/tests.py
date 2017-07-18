@@ -1,9 +1,11 @@
+import datetime
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.models import Cycle
+from seed.models.certification import GreenAssessment
 
 
 class TestHelixView(TestCase):
@@ -28,6 +30,18 @@ class TestHelixView(TestCase):
 
         self.cycle = Cycle.objects.create(organization=self.org,user=self.user,name="test",start=timezone.now(),end=timezone.now())
         self.cycle.save()
+
+        GreenAssessment.objects.create(
+            name='Home Energy Score',
+            award_body='Department of Energy',
+            recognition_type='SCR',
+            description='Developed by DOE...',
+            is_numeric_score=True,
+            is_integer_score=True,
+            validity_duration=datetime.timedelta(days=365),
+            organization=self.org)
+
+
 
     def test_helix_home(self):
         res = self.client.get(reverse('helix:helix_home'))
