@@ -1,9 +1,5 @@
-<!doctype html>
-<html>
-    <head>
-        <title>HELIX Index</title>
-    </head>
-    <body>
+{% extends "seed/base.html" %}
+{% block content %}
 
         HES API Key:<br>
         <input type="text" id="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
@@ -12,6 +8,9 @@
         <button onclick=get_hes_data()>Press For HES Upload!</button>
         <div id=result></div>
 
+{% endblock %}
+
+{% block js %}
         <script>
             //consider rewriting this using angular js to be consistent with
             //existing seed javascript
@@ -34,5 +33,4 @@
                 req.send()
             }
         </script>
-    </body>
-</html>
+{% endblock %}
