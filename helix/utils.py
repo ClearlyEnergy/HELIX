@@ -12,6 +12,37 @@ from zeep.exceptions import Fault
 from autoload import autoload
 from hes import hes
 
+def helix_csv_upload(user, hes_api_key, csv_file):
+    # load some of the data dirrectly from csv
+    loader = autoload.AutoLoad(user,user.default_organization)
+    col_mappings = [{'to_field': 'address_line_1', 'to_table_name': 'PropertyState', 'from_field': 'address_line_1'},
+                    {'to_field': 'address_line_2', 'to_table_name': 'PropertyState', 'from_field': 'address_line_2'},
+                    {'to_field': 'city', 'to_table_name': 'PropertyState', 'from_field': 'city'},
+                    {'to_field': 'state', 'to_table_name': 'PropertyState', 'from_field': 'state'},
+                    {'to_field': 'postal_code', 'to_table_name': 'PropertyState', 'from_field': 'postal_code'},
+                    {'to_field': 'year_built', 'to_table_name': 'PropertyState', 'from_field': 'year_built'},
+                    {'to_field': 'conditioned_floor_area', 'to_table_name': 'PropertyState', 'from_field': 'conditioned_floor_area'}]
+
+    response = loader.autoload_file(csv_file,"helix_csv_import","2",col_mappings)
+
+    if(response['status'] == 'error'):
+        return response
+
+    # if a hes building id is provided for a property,
+    # get the hes data
+    dict_data = csv.DictReader(csv_file.split('\n'))
+    for row in dict_data:
+        if (row['green_assessment_reference_id'] != '' and row['green_assessment_name']=='Home Energy Score'):
+            building_info = {'user_key':hes_api_key,'building_id':row['green_assessment_reference_id']}
+            response = helix_hes(user,building_info)
+            if(response['status'] == 'error'):
+                return response
+
+    return {'status':'success'}
+
+
+
+
 def helix_hes(user,building_info):
     try:
         hes_res = hes.hes_helix(building_info)
@@ -48,10 +79,8 @@ def helix_hes(user,building_info):
     csv_file = buf.getvalue()
     buf.close()
 
-    buf = StringIO.StringIO(csv_file)
-
     org_id = str(user.default_organization_id)
-    response = loader.autoload_file(buf,"hes-res","2",col_mappings)
+    response = loader.autoload_file(csv_file,"hes-res","2",col_mappings)
 
     if(response['status'] == 'error'):
         return response

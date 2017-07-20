@@ -10,16 +10,28 @@ from seed.models.certification import GreenAssessment
 from zeep.exceptions import Fault
 
 from autoload import autoload
-from helix.utils import helix_hes as helix_hes_util
+import helix.utils
 from hes import hes
 
 @login_required
 def helix_home(request):
     return render(request,'helix/index.html')
 
+@login_required
 def helix_hes(request):
     building_info={'user_key':request.GET['user_key'],'building_id':request.GET['building_id']}
-    res = helix_hes_util(request.user,building_info)
+    res = helix.utils.helix_hes(request.user,building_info)
+    if(res['status'] == 'error'):
+        return JsonResponse(res,status=400)
+    else:
+        return JsonResponse(res,status=200)
+
+@login_required
+def helix_csv_upload(request):
+    api_key = request.POST['user_key']
+    data = request.FILES['helix_csv'].read()
+
+    res = helix.utils.helix_csv_upload(request.user,api_key,data)
     if(res['status'] == 'error'):
         return JsonResponse(res,status=400)
     else:

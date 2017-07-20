@@ -1,12 +1,24 @@
 {% extends "seed/base.html" %}
 {% block content %}
+        <h1>HELIX HES Upload Interface</h1>
 
+        <h2>Upload Single HES Building</h2>
         HES API Key:<br>
         <input type="text" id="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
         HES Building ID:<br>
         <input type="text" id="building_id" value="142543"><br>
         <button onclick=get_hes_data()>Press For HES Upload!</button>
         <div id=result></div>
+
+        <h2>Upload HELIX csv File</h2>
+        <form action='/helix/helix-csv-upload/' method='post'  enctype="multipart/form-data">
+            {% csrf_token %}
+            HES API Key:<br>
+            <input type="text" name="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
+            HELIX csv File:<br>
+            <input type="file" name="helix_csv">
+            <input type="submit" value="Press for CSV Upload!">
+        </form>
 
 {% endblock %}
 
