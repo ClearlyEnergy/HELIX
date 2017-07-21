@@ -11,6 +11,7 @@
     <h4 class="modal-title" ng-switch-when="10">{$ step_10_title|titleCase $}</h4>
     <h4 class="modal-title" ng-switch-when="11">Confirm Save Mappings?</h4>
     <h4 class="modal-title" ng-switch-when="12">Error Processing Data</h4>
+    <h4 class="modal-title" ng-switch-when="13">HES Data Upload</h4>
 </div>
 <div class="modal-body no_bottom_padding" ng-switch on="step.number">
     <!-- Step 1 -->
@@ -64,7 +65,7 @@
 
         <!-- begin modifications -->
         <div class="row">
-            <div class="col-sm-8 col-sm-offset-2" sd-uploader sourcetype="Assessed Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload HELIX Data" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="false" style="padding-top: 10px;">Upload Helix Data</div>
+            <button class="col-sm-8 col-sm-offset-2" ng-click="step.number=13">Upload HES Data</button>
         </div>
         <!-- end modifications -->
 
@@ -210,6 +211,60 @@
             </div>
         </div>
     </div>
+
+    <!-- begin changes-->
+    <!-- copy pasted code from helix/index.html-->
+    <div ng-switch-when="13">
+        <div style='text-align:center;margin: auto;'>
+        <h1>HELIX HES Upload Interface</h1>
+
+        <h2>Upload Single HES Building</h2>
+        HES API Key:<br>
+        <input type="text" id="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
+        HES Building ID:<br>
+        <input type="text" id="building_id" value="142543"><br>
+        <button onclick=get_hes_data()>Press For HES Upload!</button>
+        <div id=result></div>
+
+        <h2>Upload HELIX csv File</h2>
+        <form action='/helix/helix-csv-upload/' method='post'  enctype="multipart/form-data">
+            {% csrf_token %}
+            HES API Key:<br>
+            <input type="text" name="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
+            HELIX csv File:<br>
+            <input type="file" name="helix_csv">
+            <input type="submit" value="Press for CSV Upload!">
+        </form>
+        </div>
+    </div>
+    <script>
+        //consider rewriting this using angular js to be consistent with
+        //existing seed javascript
+        function get_hes_data() {
+            var user_key = document.getElementById('user_key').value
+            var building_id = document.getElementById('building_id').value
+
+            var req = new XMLHttpRequest()
+            req.onreadystatechange = function() {
+                if (req.readyState == 4 ) {
+                    if (req.status == 200){
+                        document.getElementById('result').innerHTML = "Upload successfull"
+                    } else {
+                        document.getElementById('result').innerHTML = "Upload failed"
+                    }
+
+                }
+            }
+            req.open("GET","/helix/helix-hes/?user_key="+user_key+"&building_id="+building_id)
+            req.send()
+        }
+
+        function helix_res_csv_upload() {
+            car 
+    </script>
+
+    <!-- end changes-->
+
 </div>
 
 <div class="modal-footer container-fluid" ng-switch on="step.number">
