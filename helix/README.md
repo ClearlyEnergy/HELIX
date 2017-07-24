@@ -1,9 +1,9 @@
 # Setup
-  * Copy helix module folder into seed directoy 
-  * Install modules helix-hes and seed-autoload
+  * Copy or sym-link helix module folder into seed directoy 
+  * Install modules helix-hes and seed-autoload (for development, these can be symlinked into he seed directory instead)
   * Add to config/settings/common.py
      ```
-     INSTALLED_APPS = ('helix',) + INSTALLED_APPS 
+     INSTALLED_APPS = ('helix','autoload','hes',) + INSTALLED_APPS 
      ```
     This should place helix templates at a higher priority than existing seed templates.
     (It might be better to add this to config/settings/local_untracked.py)
