@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
 import helix.utils
@@ -30,4 +30,4 @@ def helix_csv_upload(request):
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
-        return JsonResponse(res, status=200)
+        return redirect('seed:home')
