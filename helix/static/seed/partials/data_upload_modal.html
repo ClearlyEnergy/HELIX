@@ -228,7 +228,7 @@
 
         <h2>Upload HELIX csv File</h2>
         <form action='/helix/helix-csv-upload/' method='post'  enctype="multipart/form-data">
-            {% csrf_token %}
+            <input id='csrf' type='hidden' name='csrfmiddlewaretoken'/><script>document.getElementById('csrf').value=getCookie('csrftoken')</script>
             HES API Key:<br>
             <input type="text" name="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
             HELIX csv File:<br>
@@ -259,8 +259,23 @@
             req.send()
         }
 
-        function helix_res_csv_upload() {
-            car 
+        //from https://www.w3schools.com/js/js_cookies.asp
+        function getCookie(cname) {
+            var name = cname + "=";
+            var decodedCookie = decodeURIComponent(document.cookie);
+            var ca = decodedCookie.split(';');
+            for(var i = 0; i <ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
     </script>
 
     <!-- end changes-->
