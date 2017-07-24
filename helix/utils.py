@@ -15,13 +15,17 @@ from hes import hes
 def helix_csv_upload(user, hes_api_key, csv_file):
     # load some of the data dirrectly from csv
     loader = autoload.AutoLoad(user,user.default_organization)
+
+    # Hardcoding these because they are known ahead of time but,
+    # there's no reason matching can't be automatic
     col_mappings = [{'to_field': 'address_line_1', 'to_table_name': 'PropertyState', 'from_field': 'address_line_1'},
                     {'to_field': 'address_line_2', 'to_table_name': 'PropertyState', 'from_field': 'address_line_2'},
                     {'to_field': 'city', 'to_table_name': 'PropertyState', 'from_field': 'city'},
                     {'to_field': 'state', 'to_table_name': 'PropertyState', 'from_field': 'state'},
                     {'to_field': 'postal_code', 'to_table_name': 'PropertyState', 'from_field': 'postal_code'},
                     {'to_field': 'year_built', 'to_table_name': 'PropertyState', 'from_field': 'year_built'},
-                    {'to_field': 'conditioned_floor_area', 'to_table_name': 'PropertyState', 'from_field': 'conditioned_floor_area'}]
+                    {'to_field': 'conditioned_floor_area', 'to_table_name': 'PropertyState', 'from_field': 'conditioned_floor_area'},
+                    {'to_field': 'custom_id_1', 'to_table_name': 'PropertyState', 'from_field': 'Internal ID'}]
 
     response = loader.autoload_file(csv_file,"helix_csv_import","2",col_mappings)
 
@@ -39,9 +43,6 @@ def helix_csv_upload(user, hes_api_key, csv_file):
                 return response
 
     return {'status':'success'}
-
-
-
 
 def helix_hes(user,building_info):
     try:
