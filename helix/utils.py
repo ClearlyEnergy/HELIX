@@ -48,22 +48,29 @@ def helix_csv_upload(user, hes_api_key, csv_file):
             response = helix_hes(user, building_info)
             if(response['status'] == 'error'):
                 return response
-        elif (hesID == '' and isHES):
-            # Hardcoded assessment id. Should be abstracted at least a little
-            HES_ASSESSMENT_ID = 1
-            HES_ASSESSMENT = GreenAssessment.objects.get(pk=HES_ASSESSMENT_ID)
+        elif (hesID == ''):
+            assessment = GreenAssessment.objects.get(name=row['green_assessment_name'])
             green_assessment_data = {
                 "source": row["green_assessment_property_source"],
-                "status": row["green_assessment_property_status"],
-                "metric": row["green_assessment_property_metric"],
                 "version": row["green_assessment_property_version"],
                 "date": row["green_assessment_property_date"],
-                "assessment": HES_ASSESSMENT
+                "extra_data": row["green_assessment_property_extra_data"],
+                "assessment": assessment
             }
+
+            isMetric = row["green_assessment_property_metric"] != ''
+            isRating = row["green_assessment_property_rating"] != ''
+            if (isMetric and not isRating):
+                green_assessment_data.update({"metric": row["green_assessment_property_metric"]})
+            elif (isRating and not isMetric):
+                green_assessment_data.update({"rating": row["green_assessment_property_rating"]})
+            elif (isRating and isMetric):
+                return {'status': 'error', 'message': 'assessment should only have one of metric and rating'}
+
             response = loader.create_green_assessment_property(
                 file_id,
                 green_assessment_data,
-                HES_ASSESSMENT.organization.pk,
+                assessment.organization.pk,
                 row['address_line_1'])
             if(response['status'] == 'error'):
                 return response
