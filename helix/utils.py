@@ -31,6 +31,7 @@ def helix_csv_upload(user, hes_api_key, csv_file):
                 mapping_entry('custom_id_1', 'Internal ID')]
 
     response = loader.autoload_file(csv_file, "helix_import", "2", mappings)
+    file_id = response['import_file_id']
 
     if(response['status'] == 'error'):
         return response
@@ -45,6 +46,25 @@ def helix_csv_upload(user, hes_api_key, csv_file):
             building_info = {'user_key': hes_api_key,
                              'building_id': hesID}
             response = helix_hes(user, building_info)
+            if(response['status'] == 'error'):
+                return response
+        elif (hesID == '' and isHES):
+            # Hardcoded assessment id. Should be abstracted at least a little
+            HES_ASSESSMENT_ID = 1
+            HES_ASSESSMENT = GreenAssessment.objects.get(pk=HES_ASSESSMENT_ID)
+            green_assessment_data = {
+                "source": row["green_assessment_property_source"],
+                "status": row["green_assessment_property_status"],
+                "metric": row["green_assessment_property_metric"],
+                "version": row["green_assessment_property_version"],
+                "date": row["green_assessment_property_date"],
+                "assessment": HES_ASSESSMENT
+            }
+            response = loader.create_green_assessment_property(
+                file_id,
+                green_assessment_data,
+                HES_ASSESSMENT.organization.pk,
+                row['address_line_1'])
             if(response['status'] == 'error'):
                 return response
 
