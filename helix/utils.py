@@ -36,12 +36,14 @@ def helix_csv_upload(user, hes_api_key, csv_file):
     if(response['status'] == 'error'):
         return response
 
-    # if a hes building id is provided for a property,
-    # get the hes data
+    # If a green property assessment is provided for the propery
+    # parse the data and create the green assessment entry
     dict_data = csv.DictReader(csv_file.split('\n'))
     for row in dict_data:
         isHES = row['green_assessment_name'] == 'Home Energy Score'
         hesID = row['green_assessment_reference_id']
+        # HES data is handled seperatly because it is the only
+        # assessment for wich an external api is required
         if (hesID != '' and isHES):
             building_info = {'user_key': hes_api_key,
                              'building_id': hesID}
@@ -49,15 +51,19 @@ def helix_csv_upload(user, hes_api_key, csv_file):
             if(response['status'] == 'error'):
                 return response
         elif (hesID == ''):
+            # do data base lookup by name for the assessment
+            # all assessments must exists in the database before upload
             assessment = GreenAssessment.objects.get(name=row['green_assessment_name'])
             green_assessment_data = {
                 "source": row["green_assessment_property_source"],
                 "version": row["green_assessment_property_version"],
                 "date": row["green_assessment_property_date"],
                 "extra_data": row["green_assessment_property_extra_data"],
+                "urls": [row["green_assessment_property_url"]],
                 "assessment": assessment
             }
 
+            # seed requires exactly one of metric or rating
             isMetric = row["green_assessment_property_metric"] != ''
             isRating = row["green_assessment_property_rating"] != ''
             if (isMetric and not isRating):
@@ -91,20 +97,21 @@ def helix_hes(user, building_info):
                 mapping_entry('year_built', 'year_built'),
                 mapping_entry('conditioned_floor_area', 'conditioned_floor_area')]
 
-    # Hardcoded assessment id. Should be abstracted at least a little
-    HES_ASSESSMENT_ID = 1
-    HES_ASSESSMENT = GreenAssessment.objects.get(pk=HES_ASSESSMENT_ID)
+    # find assessment entry for hes by name maybe not the ideal way of getting
+    # it but, better than hardcoding the pk
+    hes_assessment = GreenAssessment.objects.get(name='Home Energy Score')
     green_assessment_data = {
         "source": hes_res["qualified_assessor_id"],
         "status": hes_res["assessment_type"],
         "metric": hes_res["base_score"],
         "version": hes_res["hescore_version"],
         "date": hes_res["assessment_date"],
-        "assessment": HES_ASSESSMENT
+        "assessment": hes_assessment
     }
 
     loader = autoload.AutoLoad(user, user.default_organization)
 
+    # construct a csv string out of the dictionaty retrieved by hes
     buf = StringIO.StringIO()
 
     writer = csv.DictWriter(buf, fieldnames=hes_res.keys())
@@ -123,7 +130,7 @@ def helix_hes(user, building_info):
     response = loader.create_green_assessment_property(
             response['import_file_id'],  # id of initial import file
             green_assessment_data,  # data retreived from HES API
-            HES_ASSESSMENT.organization.pk,
+            hes_assessment.organization.pk,
             hes_res['address'])
 
     return response
