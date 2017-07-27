@@ -75,9 +75,7 @@ def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
                 return {'status': 'error', 'message': 'assessment should only have one of metric and rating'}
 
             response = loader.create_green_assessment_property(
-                file_id,
                 green_assessment_data,
-                assessment.organization.pk,
                 row['address_line_1'])
 
             if(response['status'] == 'error'):
@@ -129,9 +127,7 @@ def helix_hes(user, dataset, cycle, building_info):
         return response
 
     response = loader.create_green_assessment_property(
-            response['import_file_id'],  # id of initial import file
             green_assessment_data,  # data retreived from HES API
-            hes_assessment.organization.pk,
             hes_res['address'])
 
     return response
