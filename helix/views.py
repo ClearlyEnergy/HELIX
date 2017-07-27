@@ -14,8 +14,8 @@ def helix_home(request):
 
 @login_required
 def helix_hes(request):
-    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
-    cycle = Cycle.objects.get(pk=request.POST['cycle'])
+    dataset = ImportRecord.objects.get(pk=request.GET['dataset'])
+    cycle = Cycle.objects.get(pk=request.GET['cycle'])
     building_info = {'user_key': request.GET['user_key'],
                      'building_id': request.GET['building_id']}
     res = utils.helix_hes(request.user, dataset, cycle, building_info)
