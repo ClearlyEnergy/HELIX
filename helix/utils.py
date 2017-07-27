@@ -15,7 +15,7 @@ def mapping_entry(to_field, from_field):
             'from_field': from_field}
 
 
-def helix_csv_upload(user, hes_api_key, csv_file):
+def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
     # load some of the data dirrectly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
 
@@ -30,11 +30,12 @@ def helix_csv_upload(user, hes_api_key, csv_file):
                 mapping_entry('conditioned_floor_area', 'conditioned_floor_area'),
                 mapping_entry('custom_id_1', 'Internal ID')]
 
-    response = loader.autoload_file(csv_file, "helix_import", "2", mappings)
-    file_id = response['import_file_id']
+    response = loader.autoload_file(csv_file, dataset, cycle, mappings)
 
     if(response['status'] == 'error'):
         return response
+
+    file_id = response['import_file_id']
 
     # If a green property assessment is provided for the propery
     # parse the data and create the green assessment entry
@@ -47,7 +48,7 @@ def helix_csv_upload(user, hes_api_key, csv_file):
         if (hesID != '' and isHES):
             building_info = {'user_key': hes_api_key,
                              'building_id': hesID}
-            response = helix_hes(user, building_info)
+            response = helix_hes(user, dataset, cycle, building_info)
             if(response['status'] == 'error'):
                 return response
         elif (hesID == ''):
@@ -78,13 +79,14 @@ def helix_csv_upload(user, hes_api_key, csv_file):
                 green_assessment_data,
                 assessment.organization.pk,
                 row['address_line_1'])
+
             if(response['status'] == 'error'):
                 return response
 
     return {'status': 'success'}
 
 
-def helix_hes(user, building_info):
+def helix_hes(user, dataset, cycle, building_info):
     try:
         hes_res = hes.hes_helix(building_info)
     except Fault as f:
@@ -121,8 +123,7 @@ def helix_hes(user, building_info):
     csv_file = buf.getvalue()
     buf.close()
 
-    org_id = str(user.default_organization_id)
-    response = loader.autoload_file(csv_file, "hes-res", org_id, mappings)
+    response = loader.autoload_file(csv_file, dataset, cycle, mappings)
 
     if(response['status'] == 'error'):
         return response

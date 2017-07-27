@@ -1,8 +1,10 @@
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from seed.models import Cycle
+from seed.data_importer.models import ImportRecord
 
-import helix.utils
+import helix.utils as utils
 
 
 @login_required
@@ -12,9 +14,11 @@ def helix_home(request):
 
 @login_required
 def helix_hes(request):
+    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
+    cycle = Cycle.objects.get(pk=request.POST['cycle'])
     building_info = {'user_key': request.GET['user_key'],
                      'building_id': request.GET['building_id']}
-    res = helix.utils.helix_hes(request.user, building_info)
+    res = utils.helix_hes(request.user, dataset, cycle, building_info)
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
@@ -23,10 +27,12 @@ def helix_hes(request):
 
 @login_required
 def helix_csv_upload(request):
+    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
+    cycle = Cycle.objects.get(pk=request.POST['cycle'])
     api_key = request.POST['user_key']
     data = request.FILES['helix_csv'].read()
 
-    res = helix.utils.helix_csv_upload(request.user, api_key, data)
+    res = utils.helix_csv_upload(request.user, dataset, cycle, api_key, data)
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
