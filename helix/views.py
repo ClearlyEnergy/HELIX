@@ -1,10 +1,12 @@
-from django.http import JsonResponse
+import csv
+
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
 
-from seed.models import Cycle
-from seed.models.certification import GreenAssessment
+from seed.models import Cycle, PropertyView
+from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
 
 import helix.utils as utils
@@ -76,3 +78,28 @@ def helix_csv_upload(request):
         return JsonResponse(res, status=400)
     else:
         return redirect('seed:home')
+
+
+# Export the GreenAssessmentProperty information for the list of property view
+# ids provided
+# Parameters:
+#   view_ids: comma separated list of views ids to retrieve
+# Example:
+#   GET /helix/helix-csv-export/?view_ids=11,12,13,14
+@login_required
+def helix_csv_export(request):
+    view_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
+    views = map(lambda view_id: PropertyView.objects.get(pk=view_id), view_ids)
+    assessments = GreenAssessmentProperty.objects.filter(view__in=views)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="somefilename.csv"'
+
+    fieldnames = [f.name for f in GreenAssessmentProperty._meta.get_fields()]
+    writer = csv.writer(response)
+
+    writer.writerow([str(f) for f in fieldnames])
+    for a in assessments:
+        writer.writerow([str(getattr(a, f)) for f in fieldnames])
+
+    return response
