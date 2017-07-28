@@ -1,10 +1,11 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
+from django.template.loader import render_to_string
 
-from seed.models import Cycle
-from seed.models.certification import GreenAssessment
+from seed.models import Cycle, PropertyView
+from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
 
 import helix.utils as utils
@@ -76,3 +77,26 @@ def helix_csv_upload(request):
         return JsonResponse(res, status=400)
     else:
         return redirect('seed:home')
+
+
+# http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11
+@login_required
+def helix_reso_export_xml(request):
+    propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    start_date = request.GET['start_date']
+    end_date = request.GET['end_date']
+
+    # select green assessment properties that are in the specified range
+    # and associated with the correct property view
+    matching_assessments = GreenAssessmentProperty.objects.filter(
+        view=propertyview,
+        date__range=(start_date, end_date))
+
+    # use this list as part of the context to render an xml response
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'assessment_list': matching_assessments}
+    rendered_xml = render_to_string('reso_export_template.xml', context)
+
+    return HttpResponse(rendered_xml, content_type='text/xml')

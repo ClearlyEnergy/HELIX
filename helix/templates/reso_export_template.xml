@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<GreenAssessmentProperties start="{{ start_date}} " end="{{ end_date }}">
+        {% for assessment_property in assessment_list %}
+        <GreenAssessmentProperty date="{{ assessment_property.date }}" extra_date="{{ assessment_property.extra_data }}">
+                {% for k,v in assessment_property.to_reso_dict.items %}
+                <{{ k }}>{{ v }}</{{ k }}>
+                {% endfor %}
+        </GreenAssessmentProperty>
+        {% endfor %}
+</GreenAssessmentProperties>
