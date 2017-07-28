@@ -1,20 +1,28 @@
 
 /* Color for the text */
-a {
+a, a:active, a:focus, a:hover, a:visited{
   color:#00a0af; 
   text-decoration: none;
 }
 
-
 /* Color for the buttons */ 
-.btn-primary{
+.btn-primary, .btn-primary:active, .btn-primary:hover, .btn-primary:visited, .btn-primary:focus,
+.btn-prmary:active:focus, .btn-primary:active:hover{
     color: #fff ;
     background-color: #00a0af;
     border-color: #00a0af;
 }
 
-.btn-info{
+.btn-info, .btn-info.active, .btn-info:active, .btn-info:hover, .btn-info:focus, .btn-info:visited,
+.btn-prmary:active:focus, .btn-primary:active:hover, .open>.dropdown-toggle.btn-info{
 	color:#fff;
 	background-color:#00a0af;
 	border-color: #00a0af;
+}
+
+/* color for disabled buttons */
+
+.btn-primary[disabled]:hover{
+    background-color: #00a0af;
+    border-color: #00a0af;
 }
