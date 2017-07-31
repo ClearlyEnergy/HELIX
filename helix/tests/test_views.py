@@ -1,6 +1,7 @@
 import datetime
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from django.core import management
 from django.utils import timezone
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
@@ -12,6 +13,9 @@ from seed.data_importer.models import ImportRecord
 class TestHelixView(TestCase):
 
     def setUp(self):
+        management.call_command('loaddata', 'doe_org.json', verbosity=0)
+        management.call_command('loaddata', 'greenassessments.json', verbosity=0)
+
         self.user = User.objects.create(username='test_user@demo.com')
         self.user.set_password('test_pass')
         self.user.email = 'test_user@demo.com'
@@ -44,16 +48,6 @@ class TestHelixView(TestCase):
                 owner=self.user
         )
 
-        GreenAssessment.objects.create(
-            name='Home Energy Score',
-            award_body='Department of Energy',
-            recognition_type='SCR',
-            description='Developed by DOE...',
-            is_numeric_score=True,
-            is_integer_score=True,
-            validity_duration=datetime.timedelta(days=365),
-            organization=self.org)
-
     def test_helix_home(self):
         res = self.client.get(reverse('helix:helix_home'))
         self.assertEqual(200, res.status_code)
@@ -66,7 +60,7 @@ class TestHelixView(TestCase):
         res = self.client.get(reverse('helix:helix_hes'), data)
         self.assertEqual(200, res.status_code)
 
-    def test_helix_hes_bad_id_404(self):
+    def test_helix_hes_bad_id_400(self):
         data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65837',
                 'building_id': 1425434,
                 'dataset':self.record.pk,
@@ -75,7 +69,7 @@ class TestHelixView(TestCase):
         res = self.client.get(reverse('helix:helix_hes'), data)
         self.assertEqual(400, res.status_code)
 
-    def test_helix_hes_bad_hes_key_404(self):
+    def test_helix_hes_bad_hes_key_400(self):
         data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65827',
                 'building_id': 142543,
                 'dataset':self.record.pk,
@@ -83,3 +77,15 @@ class TestHelixView(TestCase):
 
         res = self.client.get(reverse('helix:helix_hes'), data)
         self.assertEqual(400, res.status_code)
+
+    def test_helix_csv_upload(self):
+         with open('../helix_upload_sample.csv') as csv:
+             data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65837',
+                    'building_id': 1425434,
+                    'dataset':self.record.pk,
+                    'cycle':self.cycle.pk,
+                    'helix_csv':csv}
+             res = self.client.post(reverse('helix:helix_csv_upload'), data)
+             self.assertEqual(302, res.status_code)
+
+
