@@ -1,8 +1,15 @@
 
 /* Color for the text */
-a, a:active, a:focus, a:hover, a:visited{
+a, a:active, a:visited{
   color:#00a0af; 
   text-decoration: none;
+}
+
+/*underline for focus */
+
+a:focus, a:hover {
+	color:#00a0af;
+    text-decoration: underline;
 }
 
 /* Color for the buttons */ 
