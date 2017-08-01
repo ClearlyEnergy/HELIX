@@ -48,20 +48,25 @@ class TestHelixView(TestCase):
                 owner=self.user
         )
 
+        self.user_key = 'ce4cdc28710349a1bbb4b7a047b65837'
+        self.building_id = '142543'
+
     def test_helix_home(self):
         res = self.client.get(reverse('helix:helix_home'))
         self.assertEqual(200, res.status_code)
 
+    # Check that a simple case of helix_hes return the correct status code
+    # when completed successfully.
     def test_helix_hes(self):
-        data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65837',
-                'building_id': '142543',
+        data = {'user_key': self.user_key,
+                'building_id': self.building_id,
                 'dataset':self.record.pk,
                 'cycle':self.cycle.pk}
         res = self.client.get(reverse('helix:helix_hes'), data)
         self.assertEqual(200, res.status_code)
 
     def test_helix_hes_bad_id_400(self):
-        data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65837',
+        data = {'user_key': self.user_key,
                 'building_id': 1425434,
                 'dataset':self.record.pk,
                 'cycle':self.cycle.pk}
@@ -78,9 +83,11 @@ class TestHelixView(TestCase):
         res = self.client.get(reverse('helix:helix_hes'), data)
         self.assertEqual(400, res.status_code)
 
+    # Check that the most basic upload case returns the expected status
+    # Does not verify the end state of the database is correct
     def test_helix_csv_upload(self):
          with open('../helix_upload_sample.csv') as csv:
-             data = {'user_key': 'ce4cdc28710349a1bbb4b7a047b65837',
+             data = {'user_key': self.user_key,
                     'building_id': 1425434,
                     'dataset':self.record.pk,
                     'cycle':self.cycle.pk,
