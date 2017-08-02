@@ -1,0 +1,53 @@
+{% extends "seed/base.html" %}
+{% block content %}
+<h1>Green Assessments Display</h1>
+<!-- This realy needs be done using some framework like angularjs but I'm
+     not familiar with that and I can't be bothered to learn it right now-->
+<table id='assessment_table'>
+<tr><th>Name</th><th>Recognition Type</th><th>Duration</th></tr>
+</table>
+{% endblock %}
+
+{% block js %}
+<script>
+    get_organizations(function (org) {
+            get_assessments(org,assessment_callback);
+    });
+
+    function get_organizations(callback) {
+         var req_orgs = new XMLHttpRequest();
+         req_orgs.onreadystatechange = function() {
+             if (req_orgs.readyState == 4 && req_orgs.status == 200) {
+                 JSON.parse(req_orgs.response)['organizations'].forEach(callback);
+             }
+         }
+         req_orgs.open("GET","/api/v2/organizations/");
+         req_orgs.send();
+    }
+
+    function get_assessments(org, callback) {
+        var req_assess = new XMLHttpRequest();
+        req_assess.onreadystatechange = function(){
+            if (req_assess.readyState == 4 && req_assess.status == 200) {
+                JSON.parse(req_assess.response)['data'].forEach(callback);
+            }
+        }
+        req_assess.open("GET","/api/v2/green_assessments/?organization_id="+org.id);
+        req_assess.send();
+    }
+
+    function assessment_callback(assessment) {
+        console.log(assessment)
+        var new_row = document.getElementById('assessment_table').insertRow();
+
+        var name_cell = new_row.insertCell(0);
+        name_cell.innerHTML = assessment['name'];
+
+        var recognition_cell = new_row.insertCell(1);
+        recognition_cell.innerHTML = assessment['recognition_type'];
+
+        var duration_cell = new_row.insertCell(2);
+        duration_cell.innerHTML = assessment['validity_duration']
+    }
+</script>
+{% endblock %}

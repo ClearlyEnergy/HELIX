@@ -16,6 +16,10 @@ import helix.utils as utils
 def helix_home(request):
     return render(request, 'helix/index.html')
 
+@login_required
+def assessment_view(request):
+    return render(request, 'helix/green_assessments.html')
+
 
 # Retrieve building data for a single building_id from the HES api.
 # responds with status 200 on success, 400 on fail
