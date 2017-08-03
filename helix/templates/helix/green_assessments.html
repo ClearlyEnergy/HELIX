@@ -1,37 +1,104 @@
 {% extends "seed/base.html" %}
+
 {% block content %}
-<h1>Green Assessments Display</h1>
-<!-- This realy needs be done using some framework like angularjs but I'm
-     not familiar with that and I can't be bothered to learn it right now-->
-<table id='assessment_table'>
-<tr><th>Name</th><th>Recognition Type</th><th>Duration</th></tr>
-</table>
 
-<h1>Create Green Assessments</h1>
-<form id='create_form' method='POST' action='/api/v2/green_assessments/'>
-{% csrf_token %}
-Name: <input type='text' name='name'><br>
+<div ng-controller="menu_controller">
 
-Recogntion Type: 
-<select name='recognition_type' form='create_form'>
-   <option value='SCR'>Score</option>
-   <option value='CRT'>Score</option>
-   <option value="AWD">Award</option>
-   <option value="LBL">Label</option>
-   <option value="PRT">Participant</option>
-   <option value="RAT">Rating</option>
-   <option value="ZER">Zero Energy Ready home</option>
-</select> <br>
+        {% include "seed/_sidebar.html" %}
 
-<input type='submit'>
-</form>
+    <div class="display">
+        <div ng-class="{narrow: narrow_controller, wide: wide_controller, content: true, hide_transition:is_initial_state}">
+
+            {% include "seed/_header.html" %}
+
+                <div class="page_header_container">
+                    <div class="page_header">
+                        <div class="left page_action_container"></div>
+                            <div class="page_title">
+                                <h1>Green Assessments</h1>
+                            </div>
+                        <div class="right page_action_container"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+
+                    <div class="section_header_container">
+                        <div class="section_header">
+                            <i class="fa">GR</i><h2>Green Assessments Display</h2>
+                        </div>
+                    </div>
+
+                    <div class="section_content_container">
+                        <div class="section_content">
+                            <div class="table_list_container">
+                                <table class="container table-striped table_highlight_first" id='assessment_table'>
+                                    <tr><th>Name</th><th>Recognition Type</th><th>Duration</th></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section_header_container">
+                        <div class="section_header">
+                            <i class="fa">GR</i><h2>Create Green Assessments</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="section_content_container">
+                        <div class="section_content">
+                            <form class="form-horizontal" role="form" id='create_form' method='POST' action='/api/v2/green_assessments/'>
+                                <div class="modal-body">
+                                    {% csrf_token %}
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="name">Name:</label>
+                                        <div class="col-sm-8">
+                                            <input type='text' class="form-control" id='name' name='name' placeHolder='Enter name'>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="recognition_type">Recognition Type:</label>
+                                        <div class="col-sm-8">
+                                            <select class="form-control" id="recognition_type" name='recognition_type' form='create_form'>
+                                               <option value='SCR'>Score</option>
+                                               <option value='CRT'>Score</option>
+                                               <option value="AWD">Award</option>
+                                               <option value="LBL">Label</option>
+                                               <option value="PRT">Participant</option>
+                                               <option value="RAT">Rating</option>
+                                               <option value="ZER">Zero Energy Ready home</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="submit"></label>
+                                        <input class="col-sm-8 btn btn-primary" id="submit" type='submit' value="Create Assessment">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="page">
+            </div>
+
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block js %}
+{{block.super}}
+<!-- This realy needs be done using some framework like angularjs but I'm
+     not familiar with that and I can't be bothered to learn it right now-->
 <script>
-    get_organizations(function (org) {
-            get_assessments(org,assessment_callback);
-    });
+    window.onload = get_organizations(org_callback);
 
     function get_organizations(callback) {
          var req_orgs = new XMLHttpRequest();
@@ -56,7 +123,6 @@ Recogntion Type:
     }
 
     function assessment_callback(assessment) {
-        console.log(assessment)
         var new_row = document.getElementById('assessment_table').insertRow();
 
         var name_cell = new_row.insertCell(0);
@@ -68,5 +134,10 @@ Recogntion Type:
         var duration_cell = new_row.insertCell(2);
         duration_cell.innerHTML = assessment['validity_duration']
     }
+
+    function org_callback(org){
+        get_assessments(org,assessment_callback);
+    }
+
 </script>
 {% endblock %}
