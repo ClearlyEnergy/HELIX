@@ -6,6 +6,25 @@
 <table id='assessment_table'>
 <tr><th>Name</th><th>Recognition Type</th><th>Duration</th></tr>
 </table>
+
+<h1>Create Green Assessments</h1>
+<form id='create_form' method='POST' action='/api/v2/green_assessments/'>
+{% csrf_token %}
+Name: <input type='text' name='name'><br>
+
+Recogntion Type: 
+<select name='recognition_type' form='create_form'>
+   <option value='SCR'>Score</option>
+   <option value='CRT'>Score</option>
+   <option value="AWD">Award</option>
+   <option value="LBL">Label</option>
+   <option value="PRT">Participant</option>
+   <option value="RAT">Rating</option>
+   <option value="ZER">Zero Energy Ready home</option>
+</select> <br>
+
+<input type='submit'>
+</form>
 {% endblock %}
 
 {% block js %}
