@@ -33,7 +33,7 @@
                         <div class="section_content">
                             <div class="table_list_container">
                                 <table class="container table-striped table_highlight_first" id='assessment_table'>
-                                    <tr><th>Name</th><th>Recognition Type</th><th>Duration</th></tr>
+                                    <tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Duration</th></tr>
                                 </table>
                             </div>
                         </div>
@@ -60,6 +60,13 @@
                                     </div>
 
                                     <div class="form-group">
+                                        <label class="control-label col-sm-3" for="award_body">Award Body:</label>
+                                        <div class="col-sm-8">
+                                            <input type='text' class="form-control" id='award_body' name='award_body' placeHolder='Enter award body'>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
                                         <label class="control-label col-sm-3" for="recognition_type">Recognition Type:</label>
                                         <div class="col-sm-8">
                                             <select class="form-control" id="recognition_type" name='recognition_type' form='create_form'>
@@ -71,6 +78,27 @@
                                                <option value="RAT">Rating</option>
                                                <option value="ZER">Zero Energy Ready home</option>
                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="is_numeric_score">Numeric:</label>
+                                        <div class="col-sm-8">
+                                            <input class="form-control" type="checkbox" id="is_numeric_score"  name="is_numeric_score" value='True'>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="is_integer_score">Integer:</label>
+                                        <div class="col-sm-8">
+                                            <input class="form-control" type="checkbox" id="is_integer_score"  name="is_integer_score" value='True'>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="control-label col-sm-3" for="validity_duration">Duration:</label>
+                                        <div class="col-sm-8">
+                                            <input type='number' class="form-control" id='validity_duration' name='validity_duration' placeHolder='Enter duration in days'>
                                         </div>
                                     </div>
 
@@ -128,10 +156,19 @@
         var name_cell = new_row.insertCell(0);
         name_cell.innerHTML = assessment['name'];
 
-        var recognition_cell = new_row.insertCell(1);
+        var body_cell = new_row.insertCell(1);
+        body_cell.innerHTML = assessment['award_body'];
+
+        var recognition_cell = new_row.insertCell(2);
         recognition_cell.innerHTML = assessment['recognition_type'];
 
-        var duration_cell = new_row.insertCell(2);
+        var numeric_cell = new_row.insertCell(3);
+        numeric_cell.innerHTML = assessment['is_numeric_score']?'&#10004;':'';
+
+        var integer_cell = new_row.insertCell(4);
+        integer_cell.innerHTML = assessment['is_integer_score']?'&#10004;':'';
+
+        var duration_cell = new_row.insertCell(5);
         duration_cell.innerHTML = assessment['validity_duration']
     }
 
