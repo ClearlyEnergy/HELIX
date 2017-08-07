@@ -33,7 +33,7 @@
                         <div class="section_content">
                             <div class="table_list_container">
                                 <table class="container table-striped table_highlight_first" id='assessment_table'>
-                                    <tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Duration</th></tr>
+                                    <tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Duration</th><th>Delete</th></tr>
                                 </table>
                             </div>
                         </div>
@@ -143,14 +143,14 @@
         var req_assess = new XMLHttpRequest();
         req_assess.onreadystatechange = function(){
             if (req_assess.readyState == 4 && req_assess.status == 200) {
-                JSON.parse(req_assess.response)['data'].forEach(callback);
+                JSON.parse(req_assess.response)['data'].forEach(function(assessment) {callback(assessment,org.id)});
             }
         }
         req_assess.open("GET","/api/v2/green_assessments/?organization_id="+org.id);
         req_assess.send();
     }
 
-    function assessment_callback(assessment) {
+    function assessment_callback(assessment, org_id) {
         var new_row = document.getElementById('assessment_table').insertRow();
 
         var name_cell = new_row.insertCell(0);
@@ -170,11 +170,28 @@
 
         var duration_cell = new_row.insertCell(5);
         duration_cell.innerHTML = assessment['validity_duration']
+
+        var del_cell = new_row.insertCell(6);
+        del_cell.innerHTML = "<a href='#' onclick='delete_assessment("+assessment['id']+","+org_id+")'>&#10007;</text>";
     }
 
     function org_callback(org){
         get_assessments(org,assessment_callback);
     }
+
+    function delete_assessment(assessment_id, org_id) {
+        var del_req = new XMLHttpRequest();
+        del_req.onreadystatechange = function(){
+            if (del_req.readyState == 4 && del_req.status == 204) {
+                window.location.reload();
+            }
+        }
+        del_req.open("DELETE","/api/v2/green_assessments/"+assessment_id+"/?organization_id="+org_id);
+        del_req.setRequestHeader('X-CSRFToken','{{ csrf_token }}');
+        del_req.send();
+    }
+
+
 
 </script>
 {% endblock %}
