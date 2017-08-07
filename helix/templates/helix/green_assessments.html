@@ -154,7 +154,7 @@
         var new_row = document.getElementById('assessment_table').insertRow();
 
         var name_cell = new_row.insertCell(0);
-        name_cell.innerHTML = assessment['name'];
+        name_cell.innerHTML = "<a href='/helix/assessments/edit/?id="+assessment['id']+"'>"+assessment['name']+"</a>";
 
         var body_cell = new_row.insertCell(1);
         body_cell.innerHTML = assessment['award_body'];
