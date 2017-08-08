@@ -127,6 +127,7 @@
 
     function assessment_callback(assessment, org_id) {
         var new_row = document.getElementById('assessment_table').getElementsByTagName('tbody')[0].insertRow();
+        new_row.id = 'assessment_row_'+assessment['id'];
 
         var name_cell = new_row.insertCell(0);
         name_cell.innerHTML = "<a href='/app/#/assessments/edit/"+assessment['id']+"'>"+assessment['name']+"</a>";
@@ -163,7 +164,8 @@
         var del_req = new XMLHttpRequest();
         del_req.onreadystatechange = function(){
             if (del_req.readyState == 4 && del_req.status == 204) {
-                reload_table();
+                row = document.getElementById('assessment_row_'+assessment_id);
+                row.parentNode.removeChild(row);
             }
         }
         del_req.open("DELETE","/api/v2/green_assessments/"+assessment_id+"/?organization_id="+org_id);
