@@ -1,7 +1,10 @@
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.template import RequestContext
+
 from seed.models import Cycle
+from seed.models.certification import GreenAssessment
 from seed.data_importer.models import ImportRecord
 
 import helix.utils as utils
@@ -15,6 +18,18 @@ import helix.utils as utils
 @login_required
 def helix_home(request):
     return render(request, 'helix/index.html')
+
+
+@login_required
+def assessment_view(request):
+    return render(request, 'helix/green_assessments.html')
+
+
+@login_required
+def assessment_edit(request):
+    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
+    context = RequestContext(request, {'assessment': assessment})
+    return render(request, 'helix/assessment_edit.html', context)
 
 
 # Retrieve building data for a single building_id from the HES api.

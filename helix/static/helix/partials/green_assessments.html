@@ -1,0 +1,198 @@
+<div class="page_header_container">
+    <div class="page_header">
+        <div class="left page_action_container"></div>
+            <div class="page_title">
+                <h1>Green Assessments</h1>
+            </div>
+        <div class="right page_action_container"></div>
+    </div>
+</div>
+
+<div class="section">
+
+    <div class="section_header_container">
+        <div class="section_header">
+            <i class="fa">GR</i><h2>Green Assessments Display</h2>
+        </div>
+    </div>
+
+    <div class="section_content_container">
+        <div class="section_content">
+            <div class="table_list_container">
+                <table class="container table-striped table_highlight_first" id='assessment_table'>
+                    <thead><tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Duration</th><th>Delete</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="section_header_container">
+        <div class="section_header">
+            <i class="fa">GR</i><h2>Create Green Assessments</h2>
+        </div>
+    </div>
+
+
+    <div class="section_content_container">
+        <div class="section_content">
+            <form class="form-horizontal" role="form" id='create_form'>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="name">Name:</label>
+                        <div class="col-sm-8">
+                            <input type='text' class="form-control" id='name' name='name' placeHolder='Enter name'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="award_body">Award Body:</label>
+                        <div class="col-sm-8">
+                            <input type='text' class="form-control" id='award_body' name='award_body' placeHolder='Enter award body'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="recognition_type">Recognition Type:</label>
+                        <div class="col-sm-8">
+                            <select class="form-control" id="recognition_type" name='recognition_type' form='create_form'>
+                               <option value='SCR'>Score</option>
+                               <option value='CRT'>Score</option>
+                               <option value="AWD">Award</option>
+                               <option value="LBL">Label</option>
+                               <option value="PRT">Participant</option>
+                               <option value="RAT">Rating</option>
+                               <option value="ZER">Zero Energy Ready home</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="is_numeric_score">Numeric:</label>
+                        <div class="col-sm-8">
+                            <input class="form-control" type="checkbox" id="is_numeric_score"  name="is_numeric_score" value='True'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="is_integer_score">Integer:</label>
+                        <div class="col-sm-8">
+                            <input class="form-control" type="checkbox" id="is_integer_score"  name="is_integer_score" value='True'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="validity_duration">Duration:</label>
+                        <div class="col-sm-8">
+                            <input type='number' class="form-control" id='validity_duration' name='validity_duration' placeHolder='Enter duration in days'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="submit"></label>
+                        <button class="col-sm-8 btn btn-primary" id="submit" onclick="create_assessment();">Create Assessment</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- This realy needs be done using some framework like angularjs but I'm
+     not familiar with that and I can't be bothered to learn it right now-->
+<script>
+    reload_table();
+
+    function get_organizations(callback) {
+         var req_orgs = new XMLHttpRequest();
+         req_orgs.onreadystatechange = function() {
+             if (req_orgs.readyState == 4 && req_orgs.status == 200) {
+                 JSON.parse(req_orgs.response)['organizations'].forEach(callback);
+             }
+         }
+         req_orgs.open("GET","/api/v2/organizations/");
+         req_orgs.send();
+    }
+
+    function get_assessments(org, callback) {
+        var req_assess = new XMLHttpRequest();
+        req_assess.onreadystatechange = function(){
+            if (req_assess.readyState == 4 && req_assess.status == 200) {
+                JSON.parse(req_assess.response)['data'].forEach(function(assessment) {callback(assessment,org.id)});
+            }
+        }
+        req_assess.open("GET","/api/v2/green_assessments/?organization_id="+org.id);
+        req_assess.send();
+    }
+
+    function assessment_callback(assessment, org_id) {
+        var new_row = document.getElementById('assessment_table').getElementsByTagName('tbody')[0].insertRow();
+        new_row.id = 'assessment_row_'+assessment['id'];
+
+        var name_cell = new_row.insertCell(0);
+        name_cell.innerHTML = "<a href='/app/#/assessments/edit/"+assessment['id']+"'>"+assessment['name']+"</a>";
+
+        var body_cell = new_row.insertCell(1);
+        body_cell.innerHTML = assessment['award_body'];
+
+        var recognition_cell = new_row.insertCell(2);
+        recognition_cell.innerHTML = assessment['recognition_description'];
+
+        var numeric_cell = new_row.insertCell(3);
+        numeric_cell.innerHTML = assessment['is_numeric_score']?'&#10004;':'';
+
+        var integer_cell = new_row.insertCell(4);
+        integer_cell.innerHTML = assessment['is_integer_score']?'&#10004;':'';
+
+        var duration_cell = new_row.insertCell(5);
+        duration_cell.innerHTML = assessment['validity_duration']
+
+        var del_cell = new_row.insertCell(6);
+        del_cell.innerHTML = "<a href='#/assessments' onclick='delete_assessment("+assessment['id']+","+org_id+");return false;'>&#10007;</text>";
+    }
+
+    function org_callback(org){
+        get_assessments(org,assessment_callback);
+    }
+
+    function reload_table(){
+        document.getElementById('assessment_table').getElementsByTagName('tbody')[0].innerHTML = '';
+        get_organizations(org_callback);
+    }
+
+    function delete_assessment(assessment_id, org_id) {
+        var del_req = new XMLHttpRequest();
+        del_req.onreadystatechange = function(){
+            if (del_req.readyState == 4 && del_req.status == 204) {
+                row = document.getElementById('assessment_row_'+assessment_id);
+                row.parentNode.removeChild(row);
+            }
+        }
+        del_req.open("DELETE","/api/v2/green_assessments/"+assessment_id+"/?organization_id="+org_id);
+        del_req.setRequestHeader('X-CSRFToken',getCookie('csrftoken'));
+        del_req.send();
+    }
+
+    function create_assessment(){
+        var create_req = new XMLHttpRequest();
+        create_req.onreadystatechange = function(){
+            if (create_req.readyState == 4 && create_req.status == 201) {
+                reload_table();
+            }
+        }
+        create_req.open("POST","/api/v2/green_assessments/");
+
+        create_req.setRequestHeader('X-CSRFToken',getCookie('csrftoken'));
+
+        data = new FormData(document.getElementById('create_form'));
+        create_req.send(data);
+    }
+
+    // Taken from stackexchange post by user kirlich
+    // https://stackoverflow.com/a/15724300/3179747
+    function getCookie(name) {
+        var value = "; " + document.cookie;
+        var parts = value.split("; " + name + "=");
+        if (parts.length == 2) return parts.pop().split(";").shift();
+    }
+</script>
