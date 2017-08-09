@@ -65,7 +65,8 @@ def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
                 "date": row["green_assessment_property_date"],
                 "extra_data": row["green_assessment_property_extra_data"],
                 "urls": [row["green_assessment_property_url"]],
-                "assessment": assessment
+                "assessment": assessment,
+                "disclosure": row["disclosure"]
             }
 
             # seed requires exactly one of metric or rating
