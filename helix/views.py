@@ -4,11 +4,13 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
+from django.template.loader import render_to_string
 
 from seed.models import Cycle, PropertyView
 from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
 
+from helix.models import HELIXGreenAssessmentProperty
 import helix.utils as utils
 
 
@@ -104,3 +106,34 @@ def helix_csv_export(request):
         writer.writerow([str(getattr(a, f)) for f in fieldnames])
 
     return response
+
+
+# http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
+@login_required
+def helix_reso_export_xml(request):
+    propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    start_date = request.GET['start_date']
+    end_date = request.GET['end_date']
+
+    # There should be some sort of check here to see if the user has permission
+    # to see this private data at all. Not sure what the criteria for this would be.
+    get_private = request.GET['private_data'] == 'True'
+
+    # select green assessment properties that are in the specified range
+    # and associated with the correct property view
+    matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
+        view=propertyview,
+        date__range=(start_date, end_date))
+
+    # filter out any private data if it has not been requested
+    if (not get_private):
+        matching_assessments = filter(lambda e: e.disclosure, matching_assessments)
+
+    # use this list as part of the context to render an xml response
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'assessment_list': matching_assessments}
+    rendered_xml = render_to_string('reso_export_template.xml', context)
+
+    return HttpResponse(rendered_xml, content_type='text/xml')

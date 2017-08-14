@@ -45,5 +45,12 @@
     urlpatterns = [url(r'^helix/', include('helix.urls', namespace="helix", app_name="helix"))] + urlpatterns
     ```
     This should register the url unique to the HELIX module with django.
+  * Run
+    ```
+    ./manage.py makemigrations
+    ./manage.py migrate
+    ```
+  * Examine database with tool of choice to verify the presence of two new tables.
   * Start server. Seed logo should be replaced with helix.
   * Helix upload capabilities can be verified by attempting to upload a HELIX csv file through the interface on the seed main page.
+  * Navigate to http://localhost:8000/helix to verify that the page displays correctly
