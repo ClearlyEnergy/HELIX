@@ -9,12 +9,17 @@ angular.module('BE.seed.controller.export_inventory_modal', []).controller('expo
     $scope.export_type = 'csv';
 
     $scope.export_selected = function () {
+      var filename = $scope.export_name;
+
+      //Begin HELIX changes
       if ($scope.export_type = 'helix_csv') {
-        window.open('/helix/helix-csv-export/?view_ids='+$scope.gridApi.selection.getSelectedRows().map(function(e){return e.id}).toString())
+        selected_views = $scope.gridApi.selection.getSelectedRows().map(function(e){return e.id}).toString();
+        window.open('/helix/helix-csv-export/?view_ids='+selected_views+'&file_name='+filename);
         return;
       }
-      var filename = $scope.export_name,
-        ext = '.' + $scope.export_type;
+      //End changes
+      var ext = '.' + $scope.export_type;
+
       if (!_.endsWith(filename, ext)) filename += ext;
       $scope.gridApi.grid.options.exporterCsvFilename = filename;
       $scope.gridApi.exporter.csvExport(uiGridExporterConstants.SELECTED, uiGridExporterConstants.VISIBLE);

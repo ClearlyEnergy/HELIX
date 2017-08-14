@@ -88,12 +88,13 @@ def helix_csv_upload(request):
 #   GET /helix/helix-csv-export/?view_ids=11,12,13,14
 @login_required
 def helix_csv_export(request):
+    file_name = request.GET['file_name']
     view_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
     views = map(lambda view_id: PropertyView.objects.get(pk=view_id), view_ids)
     assessments = GreenAssessmentProperty.objects.filter(view__in=views)
 
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="somefilename.csv"'
+    response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
 
     fieldnames = [f.name for f in GreenAssessmentProperty._meta.get_fields()]
     writer = csv.writer(response)
