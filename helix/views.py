@@ -13,6 +13,8 @@ from seed.data_importer.models import ImportRecord
 from helix.models import HELIXGreenAssessmentProperty
 import helix.utils as utils
 
+from hes import hes
+
 
 # Responds with an extremely basic helix home page. At the moment this exists
 # as a place to stage testing of our api calls without worrying about
@@ -41,17 +43,18 @@ def assessment_edit(request):
 # Parameters:
 #   dataset: id of import record that data will be uploaded to
 #   cycle: id of cycle that data will be uploaded to
-#   user_key: api key to the hes api
 #   building_id: building id for a building in the hes database
-# Example:
-#   GET /helix/helix-hes/?dataset=1&cycle=1&user_key=ce4cdc28710349a1bbb4b7a047b65837&building_id=142543
+#   user_key: hes api key
+#   user_name: hes username
+#   password: hes password
 @login_required
 def helix_hes(request):
-    dataset = ImportRecord.objects.get(pk=request.GET['dataset'])
-    cycle = Cycle.objects.get(pk=request.GET['cycle'])
-    building_info = {'user_key': request.GET['user_key'],
-                     'building_id': request.GET['building_id']}
-    res = utils.helix_hes(request.user, dataset, cycle, building_info)
+    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
+    cycle = Cycle.objects.get(pk=request.POST['cycle'])
+
+    hes_client = hes.HesHelix(hes.CLIENT_URL, request.POST['user_name'], request.POST['password'], request.POST['user_key'])
+    res = utils.helix_hes(request.user, dataset, cycle, hes_client, request.POST['building_id'])
+
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
@@ -66,16 +69,22 @@ def helix_hes(request):
 # Parameters:
 #   dataset: id of import record that data will be uploaded to
 #   cycle: id of cycle that data will be uploaded to
-#   user_key: api key to the hes api
 #   helix_csv: data file
+#   user_key: hes api key
+#   user_name: hes username@login_required
+#   password: hes password def helix_csv_upload(request):
 @login_required
 def helix_csv_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
-    api_key = request.POST['user_key']
+
+    hes_auth = {'user_key': request.POST['user_key'],
+                'user_name': request.POST['user_name'],
+                'password': request.POST['password']}
+
     data = request.FILES['helix_csv'].read()
 
-    res = utils.helix_csv_upload(request.user, dataset, cycle, api_key, data)
+    res = utils.helix_csv_upload(request.user, dataset, cycle, hes_auth, data)
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:

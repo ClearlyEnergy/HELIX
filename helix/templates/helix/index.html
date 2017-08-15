@@ -3,12 +3,23 @@
         <h1>HELIX HES Upload Interface</h1>
 
         <h2>Upload Single HES Building</h2>
-        HES API Key:<br>
-        <input type="text" id="user_key" value="ce4cdc28710349a1bbb4b7a047b65837"><br>
-        HES Building ID:<br>
-        <input type="text" id="building_id" value="142543"><br>
-        <button onclick=get_hes_data()>Press For HES Upload!</button>
-        <div id=result></div>
+
+        <form action='/helix/helix-hes/' method="POST">
+            {% csrf_token %}
+            HES User:
+            <input type="text" name="user_name" value="TST-HELIX"><br>
+            HES Password:
+            <input type="text" name="password" value="helix123"><br>
+            HES API Key
+            <input type="text" name="user_key" value="520df908c6cb4bea8c14691ee95aff88"><br>
+            HES Building ID:
+            <input type="text" name="building_id" value="142860"><br>
+            Dataset ID:
+            <input type="number" name="dataset"><br>
+            Cycle ID:
+            <input type="number" name="cycle"><br>
+            <input type=submit>
+        </form>
 
         <h2>Upload HELIX csv File</h2>
         <form action='/helix/helix-csv-upload/' method='post'  enctype="multipart/form-data">

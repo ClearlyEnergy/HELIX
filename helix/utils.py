@@ -19,7 +19,7 @@ def mapping_entry(to_field, from_field):
 # Utility that exists to abstract the logic of the helix_csv_upload api call
 # outside of the view. This setup means that the csv upload logic could be
 # easily called through a scheduled task or django management tools
-def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
+def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
     # load some of the data directly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
 
@@ -39,7 +39,7 @@ def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
     if(response['status'] == 'error'):
         return response
 
-    file_id = response['import_file_id']
+    hes_client = None
 
     # If a green property assessment is provided for the property
     # parse the data and create the green assessment entry
@@ -50,9 +50,9 @@ def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
         # HES data is handled separately because it is the only
         # assessment for which an external api is required
         if (hesID != '' and isHES):
-            building_info = {'user_key': hes_api_key,
-                             'building_id': hesID}
-            response = helix_hes(user, dataset, cycle, building_info)
+            if(hes_client is None):
+                hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
+            response = helix_hes(user, dataset, cycle, hes_client, hesID)
             if(response['status'] == 'error'):
                 return response
         elif (hesID == ''):
@@ -86,14 +86,17 @@ def helix_csv_upload(user, dataset, cycle, hes_api_key, csv_file):
             if(response['status'] == 'error'):
                 return response
 
+    if(hes_client is not None):
+        hes_client.end_session()
+
     return {'status': 'success'}
 
 
 # Similar to the above function, this abstracts logic away from the view in a
 # way that should facilitate code reuse.
-def helix_hes(user, dataset, cycle, building_info):
+def helix_hes(user, dataset, cycle, hes_client, building_id):
     try:
-        hes_res = hes.hes_helix(building_info)
+        hes_data = hes_client.query_hes(building_id)
     except Fault as f:
         return {"status": "error", "message": f.message}
 
@@ -108,11 +111,11 @@ def helix_hes(user, dataset, cycle, building_info):
     # it but, better than hardcoding the pk
     hes_assessment = GreenAssessment.objects.get(name='Home Energy Score')
     green_assessment_data = {
-        "source": hes_res["qualified_assessor_id"],
-        "status": hes_res["assessment_type"],
-        "metric": hes_res["base_score"],
-        "version": hes_res["hescore_version"],
-        "date": hes_res["assessment_date"],
+        "source": hes_data["qualified_assessor_id"],
+        "status": hes_data["assessment_type"],
+        "metric": hes_data["base_score"],
+        "version": hes_data["hescore_version"],
+        "date": hes_data["assessment_date"],
         "assessment": hes_assessment
     }
 
@@ -121,9 +124,9 @@ def helix_hes(user, dataset, cycle, building_info):
     # construct a csv string out of the dictionary retrieved by hes
     buf = StringIO.StringIO()
 
-    writer = csv.DictWriter(buf, fieldnames=hes_res.keys())
+    writer = csv.DictWriter(buf, fieldnames=hes_data.keys())
     writer.writeheader()
-    writer.writerow(hes_res)
+    writer.writerow(hes_data)
 
     csv_file = buf.getvalue()
     buf.close()
@@ -135,6 +138,6 @@ def helix_hes(user, dataset, cycle, building_info):
 
     response = loader.create_green_assessment_property(
             green_assessment_data,  # data retrieved from HES API
-            hes_res['address'])
+            hes_data['address'])
 
     return response
