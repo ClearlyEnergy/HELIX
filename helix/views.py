@@ -136,7 +136,7 @@ def helix_reso_export_xml(request):
 
     # filter out any private data if it has not been requested
     if (not get_private):
-        matching_assessments = filter(lambda e: e.disclosure, matching_assessments)
+        matching_assessments = filter(lambda e: e.disclosure != '' , matching_assessments)
 
     # use this list as part of the context to render an xml response
     context = {
