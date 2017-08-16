@@ -1,30 +1,37 @@
 from django.db import models
 from seed.models import certification
-from seed.models.properties import PropertyView
+
 
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
     disclosure = models.TextField(max_length=100)
 
 
-# A table to keep track of energy production and consumption
-# for a property. Schema based on the draft measurement
-# excell sheet.
-class HelixEnergyMeasurement(models.Model):
+class HelixMeasurement(models.Model):
     MEASUREMENT_TYPE_CHOICES = (
         ("PROD", "Production"),
         ("CONS", "Consumption"),
         ("COST", "Cost"),
-        ("EMIT", "Emissions")
-    )
-    # Associating this model with a PropertyView to be consistant with
-    # GreenAssessmentProperty. Maybe should be PropertyState or
-    # Property?
-    view = models.ForeignKey(PropertyView)
+        ("EMIT", "Emissions"))
+    FUEL_CHOICES = (
+        ("ELEC", "Electric"),
+        ("NATG", "Natural Gas"),
+        ("HEAT", "Heating Oil"),
+        ("PROP", "Propane"))
+    UNIT_CHOICES = (
+        ("KWH", "Kilowatt Hours"),
+        ("KW", "Kilowatt"),
+        ("GAL", "Gallon"),
+        ("MMBTU", "mmbtu"),
+        ("TON", "ton co2 equivalents"),
+        ("LB", "pound co2 equivalents"))
+    STATUS_CHOICES = (
+        ("ACTUAL", "Actual"),
+        ("ESTIMATE", "Estimated"),
+        ("PART_ESTIMATE", "Partially Estimated"))
+    view = models.ForeignKey(certification.GreenAssessmentProperty)
     measurement_type = models.CharField(max_length=4, choices=MEASUREMENT_TYPE_CHOICES)
-    # Source of energy/emissions
-    # If there's a finite list of possible sources this could make use
-    # of an enumeration like measurement type
-    source = models.CharField(max_length=100)
-    annual_quantity = models.FloatField(null=True, blank=True)
-    # This could also be taken from an enumeration
-    unit = models.CharField(max_length=100)
+    measurement_subtype = models.CharField(max_length=100)
+    fuel = models.CharField(max_length=4, choices=FUEL_CHOICES)
+    quantity = models.FloatField(null=True, blank=True)
+    unit = models.CharField(max_length=4, choices=UNIT_CHOICES)
+    status = models.CharField(max_length=4, choices=STATUS_CHOICES)
