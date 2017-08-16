@@ -1,6 +1,6 @@
 import csv
 
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
@@ -99,13 +99,16 @@ def helix_csv_upload(request):
 #   GET /helix/helix-csv-export/?view_ids=11,12,13,14
 @login_required
 def helix_csv_export(request):
-    file_name = request.GET['file_name']
     view_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
-    views = map(lambda view_id: PropertyView.objects.get(pk=view_id), view_ids)
-    assessments = GreenAssessmentProperty.objects.filter(view__in=views)
+    assessments = GreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
+    file_name = request.GET.get('file_name')
+
+    if (file_name is not None):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
+    else:
+        response = HttpResponse()
 
     fieldnames = [f.name for f in GreenAssessmentProperty._meta.get_fields()]
     writer = csv.writer(response)
@@ -120,13 +123,17 @@ def helix_csv_export(request):
 # http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
 @login_required
 def helix_reso_export_xml(request):
-    propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    try:
+        propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--PropertyView matching key not found --!>')
+
     start_date = request.GET['start_date']
     end_date = request.GET['end_date']
 
     # There should be some sort of check here to see if the user has permission
     # to see this private data at all. Not sure what the criteria for this would be.
-    get_private = request.GET['private_data'] == 'True'
+    get_private = request.GET.get('private_data') == 'True'
 
     # select green assessment properties that are in the specified range
     # and associated with the correct property view
@@ -136,7 +143,7 @@ def helix_reso_export_xml(request):
 
     # filter out any private data if it has not been requested
     if (not get_private):
-        matching_assessments = filter(lambda e: e.disclosure != '' , matching_assessments)
+        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
 
     # use this list as part of the context to render an xml response
     context = {
