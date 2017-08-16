@@ -16,16 +16,6 @@ import helix.utils as utils
 from hes import hes
 
 
-# Responds with an extremely basic helix home page. At the moment this exists
-# as a place to stage testing of our api calls without worrying about
-# integrating them into the structure of the main seed site.
-# Example:
-#   GET http://localhost:8000/helix/
-@login_required
-def helix_home(request):
-    return render(request, 'helix/index.html')
-
-
 @login_required
 def assessment_view(request):
     return render(request, 'helix/green_assessments.html')

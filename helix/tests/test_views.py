@@ -51,10 +51,6 @@ class TestHelixView(TestCase):
         self.user_key = '520df908c6cb4bea8c14691ee95aff88'
         self.building_id = '142860'
 
-    def test_helix_home(self):
-        res = self.client.get(reverse('helix:helix_home'))
-        self.assertEqual(200, res.status_code)
-
     # Check that a simple case of helix_hes return the correct status code
     # when completed successfully.
     def test_helix_hes(self):
