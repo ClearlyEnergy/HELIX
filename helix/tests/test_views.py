@@ -46,6 +46,9 @@ class TestHelixView(TestCase):
                 owner=self.user
         )
 
+        # This information is likely to change or become outdated as the hes
+        # api updates or acount information is changed. If a lot of tests
+        # start failing, make sure this is up to date.
         self.user_name = 'TST-HELIX'
         self.password = 'helix123'
         self.user_key = '520df908c6cb4bea8c14691ee95aff88'
@@ -119,6 +122,7 @@ class TestHelixView(TestCase):
             res = self.client.get(reverse('helix:helix_reso_export_xml'), data)
             self.assertEqual(200, res.status_code)
             self.assertTrue('NGBS' in res.content)
+            self.assertTrue('Efficiency Vermont' in res.content)
 
     def test_reso_export_no_private(self):
         with open('./helix/helix_upload_sample.csv') as csv:
@@ -134,8 +138,8 @@ class TestHelixView(TestCase):
 
             data = {'propertyview_pk': view_id,
                     'start_date': '2016-09-14',
-                    'end_date': '2016-09-26',
-                    'private_data': 'True'}
+                    'end_date': '2016-09-26'}
             res = self.client.get(reverse('helix:helix_reso_export_xml'), data)
             self.assertEqual(200, res.status_code)
             self.assertTrue('NGBS' in res.content)
+            self.assertFalse('Efficiency Vermont' in res.content)

@@ -39,6 +39,7 @@ def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
     if(response['status'] == 'error'):
         return response
 
+    # The hes client will be instantiated later if it is required
     hes_client = None
 
     # If a green property assessment is provided for the property
@@ -86,6 +87,8 @@ def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
             if(response['status'] == 'error'):
                 return response
 
+    # revoke session token created for the hes client
+    # if the client was never instantiated, nothing needs to be done
     if(hes_client is not None):
         hes_client.end_session()
 
@@ -100,6 +103,7 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
     except Fault as f:
         return {"status": "error", "message": f.message}
 
+    # As in helix_csv_upload, these mappings are hardcoded because they are known ahead of time
     mappings = [mapping_entry('address_line_1', 'address'),
                 mapping_entry('city', 'city'),
                 mapping_entry('state', 'state'),
@@ -107,8 +111,10 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
                 mapping_entry('year_built', 'year_built'),
                 mapping_entry('conditioned_floor_area', 'conditioned_floor_area')]
 
-    # find assessment entry for hes by name maybe not the ideal way of getting
-    # it but, better than hardcoding the pk
+    # find assessment entry for hes by name. Maybe not the ideal way of getting
+    # it but, better than hardcoding the pk. An error at this line could be cause
+    # by multiple GreenAssessment objects with the name Home Energy Score. If this
+    # happens find some other way to uniquly identify an assessment
     hes_assessment = GreenAssessment.objects.get(name='Home Energy Score')
     green_assessment_data = {
         "source": hes_data["qualified_assessor_id"],
@@ -118,8 +124,6 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
         "date": hes_data["assessment_date"],
         "assessment": hes_assessment
     }
-
-    loader = autoload.AutoLoad(user, user.default_organization)
 
     # construct a csv string out of the dictionary retrieved by hes
     buf = StringIO.StringIO()
@@ -131,13 +135,14 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
     csv_file = buf.getvalue()
     buf.close()
 
+    loader = autoload.AutoLoad(user, user.default_organization)
     response = loader.autoload_file(csv_file, dataset, cycle, mappings)
 
     if(response['status'] == 'error'):
         return response
 
     response = loader.create_green_assessment_property(
-            green_assessment_data,  # data retrieved from HES API
-            hes_data['address'])
+        green_assessment_data,  # data retrieved from HES API
+        hes_data['address'])
 
     return response
