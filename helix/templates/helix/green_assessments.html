@@ -48,7 +48,11 @@
                     <div class="form-group">
                         <label class="control-label col-sm-3" for="award_body">Award Body:</label>
                         <div class="col-sm-8">
-                            <input type='text' class="form-control" id='award_body' name='award_body' placeHolder='Enter award body'>
+                            <select class="form-control" id="award_body" name="award_body" form="create_form">
+                            {% for org in org_list %}
+                                <option value="{{ org.name }}">{{ org.name }}</option>
+                            {% endfor %}
+                            </select>
                         </div>
                     </div>
 
@@ -169,7 +173,7 @@
             }
         }
         del_req.open("DELETE","/api/v2/green_assessments/"+assessment_id+"/?organization_id="+org_id);
-        del_req.setRequestHeader('X-CSRFToken',getCookie('csrftoken'));
+        del_req.setRequestHeader('X-CSRFToken','{{ csrf_token }}'); 
         del_req.send();
     }
 
@@ -182,17 +186,9 @@
         }
         create_req.open("POST","/api/v2/green_assessments/");
 
-        create_req.setRequestHeader('X-CSRFToken',getCookie('csrftoken'));
+        create_req.setRequestHeader('X-CSRFToken','{{ csrf_token }}');
 
         data = new FormData(document.getElementById('create_form'));
         create_req.send(data);
-    }
-
-    // Taken from stackexchange post by user kirlich
-    // https://stackoverflow.com/a/15724300/3179747
-    function getCookie(name) {
-        var value = "; " + document.cookie;
-        var parts = value.split("; " + name + "=");
-        if (parts.length == 2) return parts.pop().split(";").shift();
     }
 </script>

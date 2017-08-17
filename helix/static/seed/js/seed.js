@@ -173,7 +173,7 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
       .state({
         name: 'assessments',
         url: '/assessments',
-        templateUrl: static_url + 'helix/partials/green_assessments.html'
+        templateUrl: '/helix/assessments/'
       })
       .state({
         name: 'assessment_edit',

@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from seed.models import Cycle, PropertyView
 from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
+from seed.lib.superperms.orgs.models import Organization
 
 from helix.models import HELIXGreenAssessmentProperty
 import helix.utils as utils
@@ -18,7 +19,13 @@ from hes import hes
 
 @login_required
 def assessment_view(request):
-    return render(request, 'helix/green_assessments.html')
+    assessments = GreenAssessment.objects.filter(organization=request.user.default_organization)
+    print assessments
+    orgs = Organization.objects.all()
+    context = RequestContext(request, {
+        'assessment_list': assessments,
+        'org_list': orgs})
+    return render(request, 'helix/green_assessments.html', context)
 
 
 @login_required
