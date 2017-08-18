@@ -3,7 +3,7 @@ import StringIO
 
 from seed.models.certification import GreenAssessment
 
-from zeep.exceptions import Fault
+from zeep import exceptions
 
 from autoload import autoload
 from hes import hes
@@ -97,7 +97,7 @@ def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
 def helix_hes(user, dataset, cycle, hes_client, building_id):
     try:
         hes_data = hes_client.query_hes(building_id)
-    except Fault as f:
+    except exceptions.Fault as f:
         return {"status": "error", "message": f.message}
 
     mappings = [mapping_entry('address_line_1', 'address'),
