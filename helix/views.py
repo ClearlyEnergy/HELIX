@@ -1,6 +1,6 @@
 import csv
 
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
@@ -9,6 +9,7 @@ from django.template.loader import render_to_string
 from seed.models import Cycle, PropertyView
 from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
+from seed.lib.superperms.orgs.models import Organization
 
 from helix.models import HELIXGreenAssessmentProperty
 import helix.utils as utils
@@ -16,21 +17,17 @@ import helix.utils as utils
 from hes import hes
 
 
-# Responds with an extremely basic helix home page. At the moment this exists
-# as a place to stage testing of our api calls without worrying about
-# integrating them into the structure of the main seed site.
-# Example:
-#   GET http://localhost:8000/helix/
-@login_required
-def helix_home(request):
-    return render(request, 'helix/index.html')
-
-
+# Return the green assessment front end page. This can be accessed through
+# the seed side bar or at /app/assessments
 @login_required
 def assessment_view(request):
-    return render(request, 'helix/green_assessments.html')
+    orgs = Organization.objects.all()
+    context = RequestContext(request, {'org_list': orgs})
+    return render(request, 'helix/green_assessments.html', context)
 
 
+# Returns and html interface for editing an existing green assessment which is
+# identified by the parameter id.
 @login_required
 def assessment_edit(request):
     assessment = GreenAssessment.objects.get(pk=request.GET['id'])
@@ -95,18 +92,29 @@ def helix_csv_upload(request):
 # ids provided
 # Parameters:
 #   view_ids: comma separated list of views ids to retrieve
+#   file_name: optional parameter that can be set to have the web browser open
+#              a save dialog with this as the file name. When not set, raw text
+#              is displayed
 # Example:
 #   GET /helix/helix-csv-export/?view_ids=11,12,13,14
 @login_required
 def helix_csv_export(request):
-    file_name = request.GET['file_name']
+    # splitting view_ids parameter string into list of integer view_ids
     view_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
-    views = map(lambda view_id: PropertyView.objects.get(pk=view_id), view_ids)
-    assessments = GreenAssessmentProperty.objects.filter(view__in=views)
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
+    # retrieve green assessment properties that belong to one of these ids
+    assessments = GreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
 
+    file_name = request.GET.get('file_name')
+
+    # Handle optional parameter
+    if (file_name is not None):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
+    else:
+        response = HttpResponse()
+
+    # Dump all fields of all retrieved assessments properties into csv
     fieldnames = [f.name for f in GreenAssessmentProperty._meta.get_fields()]
     writer = csv.writer(response)
 
@@ -117,16 +125,38 @@ def helix_csv_export(request):
     return response
 
 
-# http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
+# Export GreenAssessmentProperty information for a property view in an xml
+# format using RESO fields
+# Parameters:
+#    propertyview_pk: primary key into the property view table. Determines
+#                     which records are exported. If the key does not exist
+#                     in the database, a response code 404 is returned.
+#    start_date: A date in the format yyyy-mm-dd specifying the earliest
+#                date to export.
+#    end_date: A date in the same format specifying the last date to export.
+#    private_data: An optional parameter. If equal to True, then all matching
+#                  records are returned. If absent or equal to anything other
+#                  than true, only records with a disclosure are returned.
+#                  At the moment, this can be set by any user. It might be
+#                  that case that only owners/admins should be able to retrieve
+#                  private data.
+# Example:
+#    http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
 @login_required
 def helix_reso_export_xml(request):
-    propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    # Get the relevant property view form its table. If it can't be found,
+    # a 404 error is returned.
+    try:
+        propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--PropertyView matching key not found --!>')
+
     start_date = request.GET['start_date']
     end_date = request.GET['end_date']
 
     # There should be some sort of check here to see if the user has permission
     # to see this private data at all. Not sure what the criteria for this would be.
-    get_private = request.GET['private_data'] == 'True'
+    get_private = request.GET.get('private_data') == 'True'
 
     # select green assessment properties that are in the specified range
     # and associated with the correct property view
@@ -136,7 +166,7 @@ def helix_reso_export_xml(request):
 
     # filter out any private data if it has not been requested
     if (not get_private):
-        matching_assessments = filter(lambda e: e.disclosure != '' , matching_assessments)
+        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
 
     # use this list as part of the context to render an xml response
     context = {
