@@ -5,6 +5,8 @@ from seed.models.certification import GreenAssessment
 
 from zeep import exceptions
 
+from helix.models import HelixMeasurement
+
 from autoload import autoload
 from hes import hes
 
@@ -53,9 +55,7 @@ def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
         if (hesID != '' and isHES):
             if(hes_client is None):
                 hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
-            response = helix_hes(user, dataset, cycle, hes_client, hesID)
-            if(response['status'] == 'error'):
-                return response
+            helix_hes(user, dataset, cycle, hes_client, hesID)
         elif (hesID == ''):
             # do data base lookup by name for the assessment
             # all assessments must exists in the database before upload
@@ -80,12 +80,9 @@ def helix_csv_upload(user, dataset, cycle, hes_auth, csv_file):
             elif (isRating and isMetric):
                 return {'status': 'error', 'message': 'assessment should only have one of metric and rating'}
 
-            response = loader.create_green_assessment_property(
+            loader.create_green_assessment_property(
                 green_assessment_data,
                 row['address_line_1'])
-
-            if(response['status'] == 'error'):
-                return response
 
     # revoke session token created for the hes client
     # if the client was never instantiated, nothing needs to be done
@@ -141,8 +138,26 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
     if(response['status'] == 'error'):
         return response
 
+<<<<<<< HEAD
     response = loader.create_green_assessment_property(
         green_assessment_data,  # data retrieved from HES API
         hes_data['address'])
+=======
+    prop_assess = loader.create_green_assessment_property(
+        green_assessment_data,  # data retrieved from HES API
+        hes_data['address'])
 
-    return response
+    for k in hes_data:
+        if (k.startswith('consumption_')):
+            consumption, unit = hes_data[k]
+            measurement_data = {
+                'measurement_type': 'CONS',
+                # 'measurement_subtype':
+                'fuel':  HelixMeasurement.HES_FUEL_TYPES[k[12:]],
+                'quantity': consumption,
+                'unit': HelixMeasurement.HES_UNITS[unit]}
+                # 'status':
+            loader.create_measurement(prop_assess, **measurement_data)
+>>>>>>> consumption-cost-model
+
+    return {'status': 'success'}
