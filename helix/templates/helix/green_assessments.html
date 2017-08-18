@@ -48,11 +48,7 @@
                     <div class="form-group">
                         <label class="control-label col-sm-3" for="award_body">Award Body:</label>
                         <div class="col-sm-8">
-                            <select class="form-control" id="award_body" name="award_body" form="create_form">
-                            {% for org in org_list %}
-                                <option value="{{ org.name }}">{{ org.name }}</option>
-                            {% endfor %}
-                            </select>
+                            <input type='text' class="form-control" id='award_body' name='award_body' placeHolder='Enter award body'>
                         </div>
                     </div>
 
