@@ -2,10 +2,13 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.core import management
 from django.utils import timezone
+
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.models import Cycle, PropertyView
 from seed.data_importer.models import ImportRecord
+
+from helix.models import HelixMeasurement
 
 
 class TestHelixView(TestCase):
@@ -101,6 +104,20 @@ class TestHelixView(TestCase):
                     'helix_csv': csv}
             res = self.client.post(reverse('helix:helix_csv_upload'), data)
             self.assertEqual(302, res.status_code)
+
+    def test_helix_csv_upload_create_measurement(self):
+        with open('./helix/helix_upload_sample.csv') as csv:
+            data = {'user_key': self.user_key,
+                    'user_name': self.user_name,
+                    'password': self.password,
+                    'dataset': self.record.pk,
+                    'cycle': self.cycle.pk,
+                    'helix_csv': csv}
+            res = self.client.post(reverse('helix:helix_csv_upload'), data)
+            self.assertEqual(302, res.status_code)
+
+            self.assertTrue(HelixMeasurement.objects.filter(fuel='NATG', quantity=495, unit='THERM').exists())
+            self.assertTrue(HelixMeasurement.objects.filter(fuel='ELEC', quantity=12339, unit='KWH').exists())
 
     def test_reso_export_with_private(self):
         with open('./helix/helix_upload_sample.csv') as csv:
