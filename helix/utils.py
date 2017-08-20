@@ -138,11 +138,6 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
     if(response['status'] == 'error'):
         return response
 
-<<<<<<< HEAD
-    response = loader.create_green_assessment_property(
-        green_assessment_data,  # data retrieved from HES API
-        hes_data['address'])
-=======
     prop_assess = loader.create_green_assessment_property(
         green_assessment_data,  # data retrieved from HES API
         hes_data['address'])
@@ -158,6 +153,5 @@ def helix_hes(user, dataset, cycle, hes_client, building_id):
                 'unit': HelixMeasurement.HES_UNITS[unit]}
                 # 'status':
             loader.create_measurement(prop_assess, **measurement_data)
->>>>>>> consumption-cost-model
 
     return {'status': 'success'}
