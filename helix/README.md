@@ -47,7 +47,7 @@
     This should register the url unique to the HELIX module with django.
   * Run
     ```
-    ./manage.py makemigrations
+    ./manage.py makemigrations helix
     ./manage.py migrate
     ```
   * Examine database with tool of choice to verify the presence of two new tables.
