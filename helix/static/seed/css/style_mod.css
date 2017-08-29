@@ -1,0 +1,11 @@
+
+/*color change for organization name and the drop down list on the top right corner */
+
+.display .content .header .add_menu_container .btn-group ul.dropdown-menu li a{
+	font-family: "Roboto","PT Sans Narrow","Helvetica Neue",Helvetica,Arial,sans-serif;
+	color:#00a0af;
+}
+
+.display .content .header .add_menu_container .btn-group .btn{
+	color:#00a0af;
+}
