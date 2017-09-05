@@ -3,10 +3,10 @@ from seed.models import certification
 
 
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
-    disclosure = models.TextField(max_length=100)
+    disclosure = models.TextField(max_length=100, null=True, blank=True)
 
 class HELIXGreenAssessment(certification.GreenAssessment):
-    disclosure = models.TextField(max_length=100)
+    disclosure = models.TextField(max_length=100, null=True, blank=True)
 
 class HelixMeasurement(models.Model):
     HES_FUEL_TYPES = {
