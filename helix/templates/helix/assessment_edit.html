@@ -3,7 +3,7 @@
     <div class="page_header">
         <div class="left page_action_container"></div>
             <div class="page_title">
-                <h1>Greeb Assessment Edit</h1>
+                <h1>Green Assessment Edit</h1>
             </div>
         <div class="right page_action_container"></div>
     </div>
@@ -63,6 +63,13 @@
                         <label class="control-label col-sm-3" for="is_integer_score">Integer:</label>
                         <div class="col-sm-8">
                             <input class="form-control" type="checkbox" id="is_integer_score"  name="is_integer_score" value='True'{% if assessment.is_numeric_score %} checked {% endif %}>
+                        </div>
+                    </div>
+					
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="disclosure_default">Default Disclosure Rule:</label>
+                        <div class="col-sm-8">
+                            <input type='text' class="form-control" id='disclosure_default' name='disclosure_default' value="{{ assessment.disclosure_default}}" placeHolder='Enter the default disclosure rule for individual assesments (can be overriden in the individual assessment):'>
                         </div>
                     </div>
 

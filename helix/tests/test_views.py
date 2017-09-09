@@ -8,7 +8,7 @@ from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.models import Cycle, PropertyView
 from seed.data_importer.models import ImportRecord
 
-from helix.models import HelixMeasurement
+from helix.models import HelixMeasurement, HELIXGreenAssessment
 
 
 class TestHelixView(TestCase):
@@ -57,6 +57,11 @@ class TestHelixView(TestCase):
         self.user_key = '520df908c6cb4bea8c14691ee95aff88'
         self.building_id = '142860'
 
+    #Check that a green assessment has been created
+    def test_create_green_assessment(self):
+        ga = HELIXGreenAssessment.objects.filter(name='Home Energy Score')
+        self.assertTrue(ga.exists())
+    
     # Check that a simple case of helix_hes return the correct status code
     # when completed successfully.
     def test_helix_hes(self):

@@ -32,6 +32,7 @@
             <strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong>,
             <strong>.xls</strong>, <strong>.xlsx</strong>, and <strong>.xml</strong> files are supported.
         </div>
+        <!-- begin modifications
         <div class="row">
             <div class="col-sm-10 col-sm-offset-1" ng-hide="uploader.in_progress">
                 <div class="row">
@@ -47,12 +48,15 @@
                 </div>
             </div>
         </div>
+        end modifications -->			
+        <!-- begin modifications
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2" sd-uploader sourcetype="Assessed Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload a Spreadsheet" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="!selectedCycle" style="padding-top: 20px;"></div>
         </div>
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2" sd-uploader sourcetype="Assessed Raw" sourceprog="PortfolioManager" sourcever="1.0" importrecord="dataset.id" buttontext="Upload Portfolio Manager Data" eventfunc="uploaderfunc(message, file, progress)" ng-disabled="!selectedCycle" ng-hide="uploader.in_progress"></div>
         </div>
+         end modifications -->			
         <div class="row">
             <div class="col-sm-9 col-sm-offset-2" ng-hide="uploader.in_progress">
                 <!--<div class="row">-->
@@ -64,14 +68,18 @@
         </div>
 
         <!-- begin modifications -->
-        <div class="row text-center">
-            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2" ng-click="goto_step(13)">Upload HES DATA</button>
+        <div class="row" style="padding-top: 20px;">
+            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(13)">Upload HELIX File</button>
         </div>
-        <!-- end modifications -->
+        <div class="row" style="padding-top: 20px;">
+            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(13)">Update HES Data</button>
+        </div>
 
+        <!-- begin modifications
        <div class="row">
             <div class="col-sm-8 col-sm-offset-2 green_button" sd-uploader sourcetype="Green Button Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload Green Button Data" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="true" style="padding-top: 10px;">Green Button Data</div>
         </div>
+        end modifications -->
 
         <div class="progress_bar_container" ng-show="uploader.in_progress">
             <div class="progress_bar_copy_top">Uploading <strong>{$ dataset.filename $}</strong></div>

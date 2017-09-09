@@ -6,7 +6,7 @@ class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
     disclosure = models.TextField(max_length=100)
 
 class HELIXGreenAssessment(certification.GreenAssessment):
-    disclosure = models.TextField(max_length=100)
+    disclosure_default = models.TextField(max_length=100)
 
 class HelixMeasurement(models.Model):
     HES_FUEL_TYPES = {

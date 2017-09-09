@@ -166,15 +166,23 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
 
     $locationProvider.hashPrefix('');
     $urlRouterProvider.otherwise('/');
-
+	
     stateHelperProvider
       //Begin HELIX changes
       //These changes should add the assessment page as a state
       .state({
         name: 'assessments',
         url: '/assessments',
-        templateUrl: '/helix/assessments/'
+		templateUrl: '/helix/assessments/'
+//        templateUrl: '/helix/green_assessments.html',
+//		controller: 'green_assessments_controller',
+//		resolve: {
+//			assessment_payload: ['organization_service', function (organization_service) {
+//          return organization_service.get_organizations();
+//        }]
+//		}
       })
+
       .state({
         name: 'assessment_edit',
         url: '/assessments/edit/{id:int}',
@@ -1069,6 +1077,20 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             });
             return promise;
           }],
+          inventory_view_payload: ['$state', '$stateParams', 'inventory_service', function ($state, $stateParams, inventory_service) {
+            // load `get_building` before page is loaded to avoid page flicker.
+            var inventory_id = $stateParams.inventory_id;
+            var cycle_id = $stateParams.cycle_id;
+            var promise;
+            if ($stateParams.inventory_type == 'properties') promise = inventory_service.get_property_view(inventory_id, cycle_id);
+            promise.catch(function (err) {
+              if (err.message.match(/^(?:property|taxlot) view with id \d+ does not exist$/)) {
+                // Inventory item not found for current organization, redirecting
+                $state.go('inventory_list', {inventory_type: $stateParams.inventory_type});
+              }
+            });
+            return promise;
+          }], 
           columns: ['inventory_service', '$stateParams', function (inventory_service, $stateParams) {
             if ($stateParams.inventory_type == 'properties') {
               return inventory_service.get_property_columns().then(function (columns) {

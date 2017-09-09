@@ -11,7 +11,7 @@ from seed.models.certification import GreenAssessmentProperty, GreenAssessment
 from seed.data_importer.models import ImportRecord
 from seed.lib.superperms.orgs.models import Organization
 
-from helix.models import HELIXGreenAssessmentProperty
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
 import helix.utils as utils
 
 from hes import hes
@@ -30,7 +30,8 @@ def assessment_view(request):
 # identified by the parameter id.
 @login_required
 def assessment_edit(request):
-    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
+#    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
+    assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
     context = RequestContext(request, {'assessment': assessment})
     return render(request, 'helix/assessment_edit.html', context)
 

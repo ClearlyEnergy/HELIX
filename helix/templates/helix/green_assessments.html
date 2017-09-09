@@ -20,8 +20,9 @@
         <div class="section_content">
             <div class="table_list_container">
                 <table class="container table-striped table_highlight_first" id='assessment_table'>
-                    <thead><tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Duration</th><th>Delete</th></tr></thead>
-                    <tbody></tbody>
+                    <thead><tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Integer</th><th>Default Disclosure</th><th>Duration</th><th>Delete</th></tr></thead>
+                    <tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -67,22 +68,30 @@
                         </div>
                     </div>
 
-                    <div class="form-group" ng-hide="recognition_type === 'SCR' || recognition_type === 'RAT'">
+                    <div class="form-group" ng-hide="recognition_type === 'CRT' || recognition_type === 'LBL' || recognition_type === 'PRT' || recognition_type === 'ZER'">
                         <label class="control-label col-sm-3" for="is_numeric_score">Numeric:</label>
                         <div class="col-sm-8">
                             <input class="form-control" type="checkbox" id="is_numeric_score"  name="is_numeric_score" value='True'>
                         </div>
                     </div>
 
-                    <div class="form-group" ng-hide="recognition_type === 'SCR' || recognition_type === 'RAT'">
+<!--                    <div class="form-group" ng-hide="recognition_type === 'SCR' || recognition_type === 'RAT'">
                         <label class="control-label col-sm-3" for="is_integer_score">Integer:</label>
                         <div class="col-sm-8">
                             <input class="form-control" type="checkbox" id="is_integer_score"  name="is_integer_score" value='True'>
                         </div>
                     </div>
+-->
 
                     <div class="form-group">
-                        <label class="control-label col-sm-3" for="validity_duration">Duration:</label>
+                        <label class="control-label col-sm-3" for="disclosure_default">Default Disclosure:</label>
+                        <div class="col-sm-8">
+                            <input type='text' class="form-control" id='disclosure_default' name='disclosure_default' placeHolder='Enter the default disclosure rule for individual assesments (can be overriden in the individual assessment):'>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-sm-3" for="validity_duration">Validation Duration:</label>
                         <div class="col-sm-8">
                             <input type='number' class="form-control" id='validity_duration' name='validity_duration' placeHolder='Enter duration in days'>
                         </div>
@@ -104,6 +113,7 @@
     reload_table();
 
     function get_organizations(callback) {
+		console.log('in get_organizations')
          var req_orgs = new XMLHttpRequest();
          req_orgs.onreadystatechange = function() {
              if (req_orgs.readyState == 4 && req_orgs.status == 200) {
@@ -115,6 +125,7 @@
     }
 
     function get_assessments(org, callback) {
+		console.log('in get_assessments')
         var req_assess = new XMLHttpRequest();
         req_assess.onreadystatechange = function(){
             if (req_assess.readyState == 4 && req_assess.status == 200) {
@@ -123,9 +134,12 @@
         }
         req_assess.open("GET","/api/v2/green_assessments/?organization_id="+org.id);
         req_assess.send();
+		console.log(req_assess)
     }
 
     function assessment_callback(assessment, org_id) {
+		console.log('in assessment_callback')
+		console.log(assessment)
         var new_row = document.getElementById('assessment_table').getElementsByTagName('tbody')[0].insertRow();
         new_row.id = 'assessment_row_'+assessment['id'];
 
@@ -144,18 +158,23 @@
         var integer_cell = new_row.insertCell(4);
         integer_cell.innerHTML = assessment['is_integer_score']?'&#10004;':'';
 
-        var duration_cell = new_row.insertCell(5);
+        var disclosure_cell = new_row.insertCell(5);
+        disclosure_cell.innerHTML = assessment['disclosure_default'];
+
+        var duration_cell = new_row.insertCell(6);
         duration_cell.innerHTML = assessment['validity_duration']
 
-        var del_cell = new_row.insertCell(6);
+        var del_cell = new_row.insertCell(7);
         del_cell.innerHTML = "<a href='#/assessments' onclick='delete_assessment("+assessment['id']+","+org_id+");return false;'>&#10007;</text>";
     }
 
     function org_callback(org){
+		console.log('in org_callback')
         get_assessments(org,assessment_callback);
     }
 
     function reload_table(){
+		console.log('in reload_table')
         document.getElementById('assessment_table').getElementsByTagName('tbody')[0].innerHTML = '';
         get_organizations(org_callback);
     }
