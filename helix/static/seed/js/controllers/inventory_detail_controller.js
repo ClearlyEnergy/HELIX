@@ -38,9 +38,8 @@ angular.module('BE.seed.controller.inventory_detail', [])
 	  $scope.certifications = inventory_view_payload.property_views.certifications;
 	  /** Helix Tests **/
 	  console.log('logging')
-	  console.log(inventory_payload)
-	  console.log(inventory_view_payload.property_views)
 	  console.log($scope.certifications)
+	  /** End Helix Tests **/
 
       $scope.item_state = inventory_payload.state;
       $scope.changed_fields = inventory_payload.changed_fields;
