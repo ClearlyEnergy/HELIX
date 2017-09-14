@@ -18,17 +18,27 @@ class HelixMeasurement(models.Model):
         "pellet_wood": "PWOOD"}
     HES_UNITS = {
         'kwh': "KWH",
+        'kw': "KW",
         'therms': "THERM",
         'gallons': "GAL",
         'cords': "CORD",
         'pounds': "LB",
-        'mmbtu': "MMBTU"}
+        'mmbtu': "MMBTU",
+        'dollars': "",
+        'greenhouse_gas': "GHG",
+        'carbon_dioxide': "CO2",
+        'carbon_dioxide_equivalent': "CO2e"}
 
     MEASUREMENT_TYPE_CHOICES = (
         ("PROD", "Production"),
         ("CONS", "Consumption"),
         ("COST", "Cost"),
         ("EMIT", "Emissions"))
+
+    MEASUREMENT_SUBTYPE_CHOICES = (
+        ("PV", "Solar Photovoltaic"),
+        ("WIND", "Wind"))
+
     FUEL_CHOICES = (
         ("ELEC", "Electric"),
         ("NATG", "Natural Gas"),
@@ -44,14 +54,20 @@ class HelixMeasurement(models.Model):
         ("TON", "ton"),
         ("LB", "pound"),
         ("CORD", "cord"),
-        ("THERM", "therm"))
+        ("THERM", "therm"),
+        ("DOLLAR","dollar"),
+        ("GHG","Greenhouse Gas"),
+        ("CO2","Carbon Dioxide"),
+        ("CO2e","Carbon Dioxide Equivalent"))
     STATUS_CHOICES = (
         ("ACTUAL", "Actual"),
         ("ESTIMATE", "Estimated"),
         ("PART_ESTIMATE", "Partially Estimated"))
-    assessment_property = models.ForeignKey(certification.GreenAssessmentProperty)
+    assessment_property = models.ForeignKey(
+        certification.GreenAssessmentProperty, on_delete=models.CASCADE, related_name='measurements'
+        )
     measurement_type = models.CharField(max_length=4, choices=MEASUREMENT_TYPE_CHOICES)
-    measurement_subtype = models.CharField(max_length=100)
+    measurement_subtype = models.CharField(max_length=15, choices=MEASUREMENT_SUBTYPE_CHOICES, null=True, blank=True)
     fuel = models.CharField(max_length=5, choices=FUEL_CHOICES)
     quantity = models.FloatField(null=True, blank=True)
     unit = models.CharField(max_length=5, choices=UNIT_CHOICES)
