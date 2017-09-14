@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('seed', '0071_auto_20170721_1203'),
+        ('seed', '0070_merge'),
     ]
 
     operations = [
