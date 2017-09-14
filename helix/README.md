@@ -46,6 +46,8 @@
     ```
     This should register the url unique to the HELIX module with django.
   * Run
+  * Point utils/columns.py to helix.utils.constants
+  * Point static/seed/serializers to helix.serializers.certification and add measurements to GreenAssessment load
     ```
     ./manage.py makemigrations helix
     ./manage.py migrate
