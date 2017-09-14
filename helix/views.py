@@ -30,8 +30,8 @@ def assessment_view(request):
 # identified by the parameter id.
 @login_required
 def assessment_edit(request):
-#    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
-    assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
+    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
+#    assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
     context = RequestContext(request, {'assessment': assessment})
     return render(request, 'helix/assessment_edit.html', context)
 
