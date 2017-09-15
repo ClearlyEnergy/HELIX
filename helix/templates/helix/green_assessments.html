@@ -165,6 +165,7 @@
  //       disclosure_cell.innerHTML = assessment['disclosure_default'];
 
         var duration_cell = new_row.insertCell(5);
+		console.log(assessment['validity_duration'])
         duration_cell.innerHTML = assessment['validity_duration']?assessment['validity_duration']+' days':''
 
         var del_cell = new_row.insertCell(6);
