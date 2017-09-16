@@ -9,3 +9,7 @@
 .display .content .header .add_menu_container .btn-group .btn{
 	color:#00a0af;
 }
+
+.jumbotron {
+  background: url('../images/pexels-photo-243722.jpg') no-repeat;
+}
