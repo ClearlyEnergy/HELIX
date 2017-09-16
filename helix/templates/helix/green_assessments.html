@@ -165,7 +165,6 @@
  //       disclosure_cell.innerHTML = assessment['disclosure_default'];
 
         var duration_cell = new_row.insertCell(5);
-		console.log(assessment['validity_duration'])
         duration_cell.innerHTML = assessment['validity_duration']?assessment['validity_duration']+' days':''
 
         var del_cell = new_row.insertCell(6);
@@ -173,12 +172,10 @@
     }
 
     function org_callback(org){
-		console.log('in org_callback')
         get_assessments(org,assessment_callback);
     }
 
     function reload_table(){
-		console.log('in reload_table')
         document.getElementById('assessment_table').getElementsByTagName('tbody')[0].innerHTML = '';
         get_organizations(org_callback);
     }

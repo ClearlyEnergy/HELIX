@@ -18,6 +18,7 @@ from seed.models import (
     PropertyView
 )
 
+#Helix add
 from helix.models import HelixMeasurement
 
 from seed.models.auditlog import AUDIT_USER_CREATE
@@ -91,6 +92,10 @@ class ValidityDurationField(serializers.Field):
         return obj.days
 
     def to_internal_value(self, data):
+#Helix add-on
+        if bool(data) == False:
+            data = None
+#
         if isinstance(data, basestring):
             try:
                 data = int(data)
@@ -119,7 +124,9 @@ class GreenAssessmentSerializer(serializers.ModelSerializer):
         GreenAssessment.RECOGNITION_TYPE_CHOICES
     )
     recognition_description = serializers.SerializerMethodField()
-    validity_duration = ValidityDurationField(required=False)
+# Helix change
+#    validity_duration = ValidityDurationField(required=False)
+    validity_duration = ValidityDurationField(required=True)
 
     class Meta:
         model = GreenAssessment
