@@ -14,11 +14,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
     'label_service',
     'inventory_service',
     'inventory_payload',
-    'inventory_view_payload',
     'columns',
     'labels_payload',
     function ($state, $scope, $uibModal, $log, $filter, $stateParams, urls, label_service,
-              inventory_service, inventory_payload, inventory_view_payload, columns, labels_payload) {
+              inventory_service, inventory_payload, columns, labels_payload) {
       $scope.inventory_type = $stateParams.inventory_type;
       $scope.inventory = {
         id: $stateParams.inventory_id,
@@ -32,14 +31,10 @@ angular.module('BE.seed.controller.inventory_detail', [])
       var localStorageKey = 'grid.' + $scope.inventory_type + '.detail';
 
       $scope.columns = inventory_service.loadSettings(localStorageKey, angular.copy(columns));
-
       /** See service for structure of returned payload */
       $scope.historical_items = inventory_payload.history;
-	  $scope.certifications = inventory_view_payload.property_views.certifications;
-	  /** Helix Tests **/
-	  console.log('logging')
-	  console.log($scope.certifications)
-	  /** End Helix Tests **/
+	  /** HELIX add-on **/
+	  $scope.certifications = inventory_payload.certifications;
 
       $scope.item_state = inventory_payload.state;
       $scope.changed_fields = inventory_payload.changed_fields;
