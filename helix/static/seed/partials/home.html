@@ -4,7 +4,7 @@
       <div class="home_jump_nav_container">
         <div class="home_jump_nav">
           <a id="nav-projects" ui-sref="projects" disabled><i class="fa fa-folder-o"></i>Projects</a>
-          <a id="nav-inventory" ui-sref="inventory_list({inventory_type: 'properties'})"><span ng-include="'/static/seed/images/icon-city.svg'"></span>Inventory</a>
+          <a id="nav-inventory" ui-sref="inventory_list({inventory_type: 'properties'})"><i class="fa fa-home"></i>Inventory</a>
           <a id="nav-data" ui-sref="dataset_list" ng-show="menu.user.organization.user_role !== 'viewer'"><i class="fa fa-sitemap"></i>Data</a>
           <a ui-sref="contact"><i class="fa fa-question-circle"></i>Contact</a>
         </div>
@@ -12,8 +12,7 @@
       <div class="jumbotron" style="background: url('/static/seed/images/HELIX-SEED-banner-2049x402.jpg') no-repeat;">
         <div class="home_hero_content_container">
           <h1>HELIX</h1>
-
-          <p>The purpose of this project is to develop a database capable of automatically populating real estate listings with home energy information from Home Energy Score and other sources when it is available and approved by the seller. We are calling this database the Home Energy Labeling Information eXchange, or HELIX for short.</p>
+		  <p>The Home Energy Labeling Information Exchange (HELIX) is a database which automatically populates real estate listings with home energy information from the U.S. Department of Energy’s Home Energy Score and other sources. The database was developed by regional stakeholders as a free software tool to allow home buyers access to home energy information in the real estate purchasing process. Learn how to get started.</p>
 
           <p><a data-toggle="modal" data-target="#dataUploadModal" ng-click="open_data_upload_modal()" class="btn btn-primary btn-lg" role="button" ng-hide="menu.user.organization.user_role === 'viewer'"><i class="fa fa-cloud-upload"></i>&nbsp;&nbsp;Upload your buildings list</a> <a ng-href="{$ urls.static_url $}seed/pdf/SEED_Platform_V1_3_Getting_Started_Guide.pdf" target="_blank" title="SEED_v1.3_User_Guide" class="btn btn-warning btn-lg" role="button"><i class="fa fa-file-text"></i>&nbsp;&nbsp;Getting Started Guide</a></p>
         </div>
