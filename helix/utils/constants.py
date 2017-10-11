@@ -477,8 +477,13 @@ VIEW_COLUMNS_PROPERTY = [
         'type': 'numberStr',
         'duplicateNameInOtherTable': True,
         'dbField': True,
-    },  
-    {
+    }, {
+        'name': 'property_name',
+        'table': 'PropertyState',
+        'displayName': 'Development Name',
+        'dataType': 'string',
+        'dbField': True,
+    }, {
         'name': 'city',
         'table': 'PropertyState',
         'displayName': 'City (Property)',
