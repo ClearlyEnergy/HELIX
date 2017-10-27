@@ -461,7 +461,14 @@ ASSESSOR_FIELDS_BY_COLUMN = {field['sort_column']: field for field in ASSESSOR_F
 
 
 VIEW_COLUMNS_PROPERTY = [
-    {
+     {
+        'name': 'custom_id_1',
+        'table': 'PropertyState',
+        'displayName': 'Custom ID 1 (Property)',
+        'dataType': 'string',
+        'duplicateNameInOtherTable': True,
+        'dbField': True,
+    }, {
         'name': 'address_line_1',
         'table': 'PropertyState',
         'displayName': 'Address Line 1 (Property)',
@@ -523,10 +530,10 @@ VIEW_COLUMNS_PROPERTY = [
 #        'type': 'number',
 #        'dbField': True,
 #    },
-    {
-        'name': 'gross_floor_area',
+     {
+        'name': 'conditioned_floor_area',
         'table': 'PropertyState',
-        'displayName': 'Gross Floor Area',
+        'displayName': 'Conditioned Floor Area',
         'dataType': 'float',
         'type': 'number',
         'dbField': True,
