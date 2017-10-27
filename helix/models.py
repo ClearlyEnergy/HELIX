@@ -9,6 +9,30 @@ class HELIXGreenAssessment(certification.GreenAssessment):
     disclosure_default = models.TextField(max_length=100, null=True, blank=True)
 
 class HelixMeasurement(models.Model):
+    """
+    Measurementsattached to a certification.
+    Compatible with RESO v1.5/BEDES
+    Max lengths for Charfields set to 2 x RESO recommendation.
+    Model       RESO                            
+    quantity    PowerProduction[Type]Annual, PowerProduction[Type]Size   
+    status      PowerProduction[Type]Status   
+    ??          PowerProduction[Type]YearInstall
+    measurement_type & measurement_subtype  PowerProduction Type
+    """
+    # pylint:disable=no-member
+    
+    PV_PROD_MAPPING = {
+        # attribute: RESO field
+        'measurement_subtype': 'PowerProductionType',
+        'quantity': 'PowerProductionAnnual',
+        'status': 'PowerProductionAnnualStatus',
+    }
+    
+    PV_CAP_MAPPING = {
+        # attribute: RESO field, need to add YearInstall
+        'quantity': 'PowerProductionSize',
+    }
+
     HES_FUEL_TYPES = {
         "electric": "ELEC",
         "natural_gas": "NATG",
@@ -33,10 +57,11 @@ class HelixMeasurement(models.Model):
         ("PROD", "Production"),
         ("CONS", "Consumption"),
         ("COST", "Cost"),
-        ("EMIT", "Emissions"))
+        ("EMIT", "Emissions"),
+        ("CAP", "Capacity"))
 
     MEASUREMENT_SUBTYPE_CHOICES = (
-        ("PV", "Solar Photovoltaic"),
+        ("PV", "Solar Photovoltaic"), #Note: change to Photovoltaics
         ("WIND", "Wind"))
 
     FUEL_CHOICES = (
@@ -63,6 +88,12 @@ class HelixMeasurement(models.Model):
         ("ACTUAL", "Actual"),
         ("ESTIMATE", "Estimated"),
         ("PART_ESTIMATE", "Partially Estimated"))
+        
+    def __unicode__(self):
+        return u"{}, {}, {}: {} {}, {}".format(
+            self.measurement_type, self.measurement_subtype, self.fuel, self.quantity, self.unit, self.status 
+        )
+        
     assessment_property = models.ForeignKey(
         certification.GreenAssessmentProperty, on_delete=models.CASCADE, related_name='measurements'
         )
@@ -72,3 +103,25 @@ class HelixMeasurement(models.Model):
     quantity = models.FloatField(null=True, blank=True)
     unit = models.CharField(max_length=5, choices=UNIT_CHOICES)
     status = models.CharField(max_length=13, choices=STATUS_CHOICES)
+    
+    def to_reso_dict(self):
+        """
+        Return a dict where keys are RESO Power Production compatible names.
+        RESO Power Production field names may optionally contain the type
+        (i.e. name). e.g. Powerproduction[Type]Annual
+        """
+        reso_dict = {}
+        if self.measurement_type == 'PROD':
+            for key, val in self.PV_PROD_MAPPING.iteritems():
+                attr = getattr(self, key)
+                if attr in dict(self.STATUS_CHOICES).keys():
+                    attr = dict(self.STATUS_CHOICES)[attr]
+                if attr in dict(self.MEASUREMENT_SUBTYPE_CHOICES).keys():
+                    attr = dict(self.MEASUREMENT_SUBTYPE_CHOICES)[attr]
+                reso_dict[val] = attr
+
+        if self.measurement_type == 'CAP':
+            for key, val in self.PV_CAP_MAPPING.iteritems():
+                reso_dict[val] = getattr(self, key)
+
+        return reso_dict

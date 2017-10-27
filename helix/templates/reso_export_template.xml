@@ -1,10 +1,44 @@
 <?xml version="1.0"?>
-<GreenAssessmentProperties start="{{ start_date}} " end="{{ end_date }}">
-        {% for assessment_property in assessment_list %}
-        <GreenAssessmentProperty date="{{ assessment_property.date }}" extra_date="{{ assessment_property.extra_data }}">
-                {% for k,v in assessment_property.to_reso_dict.items %}
-                <{{ k }}>{{ v }}</{{ k }}>
-                {% endfor %}
-        </GreenAssessmentProperty>
-        {% endfor %}
-</GreenAssessmentProperties>
+<document>
+	<Location>
+		<Address>
+			<StreetName>
+				{{property.normalized_address}}
+			</StreetName>
+			<StreetNumber>
+			</StreetNumber>
+			<UnitNumber>
+				{{ property.address2 }}
+			</UnitNumber>
+			<city>
+				{{ property.city }}
+			</city>
+			<PostalCode>
+				{{ property.postal_code }}
+			</PostalCode>
+			<Country>
+				USA
+			</Country>
+		</Address>
+	</Location>	
+	<Structure>
+		<Performance>
+			<GreenVerification start="{{ start_date}} " end="{{ end_date }}">
+			        {% for assessment_property in assessment_list %}
+			        <GreenAssessmentProperty date="{{ assessment_property.date }}">
+			                {% for k,v in assessment_property.to_reso_dict.items %}
+			                <{{ k }}>{{ v }}</{{ k }}>
+			                {% endfor %}
+			        </GreenAssessmentProperty>
+			        {% endfor %}
+			</GreenVerification>
+		</Performance>
+	</Structure>
+	{%  if measurement_list %}
+	<Utilities>
+		{% for k,v in measurement_list.items %}
+        <{{ k }}>{{ v }}</{{ k }}>
+		{% endfor %}
+	</Utilities>
+	{% endif %}
+</document>

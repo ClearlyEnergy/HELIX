@@ -1,18 +1,22 @@
 import csv
+import datetime
 
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
 from django.template.loader import render_to_string
+from django.db.models import Q
 
 from seed.models import Cycle, PropertyView
-from seed.models.certification import GreenAssessmentProperty, GreenAssessment
+
+from seed.models.certification import GreenAssessmentProperty, GreenAssessment, GreenAssessmentPropertyAuditLog
 from seed.data_importer.models import ImportRecord
 from seed.lib.superperms.orgs.models import Organization
+from seed.lib.mcm import cleaners, mapper, reader
 
-from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment
-import helix.utils as utils
+from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment, HelixMeasurement
+import helix.helix_utils as utils
 
 from hes import hes
 
@@ -45,7 +49,7 @@ def assessment_edit(request):
 #   user_key: hes api key
 #   user_name: hes username
 #   password: hes password
-@login_required
+#@login_required
 def helix_hes(request):
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
@@ -68,11 +72,34 @@ def helix_hes(request):
 #   dataset: id of import record that data will be uploaded to
 #   cycle: id of cycle that data will be uploaded to
 #   helix_csv: data file
+@login_required
+def helix_csv_upload(request):
+    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
+    cycle = Cycle.objects.get(pk=request.POST['cycle'])
+
+    data = request.FILES['helix_csv'].read()
+
+    res = utils.helix_csv_upload(request.user, dataset, cycle, data)
+    if(res['status'] == 'error'):
+        return JsonResponse(res, status=400)
+    else:
+        return redirect('seed:home')
+#        return redirect('seed:inventory_list(properties)') #doesn't work
+
+# Upload a csv file constructed according to the helix hes csv file format.
+# [see helix_upload_sample.csv]
+# This file can contain multiple properties that can each have multiple green
+# responds with status 200 on success, 400 on fail
+# assessments
+# Parameters:
+#   dataset: id of import record that data will be uploaded to
+#   cycle: id of cycle that data will be uploaded to
+#   helix_csv: data file
 #   user_key: hes api key
 #   user_name: hes username@login_required
 #   password: hes password def helix_csv_upload(request):
 @login_required
-def helix_csv_upload(request):
+def helix_hes_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
 
@@ -82,7 +109,7 @@ def helix_csv_upload(request):
 
     data = request.FILES['helix_csv'].read()
 
-    res = utils.helix_csv_upload(request.user, dataset, cycle, hes_auth, data)
+    res = utils.helix_hes_upload(request.user, dataset, cycle, hes_auth, data)
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
@@ -101,7 +128,8 @@ def helix_csv_upload(request):
 @login_required
 def helix_csv_export(request):
     # splitting view_ids parameter string into list of integer view_ids
-    view_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
+    property_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
+    view_ids = PropertyView.objects.filter(property_id__in=property_ids)
 
     # retrieve green assessment properties that belong to one of these ids
     assessments = GreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
@@ -147,11 +175,15 @@ def helix_csv_export(request):
 def helix_reso_export_xml(request):
     # Get the relevant property view form its table. If it can't be found,
     # a 404 error is returned.
+    print request.user
+    # Get properties updated within dates
+    # Green Assessment Property Audit Log
+    # Property Audit Log
     try:
         propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
     except PropertyView.DoesNotExist:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--PropertyView matching key not found --!>')
-
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+        
     start_date = request.GET['start_date']
     end_date = request.GET['end_date']
 
@@ -161,19 +193,39 @@ def helix_reso_export_xml(request):
 
     # select green assessment properties that are in the specified range
     # and associated with the correct property view
+    ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(
+        created__range=(start_date, end_date))
+        #property_view=propertyview)
+        #,
+        #created__range=(start_date, end_date))
+
+    today = datetime.datetime.today()
     matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
         view=propertyview,
-        date__range=(start_date, end_date))
-
+        date__range=(start_date, end_date)).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None))
+        
+    matching_measurements = HelixMeasurement.objects.filter(
+        assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
+        measurement_type__in=['PROD','CAP'],
+        measurement_subtype__in=['PV','WIND']
+    )
+    
+    measurement_dict = {}
+    for measure in matching_measurements:
+        measurement_dict.update(measure.to_reso_dict())
+    
     # filter out any private data if it has not been requested
-    if (not get_private):
-        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
-
+#    if (not get_private):
+#        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
+    
     # use this list as part of the context to render an xml response
     context = {
         'start_date': start_date,
         'end_date': end_date,
-        'assessment_list': matching_assessments}
+        'assessment_list': matching_assessments,
+        'property': propertyview.state,
+        'measurement_list': measurement_dict,
+        }
     rendered_xml = render_to_string('reso_export_template.xml', context)
 
     return HttpResponse(rendered_xml, content_type='text/xml')
