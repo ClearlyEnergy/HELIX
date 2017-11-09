@@ -33,7 +33,6 @@
             <strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong>,
             <strong>.xls</strong>, <strong>.xlsx</strong>, and <strong>.xml</strong> files are supported.
         </div>
-	<!--
         <div class="row">
             <div class="col-sm-10 col-sm-offset-1" ng-hide="uploader.in_progress">
                 <div class="row">
@@ -62,8 +61,8 @@
                     <!--<label class="col-sm-7 control-label" for="use-field-option">Determine Time Period from Field:</label>-->
                     <!--<span class="col-sm-4">Year Ending</span>-->
                 <!--</div>-->
-<!--            </div>
-        </div> -->
+          </div>
+        </div>
         <!-- begin modifications -->
         <div class="row" style="padding-top: 20px;">
             <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(13)">Upload HELIX File</button>
@@ -187,11 +186,13 @@
                     <li ng-if="duplicate_tax_lot_states">Ignored tax lot duplicates within the import file: {$ duplicate_tax_lot_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_property_states">Ignored duplicates of existing properties: {$ duplicates_of_existing_property_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_taxlot_states">Ignored duplicates of existing tax lots: {$ duplicates_of_existing_taxlot_states|number:0 $}</li>
+                    <li ng-if="new_assessments">New assessments: {$ new_assessments|number:0 $}</li>
+                    <li ng-if="updated_assessments">Updated assessments: {$ updated_assessments|number:0 $}</li>
                 </ul>
             </div>
             <div class="alert alert-{$ step_10_style $}">
                 <span ng-show="step_10_error_message">{$ step_10_error_message $}</span>
-                <span ng-hide="step_10_error_message"><strong>SEED could not locate any existing matches</strong>. Would you like to add another file?</span>
+                <span ng-hide="step_10_error_message"><strong>HELIX could not locate any existing matches</strong>. Would you like to add another file?</span>
             </div>
             <div class="form-group col-sm-12"></div>
         </div>
