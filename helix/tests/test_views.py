@@ -6,9 +6,10 @@ from django.utils import timezone
 from seed.landing.models import SEEDUser as User
 from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.models import Cycle, PropertyView
+from seed.models.certification import GreenAssessment
 from seed.data_importer.models import ImportRecord
 
-from helix.models import HelixMeasurement, HELIXGreenAssessment
+from helix.models import HelixMeasurement
 
 
 class TestHelixView(TestCase):
@@ -59,7 +60,7 @@ class TestHelixView(TestCase):
 
     #Check that a green assessment has been created
     def test_create_green_assessment(self):
-        ga = HELIXGreenAssessment.objects.filter(name='Home Energy Score')
+        ga = GreenAssessment.objects.filter(name='Home Energy Score')
         self.assertTrue(ga.exists())
     
     # Check that a simple case of helix_hes return the correct status code

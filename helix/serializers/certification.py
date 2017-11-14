@@ -14,12 +14,12 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from seed.models import (
-    GreenAssessment, GreenAssessmentProperty, GreenAssessmentURL,
+    GreenAssessment, GreenAssessmentURL,
     PropertyView
 )
 
 #Helix add
-from helix.models import HelixMeasurement
+from helix.models import HelixMeasurement, HELIXGreenAssessmentProperty
 
 from seed.models.auditlog import AUDIT_USER_CREATE
 from seed.utils.api import OrgValidator, OrgValidateMixin
@@ -167,7 +167,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin,
             self.fields.pop('view')
 
     class Meta:
-        model = GreenAssessmentProperty
+        model = HELIXGreenAssessmentProperty
         depth = 1
         fields = ('id', 'source', 'status', 'status_date', 'score',
                   'metric', 'rating', 'version', 'date', 'target_date',
@@ -317,7 +317,7 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
     def to_representation(self, obj):
         """Serialize green assessment property"""
         urls = [(url.url, url.description) for url in obj.urls.all()]
-        measurements = [(measure.measurement_type, measure.measurement_subtype, measure.fuel, measure.quantity, measure.unit, measure.status) for measure in obj.measurements.all()]
+        measurements = [(measure.measurement_type, measure.measurement_subtype, measure.fuel, measure.quantity, measure.unit, measure.status, measure.year) for measure in obj.measurements.all()]
         assessment = OrderedDict((
             ('id', obj.assessment.id),
             ('name', obj.assessment.name),
@@ -357,6 +357,7 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
             ('is_valid', obj.is_valid),
             ('year', obj.year),
             ('date', obj.date),
+            ('opt_out', obj.opt_out),
             ('urls', urls),
             ('assessment', assessment),
             ('measurements', measurements)

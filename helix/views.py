@@ -1,21 +1,24 @@
 import csv
 import datetime
 
+from django.conf import settings
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.db.models import Q
+from rest_framework.decorators import api_view
 
-from seed.models import Cycle, PropertyView
+from seed.models import Cycle, PropertyView, Property
 
-from seed.models.certification import GreenAssessmentProperty, GreenAssessment, GreenAssessmentPropertyAuditLog
+from seed.models.certification import GreenAssessment, GreenAssessmentPropertyAuditLog
+from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
 from seed.data_importer.models import ImportRecord
 from seed.lib.superperms.orgs.models import Organization
 from seed.lib.mcm import cleaners, mapper, reader
+from seed.utils.api import api_endpoint
 
-from helix.models import HELIXGreenAssessmentProperty, HELIXGreenAssessment, HelixMeasurement
 import helix.helix_utils as utils
 
 from hes import hes
@@ -26,8 +29,7 @@ from hes import hes
 @login_required
 def assessment_view(request):
     orgs = Organization.objects.all()
-    context = RequestContext(request, {'org_list': orgs})
-    return render(request, 'helix/green_assessments.html', context)
+    return render(request, 'helix/green_assessments.html', {'org_list': orgs})
 
 
 # Returns and html interface for editing an existing green assessment which is
@@ -35,9 +37,7 @@ def assessment_view(request):
 @login_required
 def assessment_edit(request):
     assessment = GreenAssessment.objects.get(pk=request.GET['id'])
-#    assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
-    context = RequestContext(request, {'assessment': assessment})
-    return render(request, 'helix/assessment_edit.html', context)
+    return render(request, 'helix/assessment_edit.html', {'assessment': assessment})
 
 
 # Retrieve building data for a single building_id from the HES api.
@@ -74,17 +74,38 @@ def helix_hes(request):
 #   helix_csv: data file
 @login_required
 def helix_csv_upload(request):
+    print settings.DEFAULT_FILE_STORAGE
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
+    print cycle
 
     data = request.FILES['helix_csv'].read()
+    
+    def get(self, request, *args, **kwargs):
+        view = AuthorDisplay.as_view()
+        return view(request, *args, **kwargs)
 
-    res = utils.helix_csv_upload(request.user, dataset, cycle, data)
+    # create file record and save addresses
+    res = utils.helix_address_create(request.user, dataset, cycle, data)
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
-    else:
-        return redirect('seed:home')
+    else:    
+        res = utils.helix_certification_create(request.user, res['import_file_id'])
+        if(res['status'] == 'error'):
+            return JsonResponse(res, status=400)
+        else:
+            return redirect('seed:home')
 #        return redirect('seed:inventory_list(properties)') #doesn't work
+
+# Add certifications to already imported file
+@login_required
+def add_certifications(request, import_file_id):
+    response = utils.helix_certification_create(request.user,import_file_id)
+    
+    if(response['status'] == 'error'):
+        return JsonResponse(response, status=400)
+    else:
+        return JsonResponse(response, status=200)    
 
 # Upload a csv file constructed according to the helix hes csv file format.
 # [see helix_upload_sample.csv]
@@ -132,7 +153,7 @@ def helix_csv_export(request):
     view_ids = PropertyView.objects.filter(property_id__in=property_ids)
 
     # retrieve green assessment properties that belong to one of these ids
-    assessments = GreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
+    assessments = HELIXGreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
 
     file_name = request.GET.get('file_name')
 
@@ -144,7 +165,7 @@ def helix_csv_export(request):
         response = HttpResponse()
 
     # Dump all fields of all retrieved assessments properties into csv
-    fieldnames = [f.name for f in GreenAssessmentProperty._meta.get_fields()]
+    fieldnames = [f.name for f in HELIXGreenAssessmentProperty._meta.get_fields()]
     writer = csv.writer(response)
 
     writer.writerow([str(f) for f in fieldnames])
@@ -171,61 +192,79 @@ def helix_csv_export(request):
 #                  private data.
 # Example:
 #    http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
+
 @login_required
+@api_endpoint
+@api_view(['GET'])
 def helix_reso_export_xml(request):
     # Get the relevant property view form its table. If it can't be found,
     # a 404 error is returned.
-    print request.user
     # Get properties updated within dates
     # Green Assessment Property Audit Log
     # Property Audit Log
+    start_date = None
+    end_date = None
+    if 'start_date' in request.GET:
+        start_date = request.GET['start_date']
+    if 'end_date' in request.GET:
+        end_date = request.GET['end_date']
+    today = datetime.datetime.today()
+
+    organizations = Organization.objects.filter(users=request.user)
+    properties = Property.objects.filter(organization_id__in=organizations)
+    # select green assessment properties that are in the specified create / update date range
+    # and associated with the correct property view
+    ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(
+        created__range=(start_date, end_date)).values_list('property_view_id', flat=True) 
+    if not ga_pks:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+        
     try:
-        propertyview = PropertyView.objects.get(pk=request.GET['propertyview_pk'])
+        if 'propertyview_pk' in request.GET:
+            propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties)
+        else:
+            propertyviews = PropertyView.objects.filter(property_id__in=properties, pk__in=ga_pks)
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
         
-    start_date = request.GET['start_date']
-    end_date = request.GET['end_date']
+    print propertyviews
 
-    # There should be some sort of check here to see if the user has permission
-    # to see this private data at all. Not sure what the criteria for this would be.
-    get_private = request.GET.get('private_data') == 'True'
-
-    # select green assessment properties that are in the specified range
-    # and associated with the correct property view
-    ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(
-        created__range=(start_date, end_date))
-        #property_view=propertyview)
-        #,
-        #created__range=(start_date, end_date))
-
-    today = datetime.datetime.today()
-    matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
-        view=propertyview,
-        date__range=(start_date, end_date)).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None))
-        
-    matching_measurements = HelixMeasurement.objects.filter(
-        assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
-        measurement_type__in=['PROD','CAP'],
-        measurement_subtype__in=['PV','WIND']
-    )
-    
-    measurement_dict = {}
-    for measure in matching_measurements:
-        measurement_dict.update(measure.to_reso_dict())
-    
     # filter out any private data if it has not been requested
 #    if (not get_private):
 #        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
     
-    # use this list as part of the context to render an xml response
-    context = {
-        'start_date': start_date,
-        'end_date': end_date,
-        'assessment_list': matching_assessments,
-        'property': propertyview.state,
-        'measurement_list': measurement_dict,
-        }
-    rendered_xml = render_to_string('reso_export_template.xml', context)
+        # use this list as part of the context to render an xml response
+      
+    content = []
+    for propertyview in propertyviews:  
+        matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
+            view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
+        
+        if matching_assessments:        
+            matching_measurements = HelixMeasurement.objects.filter(
+                assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
+                measurement_type__in=['PROD','CAP'],
+                measurement_subtype__in=['PV','WIND']
+            )
+    
+            measurement_dict = {}
+            for measure in matching_measurements:
+                measurement_dict.update(measure.to_reso_dict())
+        
+            property_info = {
+                "property": propertyview.state,
+                "assessments": matching_assessments,
+                "measurements": measurement_dict
+            }
+            content.append(property_info)
+
+        context = {
+            'start_date': start_date,
+            'end_date': end_date,
+            'content': content
+            }
+        
+        rendered_xml = render_to_string('reso_export_template.xml', context)
+        print rendered_xml
 
     return HttpResponse(rendered_xml, content_type='text/xml')

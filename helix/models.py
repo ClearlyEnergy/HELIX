@@ -3,10 +3,7 @@ from seed.models import certification
 
 
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
-    disclosure = models.TextField(max_length=100, null=True, blank=True)
-
-class HELIXGreenAssessment(certification.GreenAssessment):
-    disclosure_default = models.TextField(max_length=100, null=True, blank=True)
+    opt_out = models.BooleanField(default=False)
 
 class HelixMeasurement(models.Model):
     """
@@ -61,7 +58,7 @@ class HelixMeasurement(models.Model):
         ("CAP", "Capacity"))
 
     MEASUREMENT_SUBTYPE_CHOICES = (
-        ("PV", "Solar Photovoltaic"), #Note: change to Photovoltaics
+        ("PV", "Photovoltaics"),
         ("WIND", "Wind"))
 
     FUEL_CHOICES = (
@@ -103,6 +100,7 @@ class HelixMeasurement(models.Model):
     quantity = models.FloatField(null=True, blank=True)
     unit = models.CharField(max_length=5, choices=UNIT_CHOICES)
     status = models.CharField(max_length=13, choices=STATUS_CHOICES)
+    year = models.IntegerField(null=True, blank=True)
     
     def to_reso_dict(self):
         """

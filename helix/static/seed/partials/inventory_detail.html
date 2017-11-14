@@ -53,6 +53,7 @@ END HELIX REMOVE -->
 	                        <th sd-resizable id="assessment_score">Date Created</th>
 	                        <th sd-resizable id="assessment_score">Expiration Date</th>
 	                        <th sd-resizable id="assessment_score">Status</th>
+	                        <th sd-resizable id="assessment_score">Opt-Out?</th>
 						</tr>
 					</thead>
 										
@@ -67,6 +68,7 @@ END HELIX REMOVE -->
 	                        <td>{$ certification.date $}</td>
 	                        <td>{$ certification.expiration_date $}</td>
 	                        <td>{$ certification.status $}</td>
+	                        <td>{$ certification.opt_out $}</td>
 						</tr>
 						<tr ng-if="isOpen">
 							<th></th>
@@ -76,6 +78,7 @@ END HELIX REMOVE -->
 	                        <th sd-resizable>Quantity</th>
 	                        <th sd-resizable>Unit</th>
 	                        <th sd-resizable>Status</th>
+	                        <th sd-resizable>Year</th>
 						</tr>
 						<tr ng-repeat="measure in certification.measurements" ng-if="isOpen">
 							<td></td>
@@ -85,6 +88,7 @@ END HELIX REMOVE -->
 							<td>{$ measure[3] $}</td>
 							<td>{$ measure[4] $}</td>
 							<td>{$ measure[5] $}</td>
+							<td>{$ measure[6] $}</td>
 						</tr>
 						<tr ng-if="isOpen">
 							<th></th>

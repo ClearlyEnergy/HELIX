@@ -96,7 +96,6 @@ def normalize_address_str(address_val, address_val_2):
 
     If a valid address is provided, a normalized version is returned.
     """
-
     # if this string is empty the regular expression in the sa wont
     # like it, and fail, so leave returning nothing
     if not address_val:
@@ -115,8 +114,10 @@ def normalize_address_str(address_val, address_val_2):
     # now parse the address into number, street name and street type
     try:
         # Add in the mapping of CornerOf to the AddressNumber.
-        addr = usaddress.tag(str(address_val + ' ' + address_val_2), tag_mapping={'CornerOf': 'AddressNumber'})[0]
-        print addr
+        if address_val_2:
+            addr = usaddress.tag(str(address_val + ' ' + address_val_2), tag_mapping={'CornerOf': 'AddressNumber'})[0]
+        else:
+            addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]            
     except usaddress.RepeatedLabelError:
         # usaddress can't parse this at all
         normalized_address = str(address_val)

@@ -33,8 +33,9 @@ angular.module('BE.seed.controller.inventory_detail', [])
       $scope.columns = inventory_service.loadSettings(localStorageKey, angular.copy(columns));
       /** See service for structure of returned payload */
       $scope.historical_items = inventory_payload.history;
-	  /** HELIX add-on **/
+	  /** Helix add-on to grab certifications **/
 	  $scope.certifications = inventory_payload.certifications;
+	  console.log($scope.certifications)
 
       $scope.item_state = inventory_payload.state;
       $scope.changed_fields = inventory_payload.changed_fields;

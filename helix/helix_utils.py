@@ -13,6 +13,7 @@ from seed.models.certification import GreenAssessment
 from zeep.exceptions import Fault
 
 from helix.models import HelixMeasurement
+from helix.utils.address import normalize_address_str
 
 from autoload import autoload
 from hes import hes
@@ -25,21 +26,16 @@ def mapping_entry(to_field, from_field):
             'from_field': from_field}
 
 
-# Utility that exists to abstract the logic of the helix_csv_upload api call
-# outside of the view. This setup means that the csv upload logic could be
-# easily called through a scheduled task or django management tools
-def helix_csv_upload(user, dataset, cycle, csv_file):
+# HELIX create file, use preset mappings and save file
+def helix_address_create(user, dataset, cycle, csv_file):
     # load some of the data directly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
     # upload and save to Property state table
     file_pk = loader.upload(csv_file, dataset, cycle)
     import_file = ImportFile.objects.get(pk=file_pk)
     parser = reader.MCMParser(import_file.local_file)
-    
+
     mappings = []
-    assessment_mappings = []
-    date_mapping = ''
-    merge_street_nr = False
     # Hardcoding these because they are known ahead of time but,
     # there's no reason matching can't be automatic
     for col in parser.headers:
@@ -64,6 +60,55 @@ def helix_csv_upload(user, dataset, cycle, csv_file):
             mappings.append(mapping_entry('property_name', col))
         if re.match(r'internal.*id', col.lower()) is not None:
             mappings.append(mapping_entry('custom_id_1', col))
+
+# Create address records   
+    response = loader.autoload_file(file_pk, mappings) 
+    return response
+    
+# Utility that exists to abstract the logic of the helix_csv_upload api call
+# outside of the view. This setup means that the csv upload logic could be
+# easily called through a scheduled task or django management tools
+def helix_certification_create(user, file_pk):
+    # load some of the data directly from csv
+    loader = autoload.AutoLoad(user, user.default_organization)
+    import_file = ImportFile.objects.get(pk=file_pk)
+    parser = reader.MCMParser(import_file.local_file)
+    data = {
+        'new_assessments': 0,
+        'updated_assessments': 0,
+    }
+    ga_format = None
+    # Green Assessment Mappings and format types or return if no green assessment
+    if 'green_assessment_name' in parser.headers:
+        ga_format = 'long'
+    else:
+        for col in parser.headers:
+            if re.match(r'HERS|ENERGY STAR|LEED|HES|HOME ENERGY SCORE',col.upper()):
+                ga_format = 'short'
+    
+    if ga_format is None:
+        return {'status': 'success', 'data': data}
+    
+    mappings = []
+    assessment_mappings = []
+    date_mapping = ''
+    has_opt_out = False
+    # Hardcoding these because they are known ahead of time but,
+    # there's no reason matching can't be automatic
+    # VB Note: switch to using column mappins
+    for col in parser.headers:
+        if re.match(r'[postal,zip].*code', col.lower()) is not None:
+            mappings.append(mapping_entry('postal_code', col))
+            postal_code = col
+        if re.match(r'address.*1', col.lower()) is not None:
+            mappings.append(mapping_entry('address_line_1', col))
+            address1 = col
+        if re.match(r'address.*2', col.lower()) is not None:
+            mappings.append(mapping_entry('address_line_2', col))
+            address2 = col
+        if re.match(r'opt.*out', col.lower()) is not None:
+            opt_out = col
+            has_opt_out = True
         if re.search(r'hers', col.lower()) is not None:
             assessment_mappings.append(mapping_entry('HERS Index Score',col))
         if re.search(r'energy star', col.lower()) is not None:
@@ -78,21 +123,7 @@ def helix_csv_upload(user, dataset, cycle, csv_file):
             assessment_mappings.append(mapping_entry('Efficiency Vermont Residential New Construction Program',col))
         if re.search(r'[complete|assessment].*date', col.lower()) is not None:
             date_mapping = col
-        if re.search(r'street.*[nr|number]', col.lower()) is not None:
-            merge_street_nr = True
-            street_nr = col
-
-# Green Assessment Mappings and format types
-    if 'green_assessment_name' in parser.headers:
-        ga_format = 'long'
-    else:
-        ga_format = 'short'
-                 
-# Create address records   
-    response = loader.autoload_file(file_pk, mappings) 
-    if(response['status'] == 'error'):
-        return response
-        
+                                     
     # The hes client will be instantiated later if it is required
     hes_client = None
 
@@ -103,11 +134,6 @@ def helix_csv_upload(user, dataset, cycle, csv_file):
         if row[date_mapping] is not '':
             row[date_mapping] = test_date_format(row[date_mapping])
         if ga_format == 'short':
-#            if merge_street_nr:
-#                address1_value = row[street_nr] + ' ' + row[address1]
-#            else:
-#                address1_value = row[address1]
-                
             for assess in assessment_mappings:
                 assessment = GreenAssessment.objects.get(name=assess['to_field'], organization_id=user.default_organization.id)
                 score_type = ("metric" if assessment.is_numeric_score else "rating")
@@ -119,10 +145,10 @@ def helix_csv_upload(user, dataset, cycle, csv_file):
                         "assessment": assessment
                     }
                     green_assessment_data.update({score_type: score_value})                    
+                    normalized_address = normalize_address_str(row[address1], row[address2])
                     
                     loader.create_green_assessment_property(
-                        green_assessment_data,
-                        row[address1], row[address2], row[postal_code])                     
+                        green_assessment_data, normalized_address, row[postal_code])                     
                 
         elif ga_format == 'long':
             # do data base lookup by name for the assessment
@@ -136,17 +162,24 @@ def helix_csv_upload(user, dataset, cycle, csv_file):
                 "urls": [row["green_assessment_property_url"]],
                 "assessment": assessment
             }
-
+            if has_opt_out:
+                green_assessment_data["opt_out"] = cleaners.bool_cleaner(row[opt_out])
+                 
             score_type = ("metric" if assessment.is_numeric_score else "rating") 
             score_value = test_score_value(score_type, row['green_assessment_property_'+score_type])
+            address2 = ""
+            if address2 in row:
+                address2 = row[address2]
             if score_value not in ['','FALSE']:
-                green_assessment_data.update({score_type: score_value})            
+                green_assessment_data.update({score_type: score_value}) 
+                normalized_address = normalize_address_str(row[address1], address2)
+           
+                log, prop_assess = loader.create_green_assessment_property(
+                    green_assessment_data, normalized_address, row[postal_code])
+                data['new_assessments'] += log['created']
+                data['updated_assessments'] += log['updated']
 
-                loader.create_green_assessment_property(
-                    green_assessment_data,
-                    row[address1], row[address2], row[postal_code])
-
-    return {'status': 'success'}
+    return {'status': 'success', 'data': data}
 
 
 # Similar to the above function, this abstracts logic away from the view in a
@@ -159,7 +192,6 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
     hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     # These mappings are hardcoded because they are known ahead of time
     mappings = [mapping_entry('address_line_1', 'address'),
-                mapping_entry('address_line_2', 'address_2'),
                 mapping_entry('city', 'city'),
                 mapping_entry('state', 'state'),
                 mapping_entry('postal_code', 'zip_code'),
@@ -178,7 +210,6 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
         if is_hes and hes_id:
             try:
                 hes_data = hes_client.query_hes(hes_id)
-                hes_data['address_2'] = ''
             except Fault as f:
                 return {"status": "error", "message": f.message}
 
@@ -204,27 +235,25 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
             buf.close()
 
             # upload and save to Property state table
-            print csv_file
             file_pk = loader.upload(csv_file, dataset, cycle)
             #match and merge
             response = loader.autoload_file(file_pk, mappings)    
             if(response['status'] == 'error'):
                 return response
-
-            prop_assess = loader.create_green_assessment_property(
+            # unique address field
+            normalized_address = normalize_address_str(hes_data['address'],'')
+            log_data, prop_assess = loader.create_green_assessment_property(
                 green_assessment_data,  # data retrieved from HES API
-                hes_data['address'], '', hes_data['zip_code'])
+                normalized_address, hes_data['zip_code'])
 
             for k in hes_data:
                 if (k.startswith('CONS') or k.startswith('PROD') or k.startswith('CAP')):
-                    print k
                     consumption = hes_data[k][0]
                     unit = hes_data[k][1]
                     # find fuel and measurement type
                     for fuel in list(HelixMeasurement.HES_FUEL_TYPES.keys()):
                         if fuel in k:
                             break
-                    print fuel
         
                     measurement_data = {
                         'measurement_type': k.split('_')[0],
@@ -234,9 +263,9 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
                         'status': 'ESTIMATE'}
                     if 'pv' in k:
                         measurement_data['measurement_subtype'] = 'PV'
-#                    if 'pv' in k and 'CAP' in k:
-                        #add year hes_data[k][2]
-                    print measurement_data
+                        if k.startswith('CAP'):
+                            measurement_data['year'] = hes_data[k][2]
+
                     loader.create_measurement(prop_assess, **measurement_data)
 
     # revoke session token created for the hes client

@@ -11,7 +11,7 @@
     <h4 class="modal-title" ng-switch-when="10">{$ step_10_title|titleCase $}</h4>
     <h4 class="modal-title" ng-switch-when="11">Confirm Save Mappings?</h4>
     <h4 class="modal-title" ng-switch-when="12">Error Processing Data</h4>
-    <h4 class="modal-title" ng-switch-when="14">HES Data Upload</h4>
+    <h4 class="modal-title" ng-switch-when="13">HES Data Upload</h4>
 </div>
 <div class="modal-body no_bottom_padding" ng-switch on="step.number">
     <!-- Step 1 -->
@@ -29,29 +29,28 @@
     <!-- Step 2: Choose upload type -->
     <div class="data_upload_steps container-fluid" ng-switch-when="2">
         <div class="alert alert-danger" ng-show="uploader.invalid_extension_alert">
-            <strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong>,
+            <strong>Sorry!</strong> HELIX doesn't currently support that file format. Only <strong>.csv</strong>,
             <strong>.xls</strong>, <strong>.xlsx</strong>, and <strong>.xml</strong> files are supported.
         </div>
         <div class="row">
             <div class="col-sm-10 col-sm-offset-1" ng-hide="uploader.in_progress">
-                <div class="row" style="display: none;">
+                <div class="row">
                     <label class="col-sm-3 col-sm-offset-1 control-label" for="selected-cycle" style="margin-top: 5px;">Time Period:</label>
                     <div class="col-sm-7">
                         <select id="selected-cycle" name="selected-cycle" class="form-control input-sm" ng-model="selectedCycle" ng-options="cycle.name for cycle in cycles track by cycle.id"></select>
                     </div>
                 </div>
-				<!--
                 <div class="row">
                     <div class="col-sm-10 col-sm-offset-4">
-                        <a ui-sref="organization_cycles({organization_id: organization.id})" ng-click="cancel()">Manage available cycles.</a>
+                        <a ui-sref="organization_cycles(::{organization_id: organization.id})" ng-click="cancel()">Manage available cycles.</a>
                     </div>
-                </div> -->
+                </div>
             </div>
         </div>
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2" sd-uploader sourcetype="Assessed Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload a Spreadsheet" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="!selectedCycle" style="padding-top: 20px;"></div>
         </div>
-        <div class="row" style="display: none;">
+        <div class="row">
             <div class="col-sm-8 col-sm-offset-2" sd-uploader sourcetype="Assessed Raw" sourceprog="PortfolioManager" sourcever="1.0" importrecord="dataset.id" buttontext="Upload Portfolio Manager Data" eventfunc="uploaderfunc(message, file, progress)" ng-disabled="!selectedCycle" ng-hide="uploader.in_progress"></div>
         </div>
         <div class="row">
@@ -61,18 +60,16 @@
                     <!--<label class="col-sm-7 control-label" for="use-field-option">Determine Time Period from Field:</label>-->
                     <!--<span class="col-sm-4">Year Ending</span>-->
                 <!--</div>-->
-          </div>
+            </div>
         </div>
         <!-- begin modifications -->
         <div class="row" style="padding-top: 20px;">
-            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(14)"  ng-hide="uploader.in_progress">Synchronize Home Energy Score Data</button>
+            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(13)">Synchronize Home Energy Score Data</button>
         </div>
         <!-- begin modifications
-       <div class="row">
-            <div class="col-sm-8 col-sm-offset-2 green_button" sd-uploader sourcetype="Green Button Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload Green Button Data" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="true" style="padding-top: 10px;">Green Button Data</div>
+        <div class="row">
+            <div class="col-sm-8 col-sm-offset-2 green_button" sd-uploader sourcetype="Green Button Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="Upload Green Button Data" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="true" style="padding-top: 10px;">Upload Green Button Data</div>
         </div>
-        end modifications -->
-
         <div class="progress_bar_container" ng-show="uploader.in_progress">
             <div class="progress_bar_copy_top">Uploading <strong>{$ dataset.filename $}</strong></div>
 
@@ -99,7 +96,7 @@
     <div class="data_upload_steps" ng-switch-when="4">
         <div class="row">
             <div class="alert alert-danger" ng-show="uploader.invalid_extension_alert">
-                <strong>Sorry!</strong> SEED doesn't currently support that file format. Only <strong>.csv</strong>,
+                <strong>Sorry!</strong> HELIX doesn't currently support that file format. Only <strong>.csv</strong>,
                 <strong>.xls</strong>, <strong>.xlsx</strong>, and <strong>.xml</strong> files are supported.
             </div>
             <div class="form-group col-sm-12">
@@ -157,6 +154,8 @@
                     <li ng-if="duplicate_tax_lot_states">Ignored tax lot duplicates within the import file: {$ duplicate_tax_lot_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_property_states">Ignored duplicates of existing properties: {$ duplicates_of_existing_property_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_taxlot_states">Ignored duplicates of existing tax lots: {$ duplicates_of_existing_taxlot_states|number:0 $}</li>
+                    <li ng-if="new_assessments">New assessments: {$ new_assessments|number:0 $}</li>
+                    <li ng-if="updated_assessments">Updated assessments: {$ updated_assessments|number:0 $}</li>
                 </ul>
             </div>
         </div>
@@ -183,8 +182,6 @@
                     <li ng-if="duplicate_tax_lot_states">Ignored tax lot duplicates within the import file: {$ duplicate_tax_lot_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_property_states">Ignored duplicates of existing properties: {$ duplicates_of_existing_property_states|number:0 $}</li>
                     <li ng-if="duplicates_of_existing_taxlot_states">Ignored duplicates of existing tax lots: {$ duplicates_of_existing_taxlot_states|number:0 $}</li>
-                    <li ng-if="new_assessments">New assessments: {$ new_assessments|number:0 $}</li>
-                    <li ng-if="updated_assessments">Updated assessments: {$ updated_assessments|number:0 $}</li>
                 </ul>
             </div>
             <div class="alert alert-{$ step_10_style $}">
@@ -198,7 +195,7 @@
     <div class="data_upload_steps" ng-switch-when="11">
         <div class="row">
             <div class="alert alert-warning">
-                Did you review your mappings? It's a good idea to double check your mappings. Once HELIX matches your properties you cannot undo or edit these mappings.
+                Did you review your mappings? It's a good idea to double check your mappings. Once HELIX matches your properties &amp; tax lots you cannot undo or edit these mappings.
             </div>
         </div>
     </div>
@@ -213,9 +210,8 @@
             </div>
         </div>
     </div>
-
     <!-- begin changes-->
-    <div class="data_upload_steps" ng-switch-when="14">
+    <div class="data_upload_steps" ng-switch-when="13">
         <form class="form-horizontal" role="form" action='/helix/helix-hes-upload/' method='post'  enctype="multipart/form-data">
             <div class="modal-body">
                 <div class="form-group">
@@ -278,7 +274,6 @@
 
     </script>
     <!-- end changes-->
-
 </div>
 
 <div class="modal-footer container-fluid" ng-switch on="step.number">
