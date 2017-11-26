@@ -11,6 +11,7 @@
     <h4 class="modal-title" ng-switch-when="10">{$ step_10_title|titleCase $}</h4>
     <h4 class="modal-title" ng-switch-when="11">Confirm Save Mappings?</h4>
     <h4 class="modal-title" ng-switch-when="12">Error Processing Data</h4>
+    <h4 class="modal-title" ng-switch-when="13">Test HES</h4>
     <h4 class="modal-title" ng-switch-when="14">HES Data Upload</h4>
 </div>
 <div class="modal-body no_bottom_padding" ng-switch on="step.number">
@@ -63,7 +64,10 @@
                 <!--</div>-->
           </div>
         </div>
-        <!-- begin modifications -->
+        <!-- Helix begin modifications -->
+        <div class="row" style="padding-top: 20px;">
+            <button type="button" id="synchronize_hes" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Test HES</button>
+        </div>
         <div class="row" style="padding-top: 20px;">
             <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(14)"  ng-hide="uploader.in_progress">Synchronize Home Energy Score Data</button>
         </div>

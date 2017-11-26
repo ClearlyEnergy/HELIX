@@ -116,6 +116,21 @@ angular.module('BE.seed.controller.data_upload_modal', [])
       };
 
       /**
+       * Helix change - Synchronize HES records and create datafiles
+       */
+      $scope.synchronize_hes = function () {
+		  $http.post('/api/v2/hes_upload/', {}, {
+          params: {
+            organization_id: $scope.organization.org_id,
+			  dataset: $scope.dataset.id,
+			  cycle: $scope.selectedCycle.id
+          }
+        }).then(function (data) {
+          $scope.dataset.import_file_id = data.data.file;
+          $scope.goto_step(3);
+        });
+      };
+      /**
        * goto_step: changes the step of the modal, i.e. name dataset -> upload ...
        * step: int - used with the `ng-switch` in the DOM to change state
        * step_text:

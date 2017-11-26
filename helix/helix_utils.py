@@ -65,9 +65,7 @@ def helix_address_create(user, dataset, cycle, csv_file):
     response = loader.autoload_file(file_pk, mappings) 
     return response
     
-# Utility that exists to abstract the logic of the helix_csv_upload api call
-# outside of the view. This setup means that the csv upload logic could be
-# easily called through a scheduled task or django management tools
+# Create certifications
 def helix_certification_create(user, file_pk):
     # load some of the data directly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
@@ -76,6 +74,8 @@ def helix_certification_create(user, file_pk):
     data = {
         'new_assessments': 0,
         'updated_assessments': 0,
+        'new_measurements': 0,
+        'updated_measurements': 0,
     }
     ga_format = None
     # Green Assessment Mappings and format types or return if no green assessment
@@ -83,9 +83,9 @@ def helix_certification_create(user, file_pk):
         ga_format = 'long'
     else:
         for col in parser.headers:
-            if re.match(r'HERS|ENERGY STAR|LEED|HES|HOME ENERGY SCORE',col.upper()):
+            if re.match(r'HERS|ENERGY.*STAR|LEED|HES|HOME.*ENERGY.*SCORE',col.upper()):
                 ga_format = 'short'
-    
+
     if ga_format is None:
         return {'status': 'success', 'data': data}
     
@@ -95,12 +95,12 @@ def helix_certification_create(user, file_pk):
     has_opt_out = False
     # Hardcoding these because they are known ahead of time but,
     # there's no reason matching can't be automatic
-    # VB Note: switch to using column mappins
+    # VB Note: switch to using column mappings for address
     for col in parser.headers:
         if re.match(r'[postal,zip].*code', col.lower()) is not None:
             mappings.append(mapping_entry('postal_code', col))
             postal_code = col
-        if re.match(r'address.*1', col.lower()) is not None:
+        if re.match(r'address.*1*', col.lower()) is not None:
             mappings.append(mapping_entry('address_line_1', col))
             address1 = col
         if re.match(r'address.*2', col.lower()) is not None:
@@ -124,9 +124,6 @@ def helix_certification_create(user, file_pk):
         if re.search(r'[complete|assessment].*date', col.lower()) is not None:
             date_mapping = col
                                      
-    # The hes client will be instantiated later if it is required
-    hes_client = None
-
     # If a green property assessment is provided for the property
     # parse the data and create the green assessment entry        
     rows = parser.next()
@@ -158,6 +155,7 @@ def helix_certification_create(user, file_pk):
                 "source": row["green_assessment_property_source"],
                 "version": row["green_assessment_property_version"],
                 "date": row["green_assessment_property_date"],
+                "status": row["green_assessment_property_status"],
                 "extra_data": row["green_assessment_property_extra_data"],
                 "urls": [row["green_assessment_property_url"]],
                 "assessment": assessment
@@ -178,10 +176,69 @@ def helix_certification_create(user, file_pk):
                     green_assessment_data, normalized_address, row[postal_code])
                 data['new_assessments'] += log['created']
                 data['updated_assessments'] += log['updated']
+                
+            log = loader.setup_measurements(parser.headers, row, prop_assess)
 
+            data['new_measurements'] += log['created']
+            data['updated_measurements'] += log['updated']
+            
     return {'status': 'success', 'data': data}
 
+# retrieves home energy score records and formats file for rest of upload process
+def helix_hes_to_file(user, dataset, cycle, hes_auth, hes_id):
+    # instantiate HES client for external API
+    hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
+    # find assessment entry for hes by name. Maybe not ideal!
+    hes_assessment = GreenAssessment.objects.get(name='Home Energy Score', organization_id=user.default_organization.id)
+#    if len(hes_assessment) != 1:
+#        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
+    buf = StringIO.StringIO()
+    #loop through available id's
+#    dict_data = csv.DictReader(csv_file.splitlines())
+#    for row in dict_data:
+    try:
+        hes_data = hes_client.query_hes(hes_id)
+        print hes_data
+    except Fault as f:
+        return {"status": "error", "message": f.message}
+    
+    #change a few naming conventions
+    hes_data['green_assessment_property_metric']= hes_data.pop('base_score')     
+    hes_data['green_assessment_name'] = 'Home Energy Score'
+    hes_data['green_assessment_property_source'] = 'Department of Energy'
+    hes_data['green_assessment_property_status'] = hes_data.pop('assessment_type')
+    hes_data['green_assessment_property_version'] = hes_data.pop('hescore_version')
+    hes_data['green_assessment_property_url'] = hes_data.pop('pdf')
+    hes_data['green_assessment_property_date'] = hes_data.pop('assessment_date')
+    hes_data['green_assessment_property_extra_data'] = ''
+            
+    # construct a csv string out of the dictionary retrieved by hes
+    buf = StringIO.StringIO()
+    try:
+        writer
+    except:
+        writer = csv.DictWriter(buf, fieldnames=hes_data.keys())
+        writer.writeheader()
+        writer.writerow(hes_data) #merge in with green assessment data
+    else:
+        writer.writerow(hes_data) #merge in with green assessment data
+
+    csv_file = buf.getvalue()
+    buf.close()
+    
+    # load some of the data directly from csv
+    loader = autoload.AutoLoad(user, user.default_organization)
+    # upload and save to Property state table
+    file_pk = loader.upload(csv_file, dataset, cycle)
+    # save raw data
+    resp = loader.save_raw_data(file_pk)
+    if (resp['status'] == 'error'):
+        return resp
+        
+    return {'status': 'success', 'file': file_pk}
+    
+    
 # Similar to the above function, this abstracts logic away from the view in a
 # way that should facilitate code reuse.
 def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
@@ -265,7 +322,7 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
                         measurement_data['measurement_subtype'] = 'PV'
                         if k.startswith('CAP'):
                             measurement_data['year'] = hes_data[k][2]
-
+                            
                     loader.create_measurement(prop_assess, **measurement_data)
 
     # revoke session token created for the hes client
@@ -274,6 +331,7 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
         hes_client.end_session()
 
     return {'status': 'success'}
+    
     
 # Test for valid date formats
 def test_date_format(value):

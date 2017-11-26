@@ -61,6 +61,36 @@ def helix_hes(request):
         return JsonResponse(res, status=400)
     else:
         return JsonResponse(res, status=200)
+        
+# Retrieve HES records and generate file to use in rest of upload process
+# responds with file content and status 200 on success, 400 on fail
+# Parameters:
+#   dataset: id of import record that data will be uploaded to
+#   cycle: id of cycle that data will be uploaded to
+@login_required
+def hes_upload(request):
+    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
+    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
+
+#    hes_auth = {'user_key': request.POST['user_key'],
+#                'user_name': request.POST['user_name'],
+#                'password': request.POST['password']}
+                
+    hes_auth = {'user_key': "520df908c6cb4bea8c14691ee95aff88", 
+                'user_name': "TST-HELIX",
+                'password': "helix123"}
+
+#    data = request.FILES['helix_csv'].read() # or get id's from 3rd party auth, hardcode for now
+    hes_id = 144148
+    
+    #create file
+    response = utils.helix_hes_to_file(request.user, dataset, cycle, hes_auth, hes_id)
+
+    if(response['status'] == 'error'):
+        return JsonResponse(response, status=400)
+    else:
+        return JsonResponse(response, status=200)    
+
 
 
 # Upload a csv file constructed according to the helix csv file format.
@@ -74,10 +104,8 @@ def helix_hes(request):
 #   helix_csv: data file
 @login_required
 def helix_csv_upload(request):
-    print settings.DEFAULT_FILE_STORAGE
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
-    print cycle
 
     data = request.FILES['helix_csv'].read()
     
@@ -95,7 +123,6 @@ def helix_csv_upload(request):
             return JsonResponse(res, status=400)
         else:
             return redirect('seed:home')
-#        return redirect('seed:inventory_list(properties)') #doesn't work
 
 # Add certifications to already imported file
 @login_required
