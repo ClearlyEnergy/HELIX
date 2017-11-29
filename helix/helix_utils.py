@@ -100,10 +100,10 @@ def helix_certification_create(user, file_pk):
         if re.match(r'[postal,zip].*code', col.lower()) is not None:
             mappings.append(mapping_entry('postal_code', col))
             postal_code = col
-        if re.match(r'address.*1*', col.lower()) is not None:
+        if re.match(r'(address|address.*1)$', col.lower()) is not None:
             mappings.append(mapping_entry('address_line_1', col))
             address1 = col
-        if re.match(r'address.*2', col.lower()) is not None:
+        if re.match(r'address.*2$', col.lower()) is not None:
             mappings.append(mapping_entry('address_line_2', col))
             address2 = col
         if re.match(r'opt.*out', col.lower()) is not None:
@@ -119,8 +119,8 @@ def helix_certification_create(user, file_pk):
             assessment_mappings.append(mapping_entry('NGBS New Construction',col))
         if re.search(r'passive house', col.lower()) is not None:
             assessment_mappings.append(mapping_entry('Passive House',col))
-        if re.search(r'efficiency vermont residential new construction program', col.lower()) is not None:
-            assessment_mappings.append(mapping_entry('Efficiency Vermont Residential New Construction Program',col))
+        if re.search(r'efficiency vermont', col.lower()) is not None:
+            assessment_mappings.append(mapping_entry('Efficiency Vermont Certified',col))
         if re.search(r'[complete|assessment].*date', col.lower()) is not None:
             date_mapping = col
                                      
@@ -199,7 +199,6 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, hes_id):
 #    for row in dict_data:
     try:
         hes_data = hes_client.query_hes(hes_id)
-        print hes_data
     except Fault as f:
         return {"status": "error", "message": f.message}
     

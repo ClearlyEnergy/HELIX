@@ -7,7 +7,17 @@
 					<h3>What are the allowed file formats to upload data into HELIX?</h3>
 					You can upload Excel files (.xls, .xlsx), CSV and XML files into HELIX.
 					<h3>What Green Certifications are allowed in HELIX?</h3>
-					You can add new certification types by going to the <a id="sidebar-assessments" title="Assessments"  href="{% url "seed:home" %}#/assessments">certifications</a> tab.
+					You can add new certification types by going to the <a id="sidebar-assessments" title="Assessments"  href="/#/assessments">certifications</a> tab.
+					<h3>Can HELIX data be exported in HPXML standard?</h3>
+					HPXML export can be made available by request
+					<h3>Can HELIX show multiple certifications and sources of information into one record?</h3>
+					Yes, HELIX uses a standardized address to find existing homes and merge new sources of information into the home's record. Multiple certifications, solar information are all organized under a home address. When integrating a certification which duplicates an existing record, HELIX follows a last-in rule to determine the current record.
+					<h3>Is the database of certifications already integrated within the platform?</h3>
+					HELIX provides a ‘starter list’ of standard certifications, which is easy to supplement with certifications specific to your organization. Any record that then references that certification type will get mapped to it. 
+					<h3>Does HELIX integrate utility costs in auto population? </h3>
+					HELIX can collect annual estimates or actual utility costs. This data is, however, not part of the standard RESO export.
+					<h3>Who will control opt-in/opt-out in HELIX?</h3>
+					The party (state agency, utility) managing the HELIX data will be responsible for tracking and managing the information, and can manually or via a file upload update opt-in or out preferences to reflect the property owners' wishes. Opt in opt out will happen at the certification level. Any certification with an opt-out flag is not available for export. 
 					
                     <h1>Contact</h1>
 
