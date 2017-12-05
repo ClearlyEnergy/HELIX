@@ -152,8 +152,7 @@ def helix_certification_create(user, file_pk):
             # do data base lookup by name for the assessment
             # all assessments must exists in the database before upload
             assessment = GreenAssessment.objects.get(name=row['green_assessment_name'], organization_id=user.default_organization.id)
-            print assessment
-            green_assessment_data = {
+              green_assessment_data = {
                 "source": row["green_assessment_property_source"],
                 "version": row["green_assessment_property_version"],
                 "date": row["green_assessment_property_date"],
@@ -174,6 +173,8 @@ def helix_certification_create(user, file_pk):
             if score_value not in ['','FALSE']:
                 green_assessment_data.update({score_type: score_value}) 
                 normalized_address = normalize_address_str(row[address1], address2)
+                print green_assessment_data
+                print normalized_address
            
                 log, prop_assess = loader.create_green_assessment_property(
                     green_assessment_data, normalized_address, row[postal_code])
