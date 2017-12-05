@@ -168,15 +168,12 @@ def helix_certification_create(user, file_pk):
             score_type = ("metric" if assessment.is_numeric_score else "rating") 
             score_value = test_score_value(score_type, row['green_assessment_property_'+score_type])
             address2 = ""
-            print score_value
             if address2 in row:
                 address2 = row[address2]
             if score_value not in ['','FALSE']:
-                print 'has score value'
                 green_assessment_data.update({score_type: score_value}) 
                 normalized_address = normalize_address_str(row[address1], address2)
-                print green_Assessment_data
-                print normalized_address
+                print green_assessment_data
            
                 log, prop_assess = loader.create_green_assessment_property(
                     green_assessment_data, normalized_address, row[postal_code])
