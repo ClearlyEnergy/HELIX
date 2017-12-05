@@ -128,6 +128,7 @@ def helix_certification_create(user, file_pk):
     # parse the data and create the green assessment entry        
     rows = parser.next()
     for row in rows:
+        print row
         if row[date_mapping] is not '':
             row[date_mapping] = test_date_format(row[date_mapping])
         if ga_format == 'short':
@@ -151,6 +152,7 @@ def helix_certification_create(user, file_pk):
             # do data base lookup by name for the assessment
             # all assessments must exists in the database before upload
             assessment = GreenAssessment.objects.get(name=row['green_assessment_name'], organization_id=user.default_organization.id)
+            print assessment
             green_assessment_data = {
                 "source": row["green_assessment_property_source"],
                 "version": row["green_assessment_property_version"],
@@ -166,6 +168,7 @@ def helix_certification_create(user, file_pk):
             score_type = ("metric" if assessment.is_numeric_score else "rating") 
             score_value = test_score_value(score_type, row['green_assessment_property_'+score_type])
             address2 = ""
+            print score_value
             if address2 in row:
                 address2 = row[address2]
             if score_value not in ['','FALSE']:
@@ -174,6 +177,8 @@ def helix_certification_create(user, file_pk):
            
                 log, prop_assess = loader.create_green_assessment_property(
                     green_assessment_data, normalized_address, row[postal_code])
+                print log
+                print prop_assess
                 data['new_assessments'] += log['created']
                 data['updated_assessments'] += log['updated']
                 
