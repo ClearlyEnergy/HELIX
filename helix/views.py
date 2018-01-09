@@ -12,14 +12,21 @@ from rest_framework.decorators import api_view
 
 from seed.models import Cycle, PropertyView, Property
 
-from seed.models.certification import GreenAssessment, GreenAssessmentPropertyAuditLog
+from seed.models.certification import GreenAssessment, GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
 from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
+from seed.models.auditlog import (
+    AUDIT_USER_EDIT,
+    AUDIT_USER_CREATE,
+    AUDIT_USER_EXPORT,
+    DATA_UPDATE_TYPE
+)
 from seed.data_importer.models import ImportRecord
 from seed.lib.superperms.orgs.models import Organization
 from seed.lib.mcm import cleaners, mapper, reader
 from seed.utils.api import api_endpoint
 
 import helix.helix_utils as utils
+from zeep.exceptions import Fault
 
 from hes import hes
 
@@ -40,6 +47,7 @@ def assessment_edit(request):
     return render(request, 'helix/assessment_edit.html', {'assessment': assessment})
 
 
+# Tests HES connectivity. 
 # Retrieve building data for a single building_id from the HES api.
 # responds with status 200 on success, 400 on fail
 # Parameters:
@@ -54,9 +62,16 @@ def helix_hes(request):
     dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
 
-    hes_client = hes.HesHelix(hes.CLIENT_URL, request.POST['user_name'], request.POST['password'], request.POST['user_key'])
-    res = utils.helix_hes(request.user, dataset, cycle, hes_client, request.POST['building_id'])
-
+    try: 
+        hes_client = hes.HesHelix(hes.CLIENT_URL, request.POST['user_name'], request.POST['password'], request.POST['user_key'])
+        try:
+            res = hes_client.query_hes(request.POST['building_id'])
+            res["status"] = "success"
+        except Fault as f:
+            res = {"status": "error", "message": f.message}
+    except Fault as f: 
+        res = {"status": "error", "message": f.message}
+    
     if(res['status'] == 'error'):
         return JsonResponse(res, status=400)
     else:
@@ -93,6 +108,7 @@ def hes_upload(request):
 
 
 
+# OLD MODEL, NOT CURRENT USED
 # Upload a csv file constructed according to the helix csv file format.
 # [see helix_upload_sample.csv]
 # This file can contain multiple properties that can each have multiple green
@@ -146,22 +162,22 @@ def add_certifications(request, import_file_id):
 #   user_key: hes api key
 #   user_name: hes username@login_required
 #   password: hes password def helix_csv_upload(request):
-@login_required
-def helix_hes_upload(request):
-    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
-    cycle = Cycle.objects.get(pk=request.POST['cycle'])
+#@login_required
+#def helix_hes_upload(request):
+#    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
+#    cycle = Cycle.objects.get(pk=request.POST['cycle'])
 
-    hes_auth = {'user_key': request.POST['user_key'],
-                'user_name': request.POST['user_name'],
-                'password': request.POST['password']}
+#    hes_auth = {'user_key': request.POST['user_key'],
+#                'user_name': request.POST['user_name'],
+#                'password': request.POST['password']}
 
-    data = request.FILES['helix_csv'].read()
+#    data = request.FILES['helix_csv'].read()
 
-    res = utils.helix_hes_upload(request.user, dataset, cycle, hes_auth, data)
-    if(res['status'] == 'error'):
-        return JsonResponse(res, status=400)
-    else:
-        return redirect('seed:home')
+#    res = utils.helix_hes_upload(request.user, dataset, cycle, hes_auth, data)
+#    if(res['status'] == 'error'):
+#        return JsonResponse(res, status=400)
+#    else:
+#        return redirect('seed:home')
 
 
 # Export the GreenAssessmentProperty information for the list of property view
@@ -180,7 +196,7 @@ def helix_csv_export(request):
     view_ids = PropertyView.objects.filter(property_id__in=property_ids)
 
     # retrieve green assessment properties that belong to one of these ids
-    assessments = HELIXGreenAssessmentProperty.objects.filter(view__pk__in=view_ids)
+    assessments = HELIXGreenAssessmentProperty.objects.filter(view__pk__in=view_ids).filter(opt_out=False)
 
     file_name = request.GET.get('file_name')
 
@@ -193,12 +209,19 @@ def helix_csv_export(request):
 
     # Dump all fields of all retrieved assessments properties into csv
     fieldnames = [f.name for f in HELIXGreenAssessmentProperty._meta.get_fields()]
+    for l in ['urls','measurements','gapauditlog_assessment']:
+        fieldnames.remove(l) 
     writer = csv.writer(response)
 
     writer.writerow([str(f) for f in fieldnames])
     for a in assessments:
         writer.writerow([str(getattr(a, f)) for f in fieldnames])
-
+        # log changes
+        a.log(
+            user=request.user,
+            record_type=AUDIT_USER_EXPORT,
+            name='Export log',
+            description='Exported via csv')
     return response
 
 
@@ -229,13 +252,13 @@ def helix_reso_export_xml(request):
     # Get properties updated within dates
     # Green Assessment Property Audit Log
     # Property Audit Log
+    today = datetime.datetime.today()
     start_date = None
     end_date = None
     if 'start_date' in request.GET:
         start_date = request.GET['start_date']
     if 'end_date' in request.GET:
         end_date = request.GET['end_date']
-    today = datetime.datetime.today()
 
     organizations = Organization.objects.filter(users=request.user)
     properties = Property.objects.filter(organization_id__in=organizations)
@@ -253,8 +276,6 @@ def helix_reso_export_xml(request):
             propertyviews = PropertyView.objects.filter(property_id__in=properties, pk__in=ga_pks)
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-        
-    print propertyviews
 
     # filter out any private data if it has not been requested
 #    if (not get_private):
@@ -283,15 +304,21 @@ def helix_reso_export_xml(request):
                 "assessments": matching_assessments,
                 "measurements": measurement_dict
             }
-            content.append(property_info)
+            content.append(property_info) 
 
         context = {
             'start_date': start_date,
             'end_date': end_date,
             'content': content
             }
-        
+            
+        # log changes
+        for a in matching_assessments:
+            a.log(
+                user=request.user,
+                record_type=AUDIT_USER_EXPORT,
+                name='Export log',
+                description='Exported via xml')        
         rendered_xml = render_to_string('reso_export_template.xml', context)
-        print rendered_xml
 
     return HttpResponse(rendered_xml, content_type='text/xml')

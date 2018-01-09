@@ -26,12 +26,12 @@ def mapping_entry(to_field, from_field):
             'from_field': from_field}
 
 
-# HELIX create file, use preset mappings and save file
+# HELIX create file, use preset mappings and save file, OLD
 def helix_address_create(user, dataset, cycle, csv_file):
     # load some of the data directly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
     # upload and save to Property state table
-    file_pk = loader.upload(csv_file, dataset, cycle)
+    file_pk = loader.upload('helix.csv', csv_file, dataset, cycle)
     import_file = ImportFile.objects.get(pk=file_pk)
     parser = reader.MCMParser(import_file.local_file)
 
@@ -128,7 +128,6 @@ def helix_certification_create(user, file_pk):
     # parse the data and create the green assessment entry        
     rows = parser.next()
     for row in rows:
-        print row
         if row[date_mapping] is not '':
             row[date_mapping] = test_date_format(row[date_mapping])
         if ga_format == 'short':
@@ -152,7 +151,6 @@ def helix_certification_create(user, file_pk):
             # do data base lookup by name for the assessment
             # all assessments must exists in the database before upload
             assessment = GreenAssessment.objects.get(name=row['green_assessment_name'], organization_id=user.default_organization.id)
-            print assessment
             green_assessment_data = {
                 "source": row["green_assessment_property_source"],
                 "version": row["green_assessment_property_version"],
@@ -173,12 +171,9 @@ def helix_certification_create(user, file_pk):
             if score_value not in ['','FALSE']:
                 green_assessment_data.update({score_type: score_value}) 
                 normalized_address = normalize_address_str(row[address1], address2)
-                print green_assessment_data
            
                 log, prop_assess = loader.create_green_assessment_property(
                     green_assessment_data, normalized_address, row[postal_code])
-                print log
-                print prop_assess
                 data['new_assessments'] += log['created']
                 data['updated_assessments'] += log['updated']
                 
@@ -234,7 +229,7 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, hes_id):
     # load some of the data directly from csv
     loader = autoload.AutoLoad(user, user.default_organization)
     # upload and save to Property state table
-    file_pk = loader.upload(csv_file, dataset, cycle)
+    file_pk = loader.upload('home_energy_score.csv', csv_file, dataset, cycle)
     # save raw data
     resp = loader.save_raw_data(file_pk)
     if (resp['status'] == 'error'):
@@ -296,7 +291,7 @@ def helix_hes_upload(user, dataset, cycle, hes_auth, csv_file):
             buf.close()
 
             # upload and save to Property state table
-            file_pk = loader.upload(csv_file, dataset, cycle)
+            file_pk = loader.upload('home_energy_score.csv', csv_file, dataset, cycle)
             #match and merge
             response = loader.autoload_file(file_pk, mappings)    
             if(response['status'] == 'error'):

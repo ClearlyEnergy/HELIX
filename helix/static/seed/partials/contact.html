@@ -7,18 +7,21 @@
 					<h3>What are the allowed file formats to upload data into HELIX?</h3>
 					You can upload Excel files (.xls, .xlsx), CSV and XML files into HELIX.
 					<h3>What Green Certifications are allowed in HELIX?</h3>
-					You can add new certification types by going to the <a id="sidebar-assessments" title="Assessments"  href="/#/assessments">certifications</a> tab.
+					Your HELIX installation will come populated with seven default certifications (DOE Home Energy Score, LEED for Homes, HERS Index, Energy Star Certified Homes, NGBS New Construction and Passive House). You can add new certification types by going to the <a id="sidebar-assessments" title="Assessments"  href="/#/assessments">certifications</a> tab.
 					<h3>Can HELIX data be exported in HPXML standard?</h3>
-					HPXML export can be made available by request
-					<h3>Can HELIX show multiple certifications and sources of information into one record?</h3>
+					HPXML export is available
+					<h3>Can HELIX display multiple certifications and sources of information for one record?</h3>
 					Yes, HELIX uses a standardized address to find existing homes and merge new sources of information into the home's record. Multiple certifications, solar information are all organized under a home address. When integrating a certification which duplicates an existing record, HELIX follows a last-in rule to determine the current record.
 					<h3>Is the database of certifications already integrated within the platform?</h3>
-					HELIX provides a ‘starter list’ of standard certifications, which is easy to supplement with certifications specific to your organization. Any record that then references that certification type will get mapped to it. 
+					HELIX provides a ‘starter list’ of standard certifications (DOE Home Energy Score, LEED for Homes, HERS Index, Energy Star Certified Homes, NGBS New Construction and Passive House), which is easy to supplement with certifications specific to your state, organization or program. Any record that then references that certification type will get mapped to it. 
 					<h3>Does HELIX integrate utility costs in auto population? </h3>
 					HELIX can collect annual estimates or actual utility costs. This data is, however, not part of the standard RESO export.
 					<h3>Who will control opt-in/opt-out in HELIX?</h3>
-					The party (state agency, utility) managing the HELIX data will be responsible for tracking and managing the information, and can manually or via a file upload update opt-in or out preferences to reflect the property owners' wishes. Opt in opt out will happen at the certification level. Any certification with an opt-out flag is not available for export. 
-					
+					The party (state agency, utility) managing the HELIX data will be responsible for tracking and managing the information, and can manually or via a file upload update opt-in or out preferences to reflect the property owners' wishes. The managing party may also choose to delete any records that opt-out. Opt-in/opt-out will happen at the certification level. Any certification with an opt-out flag is not available for export.
+					<h3>Can records be identified by Property Tax ID</h3>
+					A tax ID can be incorporated into the HELIX by using the Jurisdiction Tax Lot ID field and the system will attempt to match records using that identifier. Make sure that yor tax ID is propertly mapped to that field.	
+					<h3>What happens if there are spelling mistakes in the address?</h3>
+					HELIX uses an address standardization engine which will shorten Road to Rd for example. Spelling mistakes in the street name itself may not be caught. Certain certification standards, notably the Home Energy Score, use a formal address standardization tool and the data provided by HES should be clean.
                     <h1>Contact</h1>
 
 					<h2>For HELIX-Platform Documentation:</h2>

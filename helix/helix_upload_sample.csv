@@ -1,5 +1,4 @@
-Internal ID,address_line_1,address_line_2,city,state,postal_code,year_built,conditioned_floor_area,green_assessment_name,green_assessment_reference_id,green_assessment_property_source,green_assessment_property_metric,green_assessment_property_rating,green_assessment_property_version,green_assessment_property_date,green_assessment_property_extra_data,green_assessment_property_url,green_assessment_authorizing_body,disclosure
-,,,,,,,,Home Energy Score,142860,,,,,,,,,
+Internal_ID,address_line_1,address_line_2,city,state,postal_code,year_built,conditioned_floor_area,green_assessment_name,green_assessment_reference_id,green_assessment_property_source,green_assessment_property_metric,green_assessment_property_rating,green_assessment_property_version,green_assessment_property_date,green_assessment_property_extra_data,green_assessment_property_url,green_assessment_authorizing_body,disclosure
 T1,1 Test Street,,Cambridge,MA,2144,12005,2000,LEED for Homes,,Program Verifier,,gold,,2013-01-01,,http://www.test.com,,
 1234,1 Road,,South Burlington,VT,5403,,,Efficiency Vermont,,,56,,15.2,2016-09-14,,,,
 1234,1 Road,,South Burlington,VT,5403,,,NGBS,,,,bronze,,2016-09-26,,,,Disclosure
