@@ -147,7 +147,7 @@
         new_row.id = 'assessment_row_'+assessment['id'];
 
         var name_cell = new_row.insertCell(0);
-        name_cell.innerHTML = "<a href='/app/#/assessments/edit/"+assessment['id']+"'>"+assessment['name']+"</a>";
+        name_cell.innerHTML = "<a href='/app/#/certifications/edit/"+assessment['id']+"'>"+assessment['name']+"</a>";
 
         var body_cell = new_row.insertCell(1);
         body_cell.innerHTML = assessment['award_body'];
@@ -168,7 +168,7 @@
         duration_cell.innerHTML = assessment['validity_duration']?assessment['validity_duration']+' days':''
 
         var del_cell = new_row.insertCell(6);
-        del_cell.innerHTML = "<a href='#/assessments' onclick='delete_assessment("+assessment['id']+","+org_id+");return false;'>&#10007;</text>";
+        del_cell.innerHTML = "<a href='#/certifications' onclick='delete_assessment("+assessment['id']+","+org_id+");return false;'>&#10007;</text>";
     }
 
     function org_callback(org){

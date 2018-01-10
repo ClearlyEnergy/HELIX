@@ -182,11 +182,11 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
 	
     stateHelperProvider
       //Begin HELIX changes
-      //These changes should add the assessment page as a state
+      //These changes should add the certifications page as a state
       .state({
-        name: 'assessments',
-        url: '/assessments',
-		templateUrl: '/helix/assessments/'
+        name: 'certifications',
+        url: '/certifications',
+		templateUrl: '/helix/certifications/'
 //        templateUrl: '/helix/green_assessments.html',
 //		controller: 'green_assessments_controller',
 //		resolve: {
@@ -197,9 +197,9 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
       })
 
       .state({
-        name: 'assessment_edit',
-        url: '/assessments/edit/{id:int}',
-        templateUrl: function (stateParams){ return '/helix/assessments/edit/?id='+stateParams.id }
+        name: 'certifications_edit',
+        url: '/certifications/edit/{id:int}',
+        templateUrl: function (stateParams){ return '/helix/certifications/edit/?id='+stateParams.id }
       })
       //End HELIX changes
     stateHelperProvider

@@ -92,7 +92,7 @@
 
                     <div class="form-group">
                         <label class="control-label col-sm-3" for="submit"></label>
-                        <button class="col-sm-8 btn btn-primary"  onclick="update_assessment()">Update Assessment</button>
+                        <button class="col-sm-8 btn btn-primary"  onclick="update_assessment()">Update Certification</button>
                     </div>
                 </div>
             </form>
@@ -105,7 +105,7 @@ function update_assessment(){
     var update_req = new XMLHttpRequest();
     update_req.onreadystatechange = function(){
         if (update_req.readyState == 4 && update_req.status == 200) {
-            window.location.replace('/app/#/assessments');
+            window.location.replace('/app/#/certifications');
         }
     }
     update_req.open("PUT","/api/v2/green_assessments/{{ assessment.pk }}/?organization_id={{ assessment.organization.pk }}");

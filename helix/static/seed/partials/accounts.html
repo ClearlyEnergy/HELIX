@@ -102,12 +102,12 @@
                         <tr>
                             <th>Organization Name</th>
                             <th>Your Role</th>
-                            <th ng-if="org.user_role !== 'viewer'">Number of Properties</th>
-                            <th ng-if="org.user_role !== 'viewer'">Properties Added Last 30 Days</th>
-                            <th ng-if="org.user_role !== 'viewer'">Number of Certifications</th>
-                            <th ng-if="org.user_role !== 'viewer'">Number of Certifications Exported</th>
-                            <th ng-if="org.user_role !== 'viewer'">Number of Users</th>
                             <th>Organization Owner(s)</th>
+                            <th>Number of Properties</th>
+                            <th>Properties Added Last 30 Days</th>
+                            <th>Number of Certifications</th>
+                            <th>Number of Certifications Exported</th>
+                            <th>Number of Users</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -117,30 +117,30 @@
                                 <span ng-if="org.user_role === 'viewer'">{$ org.name $}</span>
                             </td>
                             <td class="align_to_top">{$ org.user_role || "-" $}</td>
-                            <td class="align_to_top">
-                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_properties $}
-                                </div>
-                            </td>
-                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
-                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_properties_30 $}
-                                </div>
-                            </td>
-                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
-                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_certifications $}
-                                </div>
-                            </td>
-                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
-                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_certifications_exported $}
-                                </div>
-                            </td>
-                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">{$ org.number_of_users || "-" $}</td>
                             <td>
                                 <span ng-repeat="owner in org.owners">{$ owner.first_name $} {$ owner.last_name $}<br></span>
                             </td>
+                            <td class="align_to_top">
+                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
+                                    {$ cycle.num_properties || "-" $}
+                                </div>
+                            </td>
+                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
+                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
+                                    {$ cycle.num_properties_30 || "-" $}
+                                </div>
+                            </td>
+                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
+                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
+                                    {$ cycle.num_certifications || "-" $}
+                                </div>
+                            </td>
+                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
+                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
+                                    {$ cycle.num_certifications_exported || "-" $}
+                                </div>
+                            </td>
+                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">{$ org.number_of_users || "-" $}</td>
                         </tr>
                     </tbody>
                 </table>

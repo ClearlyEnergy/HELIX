@@ -11,8 +11,8 @@ from helix.views import (
 )
 
 urlpatterns = [
-    url(r'^assessments/$', assessment_view, name="assessment_view"),
-    url(r'^assessments/edit/$', assessment_edit, name="assessment_edit"),
+    url(r'^certifications/$', assessment_view, name="assessment_view"),
+    url(r'^certifications/edit/$', assessment_edit, name="assessment_edit"),
 #    url(r'^hes-upload/$', helix_hes_upload, name='hes_upload'),
     url(r'^helix-hes/$', helix_hes, name='helix_hes'),
 #    url(r'^helix-hes-upload/$', helix_hes_upload, name='helix_hes_upload'),
