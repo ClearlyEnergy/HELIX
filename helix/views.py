@@ -1,13 +1,22 @@
+import json
+import logging
+import os
+import subprocess
 import csv
 import datetime
 
 from django.conf import settings
+from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from seed.decorators import (
+    ajax_request, get_prog_key
+)
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.db.models import Q
+from rest_framework import status
 from rest_framework.decorators import api_view
 
 from seed.models import Cycle, PropertyView, Property
@@ -243,7 +252,7 @@ def helix_csv_export(request):
 # Example:
 #    http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
 
-@login_required
+#@login_required
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_xml(request):
@@ -253,8 +262,8 @@ def helix_reso_export_xml(request):
     # Green Assessment Property Audit Log
     # Property Audit Log
     today = datetime.datetime.today()
-    start_date = None
-    end_date = None
+    start_date = end_date = None
+    ga_pks = GreenAssessmentPropertyAuditLog.objects.none()
     if 'start_date' in request.GET:
         start_date = request.GET['start_date']
     if 'end_date' in request.GET:
@@ -262,19 +271,33 @@ def helix_reso_export_xml(request):
 
     organizations = Organization.objects.filter(users=request.user)
     properties = Property.objects.filter(organization_id__in=organizations)
-    # select green assessment properties that are in the specified create / update date range
-    # and associated with the correct property view
-    ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(
-        created__range=(start_date, end_date)).values_list('property_view_id', flat=True) 
-    if not ga_pks:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
         
     try:
-        if 'propertyview_pk' in request.GET:
-            propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties)
+# select green assessment properties that are in the specified create / update date range
+# and associated with the correct property view
+        if start_date:
+            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=(request.GET['start_date']))
+        if end_date:
+            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=(request.GET['end_date'])) 
+            
+        if ga_pks:
+            ga_pks = ga_pks.values_list('property_view_id', flat=True)
+            if 'propertyview_pk' in request.GET:
+                propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties, pk__in=ga_pks)
+            else:
+                propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], pk__in=ga_pks)
         else:
-            propertyviews = PropertyView.objects.filter(property_id__in=properties, pk__in=ga_pks)
+            if start_date or end_date:
+                return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+            else:
+                if 'propertyview_pk' in request.GET:
+                    propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties)
+                else:
+                    return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
     except PropertyView.DoesNotExist:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+    
+    if not propertyviews:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
 
     # filter out any private data if it has not been requested
