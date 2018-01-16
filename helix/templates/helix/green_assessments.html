@@ -20,7 +20,7 @@
         <div class="section_content">
             <div class="table_list_container">
                 <table class="container table-striped table_highlight_first" id='assessment_table'>
-                    <thead><tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Description</th><th>Valid For</th><th>Delete</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Award Body</th><th>Recognition Type</th><th>Numeric</th><th>Organization</th><th>Description</th><th>Valid For</th><th>Delete</th></tr></thead>
                     <tbody>
                     </tbody>
                 </table>
@@ -135,14 +135,14 @@
         var req_assess = new XMLHttpRequest();
         req_assess.onreadystatechange = function(){
             if (req_assess.readyState == 4 && req_assess.status == 200) {
-                JSON.parse(req_assess.response)['data'].forEach(function(assessment) {callback(assessment,org.id)});
+                JSON.parse(req_assess.response)['data'].forEach(function(assessment) {callback(assessment,org)});
             }
         }
         req_assess.open("GET","/api/v2/green_assessments/?organization_id="+org.id);
         req_assess.send();
     }
 
-    function assessment_callback(assessment, org_id) {
+    function assessment_callback(assessment, org) {
         var new_row = document.getElementById('assessment_table').getElementsByTagName('tbody')[0].insertRow();
         new_row.id = 'assessment_row_'+assessment['id'];
 
@@ -158,17 +158,17 @@
         var numeric_cell = new_row.insertCell(3);
         numeric_cell.innerHTML = assessment['is_numeric_score']?'&#10004;':'';
 
-        var integer_cell = new_row.insertCell(4);
+        var body_cell = new_row.insertCell(4);
+        body_cell.innerHTML = org['name'];
+
+        var integer_cell = new_row.insertCell(5);
         integer_cell.innerHTML = assessment['description'].substring(0,50)+'...';
 
- //       var disclosure_cell = new_row.insertCell(5);
- //       disclosure_cell.innerHTML = assessment['disclosure_default'];
-
-        var duration_cell = new_row.insertCell(5);
+        var duration_cell = new_row.insertCell(6);
         duration_cell.innerHTML = assessment['validity_duration']?assessment['validity_duration']+' days':''
 
-        var del_cell = new_row.insertCell(6);
-        del_cell.innerHTML = "<a href='#/certifications' onclick='delete_assessment("+assessment['id']+","+org_id+");return false;'>&#10007;</text>";
+        var del_cell = new_row.insertCell(7);
+        del_cell.innerHTML = "<a href='#/certifications' onclick='delete_assessment("+assessment['id']+","+org.id+");return false;'>&#10007;</text>";
     }
 
     function org_callback(org){

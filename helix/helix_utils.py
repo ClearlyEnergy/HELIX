@@ -354,7 +354,6 @@ def test_score_value(score_type, value):
     if score_type == 'metric': 
         return value
     else:
-        #TODO: use seed.lib.mcm.cleaner bool_cleaner instead
         if value in [0,1]:
             return str(bool(value)).upper()
         else:
