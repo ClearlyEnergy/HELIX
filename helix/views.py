@@ -115,40 +115,6 @@ def hes_upload(request):
     else:
         return JsonResponse(response, status=200)    
 
-
-
-# OLD MODEL, NOT CURRENT USED
-# Upload a csv file constructed according to the helix csv file format.
-# [see helix_upload_sample.csv]
-# This file can contain multiple properties that can each have multiple green
-# responds with status 200 on success, 400 on fail
-# assessments
-# Parameters:
-#   dataset: id of import record that data will be uploaded to
-#   cycle: id of cycle that data will be uploaded to
-#   helix_csv: data file
-@login_required
-def helix_csv_upload(request):
-    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
-    cycle = Cycle.objects.get(pk=request.POST['cycle'])
-
-    data = request.FILES['helix_csv'].read()
-    
-    def get(self, request, *args, **kwargs):
-        view = AuthorDisplay.as_view()
-        return view(request, *args, **kwargs)
-
-    # create file record and save addresses
-    res = utils.helix_address_create(request.user, dataset, cycle, data)
-    if(res['status'] == 'error'):
-        return JsonResponse(res, status=400)
-    else:    
-        res = utils.helix_certification_create(request.user, res['import_file_id'])
-        if(res['status'] == 'error'):
-            return JsonResponse(res, status=400)
-        else:
-            return redirect('seed:home')
-
 # Add certifications to already imported file
 @login_required
 def add_certifications(request, import_file_id):
@@ -158,36 +124,6 @@ def add_certifications(request, import_file_id):
         return JsonResponse(response, status=400)
     else:
         return JsonResponse(response, status=200)    
-
-# Upload a csv file constructed according to the helix hes csv file format.
-# [see helix_upload_sample.csv]
-# This file can contain multiple properties that can each have multiple green
-# responds with status 200 on success, 400 on fail
-# assessments
-# Parameters:
-#   dataset: id of import record that data will be uploaded to
-#   cycle: id of cycle that data will be uploaded to
-#   helix_csv: data file
-#   user_key: hes api key
-#   user_name: hes username@login_required
-#   password: hes password def helix_csv_upload(request):
-#@login_required
-#def helix_hes_upload(request):
-#    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
-#    cycle = Cycle.objects.get(pk=request.POST['cycle'])
-
-#    hes_auth = {'user_key': request.POST['user_key'],
-#                'user_name': request.POST['user_name'],
-#                'password': request.POST['password']}
-
-#    data = request.FILES['helix_csv'].read()
-
-#    res = utils.helix_hes_upload(request.user, dataset, cycle, hes_auth, data)
-#    if(res['status'] == 'error'):
-#        return JsonResponse(res, status=400)
-#    else:
-#        return redirect('seed:home')
-
 
 # Export the GreenAssessmentProperty information for the list of property view
 # ids provided
