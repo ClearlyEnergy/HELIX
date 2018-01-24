@@ -31,12 +31,12 @@ class HelixMeasurement(models.Model):
     }
 
     HES_FUEL_TYPES = {
-        "electric": "ELEC",
-        "natural_gas": "NATG",
-        "fuel_oil": "FUEL",
-        "lpg": "PROP",
-        "cord_wood": "CWOOD",
-        "pellet_wood": "PWOOD"}
+        "Electric": "ELEC",
+        "Natural Gas": "NATG",
+        "Fuel Oil": "FUEL",
+        "Lpg": "PROP",
+        "Cord Wood": "CWOOD",
+        "Pellet Wood": "PWOOD"}
     HES_UNITS = {
         'kwh': "KWH",
         'kw': "KW",
