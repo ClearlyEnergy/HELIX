@@ -4,6 +4,7 @@ import os
 import subprocess
 import csv
 import datetime
+import string
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required, permission_required
@@ -116,6 +117,13 @@ def hes_upload(request):
         return JsonResponse(response, status=200)    
 
 # Add certifications to already imported file
+# Parameters:
+#   import_file_id: id of import file
+# Returns:
+#   status: 
+#   json structure with number of new and updated certifications and measurements
+# Example:
+#   Get /helix/add_certifications/?import_file_id=1
 @login_required
 def add_certifications(request, import_file_id):
     response = utils.helix_certification_create(request.user,import_file_id)
@@ -154,13 +162,13 @@ def helix_csv_export(request):
 
     # Dump all fields of all retrieved assessments properties into csv
     fieldnames = [f.name for f in HELIXGreenAssessmentProperty._meta.get_fields()]
-    for l in ['urls','measurements','gapauditlog_assessment']:
+    for l in ['id', 'view', 'assessment', 'urls','measurements','gapauditlog_assessment','greenassessmentproperty_ptr']:
         fieldnames.remove(l) 
     writer = csv.writer(response)
 
-    writer.writerow([str(f) for f in fieldnames])
+    writer.writerow([string.capwords('assessment_name'.replace('_',' '))] + [string.capwords(str(f).replace('_',' ')) for f in fieldnames])
     for a in assessments:
-        writer.writerow([str(getattr(a, f)) for f in fieldnames])
+        writer.writerow([a.assessment.name] + [str(getattr(a, f)) for f in fieldnames])
         # log changes
         a.log(
             user=request.user,
