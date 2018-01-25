@@ -33,7 +33,7 @@
                     <li ng-hide="::menu.user.organization.user_role === 'viewer'">
                         <a ng-click="open_delete_modal()">Delete Selected</a>
                     </li>
-                    <li>
+                    <li ng-hide="::menu.user.organization.user_role === 'viewer'">
                         <a ng-click="open_export_modal()">Export Selected</a>
                     </li>
                     <li>
