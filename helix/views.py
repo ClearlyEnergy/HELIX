@@ -43,6 +43,9 @@ from hes import hes
 
 # Return the green assessment front end page. This can be accessed through
 # the seed side bar or at /app/assessments
+# Parameters:
+#   orgs: list of parent organizations
+
 @login_required
 def assessment_view(request):
     orgs = Organization.objects.all()
@@ -51,6 +54,8 @@ def assessment_view(request):
 
 # Returns and html interface for editing an existing green assessment which is
 # identified by the parameter id.
+# Parameters:
+#   assessment: certification id
 @login_required
 def assessment_edit(request):
     assessment = GreenAssessment.objects.get(pk=request.GET['id'])
@@ -96,20 +101,15 @@ def helix_hes(request):
 def hes_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
     cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
-
-#    hes_auth = {'user_key': request.POST['user_key'],
-#                'user_name': request.POST['user_name'],
-#                'password': request.POST['password']}
                 
-    hes_auth = {'user_key': "520df908c6cb4bea8c14691ee95aff88", 
-                'user_name': "TST-HELIX",
-                'password': "helix123"}
+    hes_auth = {'user_key': settings.HES_USER_KEY, 
+                'user_name': settings.HES_USER_NAME,
+                'password': settings.HES_PASSWORD}
 
-#    data = request.FILES['helix_csv'].read() # or get id's from 3rd party auth, hardcode for now
-    hes_id = 144148
-    
+    partner = 'Test' #Temporary, to be read for org structure
+    start_date = '2017-11-01' # Temporary, to be read from org structure
     #create file
-    response = utils.helix_hes_to_file(request.user, dataset, cycle, hes_auth, hes_id)
+    response = utils.helix_hes_to_file(request.user, dataset, cycle, hes_auth, partner, start_date)
 
     if(response['status'] == 'error'):
         return JsonResponse(response, status=400)
@@ -150,6 +150,7 @@ def helix_csv_export(request):
 
     # retrieve green assessment properties that belong to one of these ids
     assessments = HELIXGreenAssessmentProperty.objects.filter(view__pk__in=view_ids).filter(opt_out=False)
+    
 
     file_name = request.GET.get('file_name')
 
@@ -166,7 +167,7 @@ def helix_csv_export(request):
         fieldnames.remove(l) 
     writer = csv.writer(response)
 
-    writer.writerow([string.capwords('assessment_name'.replace('_',' '))] + [string.capwords(str(f).replace('_',' ')) for f in fieldnames])
+    writer.writerow(['Address1', 'Address1', 'City','State', 'Postal Code', 'Certification'] + [string.capwords(str(f).replace('_',' ')) for f in fieldnames])
     for a in assessments:
         writer.writerow([a.assessment.name] + [str(getattr(a, f)) for f in fieldnames])
         # log changes

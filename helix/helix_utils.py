@@ -121,7 +121,7 @@ def helix_certification_create(user, file_pk):
     return {'status': 'success', 'data': results}
 
 # retrieves home energy score records and formats file for rest of upload process
-def helix_hes_to_file(user, dataset, cycle, hes_auth, hes_id):
+def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     # instantiate HES client for external API
     hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     # find assessment entry for hes by name. Maybe not ideal!
@@ -129,35 +129,41 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, hes_id):
 #    if len(hes_assessment) != 1:
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
-    buf = StringIO.StringIO()
-    #loop through available id's
-#    dict_data = csv.DictReader(csv_file.splitlines())
-#    for row in dict_data:
-    try:
+    hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
+    if not hes_ids:
+        return {'status': 'error'}
+    print len(hes_ids)
+    hes_all = []
+    for hes_id in hes_ids:
+        print hes_id
         hes_data = hes_client.query_hes(hes_id)
-    except Fault as f:
-        return {"status": "error", "message": f.message}
-    
-    #change a few naming conventions
-    hes_data['green_assessment_property_metric']= hes_data.pop('base_score')     
-    hes_data['green_assessment_name'] = 'Home Energy Score'
-    hes_data['green_assessment_property_source'] = 'Department of Energy'
-    hes_data['green_assessment_property_status'] = hes_data.pop('assessment_type')
-    hes_data['green_assessment_property_version'] = hes_data.pop('hescore_version')
-    hes_data['green_assessment_property_url'] = hes_data.pop('pdf')
-    hes_data['green_assessment_property_date'] = hes_data.pop('assessment_date')
-    hes_data['green_assessment_property_extra_data'] = ''
+        if hes_data['status'] == 'error':
+            continue
             
-    # construct a csv string out of the dictionary retrieved by hes
+        #change a few naming conventions
+        hes_data['green_assessment_property_metric']= hes_data.pop('base_score')     
+        hes_data['green_assessment_name'] = 'Home Energy Score'
+        hes_data['green_assessment_property_source'] = 'Department of Energy'
+        hes_data['green_assessment_property_status'] = hes_data.pop('assessment_type')
+        hes_data['green_assessment_property_version'] = hes_data.pop('hescore_version')
+        hes_data['green_assessment_property_url'] = hes_data.pop('pdf')
+        hes_data['green_assessment_property_date'] = hes_data.pop('assessment_date')
+        hes_data['green_assessment_property_extra_data'] = ''
+        
+        hes_all.append(hes_data)
+
+        try:
+            hes_headers
+        except:
+            hes_headers = hes_data.keys()
+        else:
+            hes_headers = list(set(hes_headers + hes_data.keys()))
+            
     buf = StringIO.StringIO()
-    try:
-        writer
-    except:
-        writer = csv.DictWriter(buf, fieldnames=hes_data.keys())
-        writer.writeheader()
-        writer.writerow(hes_data) #merge in with green assessment data
-    else:
-        writer.writerow(hes_data) #merge in with green assessment data
+    writer = csv.DictWriter(buf, fieldnames=hes_headers)
+    writer.writeheader()
+    for dat in hes_all:
+        writer.writerow(dat) #merge in with green assessment data
 
     csv_file = buf.getvalue()
     buf.close()
@@ -200,6 +206,9 @@ def _setup_measurements(extra_data, assessment_property):
 
     for k, dat in extra_data.items():
         if (k.startswith('CONS') or k.startswith('PROD') or k.startswith('CAP')):
+            if not dat:
+                continue
+                 
             dat = json.loads(dat)
             # find fuel and measurement type
             for fuel in list(HelixMeasurement.HES_FUEL_TYPES.keys()):
