@@ -1,9 +1,30 @@
 from django.db import models
 from seed.models import certification
+from seed.lib.superperms.orgs.models import Organization
 
 
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
+    """
+    Additional fields for Green Assessment Property
+    opt_out     True/False
+    """
     opt_out = models.BooleanField(default=False)
+    
+class HELIXOrganization(Organization):
+    """
+    Additional fields for Organization
+    hes             Home Energy Score identifier
+    hes_start_date  Start date for home energy score retrieval
+    hes_end_date    End date for home energy score retrieval
+    """
+    hes = models.CharField(max_length=100, null=True, blank=True)
+    hes_start_date = models.DateField(null=True, blank=True)
+    hes_end_date = models.DateField(null=True, blank=True)
+    
+    def add_hes(self, hes):
+        """Add Home Energy Score ID to organization"""
+        self.hes = hes        
+        return self.save()
 
 class HelixMeasurement(models.Model):
     """
