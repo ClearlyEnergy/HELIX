@@ -123,7 +123,7 @@ def helix_certification_create(user, file_pk):
 # retrieves home energy score records and formats file for rest of upload process
 def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     # instantiate HES client for external API
-    hes_client = hes.HesHelix(hes.CLIENT_URL, hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
+    hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     # find assessment entry for hes by name. Maybe not ideal!
     hes_assessment = GreenAssessment.objects.get(name='Home Energy Score', organization_id=user.default_organization.id)
 #    if len(hes_assessment) != 1:
@@ -131,7 +131,7 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
 
     hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
     if not hes_ids:
-        return {'status': 'error'}
+        return {'status': 'error', 'message': 'no data found'}
     print len(hes_ids)
     hes_all = []
     for hes_id in hes_ids:

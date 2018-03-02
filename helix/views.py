@@ -31,7 +31,9 @@ from seed.models.auditlog import (
     DATA_UPDATE_TYPE
 )
 from seed.data_importer.models import ImportRecord
-from seed.lib.superperms.orgs.models import Organization
+from helix.models import HELIXOrganization as Organization
+#from seed.lib.superperms.orgs.models import Organization
+
 from seed.lib.mcm import cleaners, mapper, reader
 from seed.utils.api import api_endpoint
 
@@ -101,19 +103,26 @@ def helix_hes(request):
 def hes_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
     cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
+    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
                 
     hes_auth = {'user_key': settings.HES_USER_KEY, 
                 'user_name': settings.HES_USER_NAME,
-                'password': settings.HES_PASSWORD}
+                'password': settings.HES_PASSWORD,
+                'client_url': settings.HES_CLIENT_URL}
 
-    partner = 'Test' #Temporary, to be read for org structure
-    start_date = '2017-11-01' # Temporary, to be read from org structure
-    #create file
+    partner = org.hes
+    if org.hes_start_date is None:
+        start_date = datetime.date.today() - datetime.timedelta(7)
+    else:
+        start_date = org.hes_start_date
+                
     response = utils.helix_hes_to_file(request.user, dataset, cycle, hes_auth, partner, start_date)
-
+    
     if(response['status'] == 'error'):
         return JsonResponse(response, status=400)
     else:
+        org.hes_start_date = datetime.date.today()
+        org.save() 
         return JsonResponse(response, status=200)    
 
 # Add certifications to already imported file

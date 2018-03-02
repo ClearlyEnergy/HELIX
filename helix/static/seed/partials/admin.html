@@ -160,7 +160,6 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label" for="hes_orgs">Organizations:</label>
                                 <div class="col-sm-4">
-<!--                                    <select name="hes_orgs" class="form-control" id="hes_orgs" ng-options="o as o.name for o in org_user.organizations" ng-model="org_hes.organization" ng-change="get_organizations_users(org.organization)"></select> -->
                                     <select name="orgs" class="form-control" id="orgs" ng-options="o as o.name for o in org_user.organizations" ng-model="org_hes.organization" ng-change="get_organizations_users(org_user.organization)"></select>
                                 </div>
                             </div>
