@@ -1,5 +1,5 @@
 import csv
-import StringIO
+from io import StringIO
 import re
 import datetime
 import json
