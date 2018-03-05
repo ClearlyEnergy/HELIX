@@ -102,7 +102,7 @@ def helix_certification_create(user, file_pk):
                 for assess, value in extra_data.items():
                     try: 
                         assessment = GreenAssessment.objects.get(name=assess, organization=org)
-                        print assessment
+                        print(assessment)
                         score_type = ("Metric" if assessment.is_numeric_score else "Rating")
                         score_value = test_score_value(score_type, value)
                         if score_value not in ['','FALSE']:
@@ -114,7 +114,7 @@ def helix_certification_create(user, file_pk):
                             loader.create_green_assessment_property(
                                 green_assessment_data, normalized_address, postal_code)                     
                     except: 
-                         print 'assessment not found'   
+                         print('assessment not found')   
                      
                      
             
@@ -132,10 +132,10 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
     if not hes_ids:
         return {'status': 'error', 'message': 'no data found'}
-    print len(hes_ids)
+    print(len(hes_ids))
     hes_all = []
     for hes_id in hes_ids:
-        print hes_id
+        print(hes_id)
         hes_data = hes_client.query_hes(hes_id)
         if hes_data['status'] == 'error':
             continue
