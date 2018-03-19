@@ -357,6 +357,7 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
             ('is_valid', obj.is_valid),
             ('year', obj.year),
             ('date', obj.date),
+            ('reference_id', obj.reference_id),
             ('opt_out', obj.opt_out),
             ('urls', urls),
             ('assessment', assessment),

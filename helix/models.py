@@ -6,9 +6,11 @@ from seed.lib.superperms.orgs.models import Organization
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
     """
     Additional fields for Green Assessment Property
-    opt_out     True/False
+    opt_out         True/False
+    reference_id    Source Reference ID
     """
     opt_out = models.BooleanField(default=False)
+    reference_id = models.CharField(max_length=100, null=True, blank=True)
     
 class HELIXOrganization(Organization):
     """
