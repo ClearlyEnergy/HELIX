@@ -102,7 +102,6 @@ def helix_certification_create(user, file_pk):
                     results['new_measurements'] += log['created']
                     results['updated_measurements'] += log['updated']
                 except Exception as e:
-                    print e
                     return {'status': 'error', 'message': str(e)}                    
                     
             # short format
@@ -120,8 +119,8 @@ def helix_certification_create(user, file_pk):
                             green_assessment_data.update({score_type: score_value})                    
                             loader.create_green_assessment_property(
                                 green_assessment_data, normalized_address, postal_code)                     
-                    except: 
-                         print('assessment not found')   
+                    except Exception as e:
+                        return {'status': 'error', 'message': str(e)}                    
                      
                      
             
@@ -253,10 +252,7 @@ def _setup_measurements(extra_data, assessment_property):
             if 'year' in dat:
                 measurement_data['year'] = dat['year']
             
-            print measurement_data
-                    
             data_log, meas = _create_measurement(assessment_property, **measurement_data)
-            print 'after create measurement'
             data['created'] += data_log['created']
             data['updated'] += data_log['updated']
 
