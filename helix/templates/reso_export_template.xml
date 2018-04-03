@@ -1,46 +1,57 @@
 <?xml version="1.0"?>
 <document>
-	{% for property in content %} 
-		<Location>
-			<Address>
-				<StreetName>
-					{{property.property.normalized_address}}
-				</StreetName>
-				<StreetNumber>
-				</StreetNumber>
-				<UnitNumber>
-					{{ property.property.address2 }}
-				</UnitNumber>
-				<city>
-					{{ property.property.city }}
-				</city>
-				<PostalCode>
-					{{ property.property.postal_code }}
-				</PostalCode>
-				<Country>
-					USA
-				</Country>
-			</Address>
-		</Location>	
-		<Structure>
-			<Performance>
-				<GreenVerification start="{{ start_date}} " end="{{ end_date }}">
-				        {% for assessment_property in property.assessments %}
-				        <GreenAssessmentProperty date="{{ assessment_property.date }}">
-				                {% for k,v in assessment_property.to_reso_dict.items %}
-				                <{{ k }}>{{ v }}</{{ k }}>
-				                {% endfor %}
-				        </GreenAssessmentProperty>
-				        {% endfor %}
-				</GreenVerification>
-			</Performance>
-		</Structure>
-		{%  if property.measurements %}
-		<Utilities>
-			{% for k,v in property.measurements.items %}
-	        <{{ k }}>{{ v }}</{{ k }}>
-			{% endfor %}
-		</Utilities>
-		{% endif %}
+	{% for property in content %}
+		<Property> 
+			<Location>
+				<Address>
+					<StreetName>
+						{{property.property.normalized_address}}
+					</StreetName>
+					<StreetNumber>
+					</StreetNumber>
+					<City>
+						{{ property.property.city }}
+					</City>
+					<StateOrProvince>
+						{{ property.property.state }}
+					</StateOrProvince>
+					<PostalCode>
+						{{ property.property.postal_code }}
+					</PostalCode>
+					<Country>
+						USA
+					</Country>
+				</Address>
+				{% if property.gis %}
+				<GIS>
+					{% for k,v in property.gis.items %}
+	                <{{ k }}>{{ v }}</{{ k }}>
+					{% endfor %}
+				</GIS>
+				{% endif %}
+			</Location>	
+			{% if property.assessments %}
+			<Structure>
+				<Performance>
+					<GreenVerification>
+					        {% for assessment_property in property.assessments %}
+					        <GreenBuildingVerification>
+					                {% for k,v in assessment_property.to_reso_dict.items %}
+					                <{{ k }}>{{ v }}</{{ k }}>
+					                {% endfor %}
+					        </GreenBuildingVerification>
+					        {% endfor %}
+					</GreenVerification>
+				</Performance>
+			</Structure>
+			{% endif %}
+			{%  if property.measurements %}
+			<Utilities>
+				{% for k,v in property.measurements.items %}
+		        <{{ k }}>{{ v }}</{{ k }}>
+				{% endfor %}
+			</Utilities>
+			{% endif %}
+		</Property>
 	{% endfor %}
 </document>
