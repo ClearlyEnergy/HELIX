@@ -15,6 +15,5 @@ angular.module('BE.seed.controller.green_assessments', [])
         });
       };
       init();
-	  console.log($scope.orgs)
     }
   ]);

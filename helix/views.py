@@ -22,8 +22,8 @@ from rest_framework.decorators import api_view
 
 from seed.models import Cycle, PropertyView, Property
 
-from seed.models.certification import GreenAssessment, GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
-from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
+from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement
 from seed.models.auditlog import (
     AUDIT_USER_EDIT,
     AUDIT_USER_CREATE,
@@ -60,7 +60,7 @@ def assessment_view(request):
 #   assessment: certification id
 @login_required
 def assessment_edit(request):
-    assessment = GreenAssessment.objects.get(pk=request.GET['id'])
+    assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
     return render(request, 'helix/assessment_edit.html', {'assessment': assessment})
 
 
@@ -225,6 +225,7 @@ def helix_reso_export_xml(request):
 
     organizations = Organization.objects.filter(users=request.user)
     properties = Property.objects.filter(organization_id__in=organizations)
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
         
     try:
 # select green assessment properties that are in the specified create / update date range
@@ -254,17 +255,18 @@ def helix_reso_export_xml(request):
     if not propertyviews:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
 
-    # filter out any private data if it has not been requested
-#    if (not get_private):
-#        matching_assessments = filter(lambda e: e.disclosure != '', matching_assessments)
-    
-        # use this list as part of the context to render an xml response
-      
     content = []
     for propertyview in propertyviews:  
         matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
             view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
         
+        gis = {}
+        if 'Latitude' in propertyview.state.extra_data:
+            gis = {
+                'Latitude': propertyview.state.extra_data["Latitude"],
+                'Longitude': propertyview.state.extra_data["Longitude"]
+            }
+            
         if matching_assessments:        
             matching_measurements = HelixMeasurement.objects.filter(
                 assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
@@ -275,12 +277,14 @@ def helix_reso_export_xml(request):
             measurement_dict = {}
             for measure in matching_measurements:
                 measurement_dict.update(measure.to_reso_dict())
-        
+            
             property_info = {
                 "property": propertyview.state,
-                "assessments": matching_assessments,
-                "measurements": measurement_dict
+                "assessments": matching_assessments.filter(assessment_id__in=reso_certifications),
+                "measurements": measurement_dict,
+                "gis": gis
             }
+            
             content.append(property_info) 
 
         context = {

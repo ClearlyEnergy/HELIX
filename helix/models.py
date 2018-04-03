@@ -3,6 +3,13 @@ from seed.models import certification
 from seed.lib.superperms.orgs.models import Organization
 
 
+class HELIXGreenAssessment(certification.GreenAssessment):
+    """
+    Additional fields for Green Assessment
+    is_reso_certification   True/False, defines what is exported to RESO dictionary
+    """
+    is_reso_certification = models.BooleanField(default=True)
+
 class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
     """
     Additional fields for Green Assessment Property
@@ -51,6 +58,7 @@ class HelixMeasurement(models.Model):
     PV_CAP_MAPPING = {
         # attribute: RESO field, need to add YearInstall
         'quantity': 'PowerProductionSize',
+        'year': 'YearInstall'
     }
 
     HES_FUEL_TYPES = {

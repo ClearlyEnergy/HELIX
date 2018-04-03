@@ -14,12 +14,13 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from seed.models import (
-    GreenAssessment, GreenAssessmentURL,
+    GreenAssessmentURL,
     PropertyView
 )
 
 #Helix add
 from helix.models import HelixMeasurement, HELIXGreenAssessmentProperty
+from helix.models import HELIXGreenAssessment as GreenAssessment
 
 from seed.models.auditlog import AUDIT_USER_CREATE
 from seed.utils.api import OrgValidator, OrgValidateMixin
@@ -133,7 +134,7 @@ class GreenAssessmentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'award_body', 'recognition_type',
             'recognition_description', 'description', 'is_numeric_score',
-            'is_integer_score', 'validity_duration'
+            'is_integer_score', 'validity_duration', 'is_reso_certification'
         )
 
     def get_recognition_description(self, obj):
@@ -333,6 +334,7 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
                 str(obj.assessment.validity_duration)
                 if obj.assessment.validity_duration else None
             ),
+#            ('is_reso_certification', obj.assessment.is_reso_certification),
         ))
         return OrderedDict((
             ('id', obj.id),
@@ -359,6 +361,7 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
             ('date', obj.date),
             ('reference_id', obj.reference_id),
             ('opt_out', obj.opt_out),
+#            ('is_reso_certification', obj.is_reso_certification),
             ('urls', urls),
             ('assessment', assessment),
             ('measurements', measurements)

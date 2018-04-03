@@ -1,5 +1,5 @@
 import csv
-from io import StringIO
+import StringIO
 import re
 import datetime
 import json
@@ -65,16 +65,15 @@ def helix_certification_create(user, file_pk):
             normalized_address = original_row.normalized_address
             postal_code = original_row.postal_code;
 
-            # long format
-            if 'Green Assessment Name' in extra_data:
-                gap_fields = {'Green Assessment Property Source': 'source', 
-                    'Green Assessment Property Version': 'version', 
-                    'Green Assessment Property Status': 'status', 
-                    'Green Assessment Reference Id': 'reference_id', 
-                    'Green Assessment Property Extra Data': 'extra_data', 
-                    'Green Assessment Property Url': 'urls'                   
-                }
-                try: 
+            try: 
+                # long format
+                if 'Green Assessment Name' in extra_data:
+                    gap_fields = {'Green Assessment Property Source': 'source', 
+                        'Green Assessment Property Version': 'version', 
+                        'Green Assessment Property Status': 'status', 
+                        'Green Assessment Reference Id': 'reference_id', 
+                        'Green Assessment Property Extra Data': 'extra_data'
+                    }
                     assessment = GreenAssessment.objects.get(name=extra_data['Green Assessment Name'], 
                         organization=org)
                     green_assessment_data = {"assessment": assessment}
@@ -87,6 +86,9 @@ def helix_certification_create(user, file_pk):
 
                     if 'Opt Out' in extra_data:
                         green_assessment_data["opt_out"] = cleaners.bool_cleaner(extra_data['Opt Out'])
+                        
+                    if 'Green Assessment Property Url' in extra_data:
+                        green_assessment_data["urls"] = [extra_data['Green Assessment Property Url']]
                  
                     score_type = ("Metric" if assessment.is_numeric_score else "Rating") 
                     score_value = test_score_value(score_type, extra_data['Green Assessment Property '+score_type])
@@ -101,28 +103,27 @@ def helix_certification_create(user, file_pk):
                     log = _setup_measurements(extra_data, prop_assess)
                     results['new_measurements'] += log['created']
                     results['updated_measurements'] += log['updated']
-                except Exception as e:
-                    return {'status': 'error', 'message': str(e)}                    
-                    
             # short format
-            else:
-                for assess, value in extra_data.items():
-                    try: 
-                        assessment = GreenAssessment.objects.get(name=assess, organization=org)
-                        score_type = ("Metric" if assessment.is_numeric_score else "Rating")
-                        score_value = test_score_value(score_type, value)
-                        if score_value not in ['','FALSE']:
-                            green_assessment_data = {
-                                "date": cleaners.date_cleaner(extra_data['Date']),
-                                "assessment": assessment
-                            }
-                            green_assessment_data.update({score_type: score_value})                    
-                            loader.create_green_assessment_property(
-                                green_assessment_data, normalized_address, postal_code)                     
-                    except Exception as e:
-                        return {'status': 'error', 'message': str(e)}                    
-                     
-                     
+                else:
+                    assessments = GreenAssessment.objects.filter(organization=org)
+                    for assessment in assessments:
+                        if assessment.name in extra_data:
+                            value = extra_data[assessment.name]
+                            if value:
+                                score_type = ("Metric" if assessment.is_numeric_score else "Rating")
+                                score_value = test_score_value(score_type, value)
+                                green_assessment_data = {
+                                    "date": cleaners.date_cleaner(extra_data['Green Assessment Property Date']),
+                                    "assessment": assessment
+                                }
+                                green_assessment_data.update({score_type.lower(): score_value}) 
+                                log, prop_assess = loader.create_green_assessment_property(
+                                    green_assessment_data, normalized_address, postal_code)
+                                results['new_assessments'] += log['created']
+                                results['updated_assessments'] += log['updated']
+            except Exception as e:
+                print str(e) #don't return error since many extra data items are not assessments
+                return {'status': 'error', 'message': str(e)}                    
             
     return {'status': 'success', 'data': results}
 
@@ -145,10 +146,13 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
 #    if len(hes_assessment) != 1:
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
-    hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
+    print start_date
+#    hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
+    hes_ids = ['142543']
+    print hes_ids
     if not hes_ids:
         return {'status': 'error', 'message': 'no data found'}
-    print(len(hes_ids))
+    print("number of ids: " + str(len(hes_ids)))
     hes_all = []
     for hes_id in hes_ids:
         print(hes_id)
@@ -206,7 +210,7 @@ def test_score_value(score_type, value):
     :param score_type metric or other
     :param value    
     """
-    if score_type == 'metric': 
+    if score_type == 'Metric': 
         return value
     else:
         if value in [0,1]:
@@ -229,7 +233,6 @@ def _setup_measurements(extra_data, assessment_property):
             if not dat:
                 continue
                  
-            print dat
             dat = json.loads(dat)
             # find fuel and measurement type
             for fuel in list(HelixMeasurement.HES_FUEL_TYPES.keys()):
@@ -251,7 +254,7 @@ def _setup_measurements(extra_data, assessment_property):
                 
             if 'year' in dat:
                 measurement_data['year'] = dat['year']
-            
+                
             data_log, meas = _create_measurement(assessment_property, **measurement_data)
             data['created'] += data_log['created']
             data['updated'] += data_log['updated']
