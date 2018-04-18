@@ -112,15 +112,16 @@ def helix_certification_create(user, file_pk):
                             if value:
                                 score_type = ("Metric" if assessment.is_numeric_score else "Rating")
                                 score_value = test_score_value(score_type, value)
-                                green_assessment_data = {
-                                    "date": cleaners.date_cleaner(extra_data['Green Assessment Property Date']),
-                                    "assessment": assessment
-                                }
-                                green_assessment_data.update({score_type.lower(): score_value}) 
-                                log, prop_assess = loader.create_green_assessment_property(
-                                    green_assessment_data, normalized_address, postal_code)
-                                results['new_assessments'] += log['created']
-                                results['updated_assessments'] += log['updated']
+                                if score_value not in ['','FALSE']:
+                                    green_assessment_data = {
+                                        "date": cleaners.date_cleaner(extra_data['Green Assessment Property Date']),
+                                        "assessment": assessment
+                                    }
+                                    green_assessment_data.update({score_type.lower(): score_value}) 
+                                    log, prop_assess = loader.create_green_assessment_property(
+                                        green_assessment_data, normalized_address, postal_code)
+                                    results['new_assessments'] += log['created']
+                                    results['updated_assessments'] += log['updated']
             except Exception as e:
                 print str(e) #don't return error since many extra data items are not assessments
                 return {'status': 'error', 'message': str(e)}                    

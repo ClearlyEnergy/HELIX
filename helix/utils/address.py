@@ -10,6 +10,65 @@ import re
 import usaddress
 from streetaddress import StreetAddressFormatter
 
+STATE_MAP = {
+        'Alaska': 'AK',
+        'Alabama': 'AL',
+        'Arkansas': 'AR',
+        'American Samoa': 'AS',
+        'Arizona': 'AZ',
+        'California': 'CA',
+        'Colorado': 'CO',
+        'Connecticut': 'CT',
+        'District of Columbia': 'DC',
+        'Delaware': 'DE',
+        'Florida': 'FL',
+        'Georgia': 'GA',
+        'Guam': 'GU',
+        'Hawaii': 'HI',
+        'Iowa': 'IA',
+        'Idaho': 'ID',
+        'Illinois': 'IL',
+        'Indiana': 'IN',
+        'Kansas': 'KS',
+        'Kentucky': 'KY',
+        'Louisiana': 'LA',
+        'Massachusetts': 'MA',
+        'Maryland': 'MD',
+        'Maine': 'ME',
+        'Michigan': 'MI',
+        'Minnesota': 'MN',
+        'Missouri': 'MO',
+        'Northern Mariana Islands': 'MP',
+        'Mississippi': 'MS',
+        'Montana': 'MT',
+        'National': 'NA',
+        'North Carolina': 'NC',
+        'North Dakota': 'ND',
+        'Nebraska': 'NE',
+        'New Hampshire': 'NH',
+        'New Jersey': 'NJ',
+        'New Mexico': 'NM',
+        'Nevada': 'NV',
+        'New York': 'NY',
+        'Ohio': 'OH',
+        'Oklahoma': 'OK',
+        'Oregon': 'OR',
+        'Pennsylvania': 'PA',
+        'Puerto Rico': 'PR',
+        'Rhode Island': 'RI',
+        'South Carolina': 'SC',
+        'South Dakota': 'SD',
+        'Tennessee': 'TN',
+        'Texas': 'TX',
+        'Utah': 'UT',
+        'Virginia': 'VA',
+        'Virgin Islands': 'VI',
+        'Vermont': 'VT',
+        'Washington': 'WA',
+        'Wisconsin': 'WI',
+        'West Virginia': 'WV',
+        'Wyoming': 'WY'
+}
 
 def _normalize_address_direction(direction):
     direction = direction.lower().replace('.', '')
@@ -166,8 +225,25 @@ def normalize_address_str(address_val, address_val_2):
     return normalized_address.lower().strip()
 
 def normalize_postal_code(postal_code_val):
-    print('normalizing postal code')
+    """
+    Normalize the postal code to have a minimum of 5 digits
+    
+    If excel has for example changed 05720 to 5720, the normalization will return 05720
+    """
     normalized_postal_code = str(postal_code_val).strip()
     if len(normalized_postal_code) < 5:
         normalized_postal_code = normalized_postal_code.zfill(5)
     return normalized_postal_code
+    
+def normalize_state(state_val):
+    """
+    Normalize the state to a two letter abbreviation
+    """
+    if len(state_val) > 2:
+        if state_val.capitalize() in STATE_MAP:
+            return STATE_MAP[state_val.capitalize()]
+        else:
+            return state_val
+    else:
+        return state_val.upper()
+    
