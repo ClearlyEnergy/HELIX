@@ -67,19 +67,23 @@ class HelixMeasurement(models.Model):
         "Fuel Oil": "FUEL",
         "Lpg": "PROP",
         "Cord Wood": "CWOOD",
-        "Pellet Wood": "PWOOD"}
+        "Pellet Wood": "PWOOD",
+        "Total": "TOTAL"}
+        
     HES_UNITS = {
         'kwh': "KWH",
         'kw': "KW",
         'therms': "THERM",
+        'therm': "THERM",
         'gallons': "GAL",
         'cords': "CORD",
         'pounds': "LB",
         'mmbtu': "MMBTU",
-        'dollars': "",
-        'greenhouse_gas': "GHG",
-        'carbon_dioxide': "CO2",
-        'carbon_dioxide_equivalent': "CO2e"}
+        'dollars': "$",
+        'dollar': "$",
+        'tons_ghg': "TGHG",
+        'tons_CO2': "TCO2",
+        'tons_CO2e': "TCO2E"}
 
     MEASUREMENT_TYPE_CHOICES = (
         ("PROD", "Production"),

@@ -71,6 +71,7 @@ def helix_certification_create(user, file_pk):
                     gap_fields = {'Green Assessment Property Source': 'source', 
                         'Green Assessment Property Version': 'version', 
                         'Green Assessment Property Status': 'status', 
+                        'Green Assessment Property Status Date': 'status_date', 
                         'Green Assessment Reference Id': 'reference_id', 
                         'Green Assessment Property Extra Data': 'extra_data'
                     }
@@ -82,19 +83,23 @@ def helix_certification_create(user, file_pk):
                             green_assessment_data[value] = extra_data[key]
                     
                     if 'Green Assessment Property Date' in extra_data:
-                        green_assessment_data["date"] = cleaners.date_cleaner(extra_data['Green Assessment Property Date'])
+                        green_assessment_data["date"] =  cleaners.date_cleaner(extra_data['Green Assessment Property Date'])
+
+                    if 'Green Assessment Property Status Date' in extra_data:
+                        green_assessment_data["status_date"] = cleaners.date_cleaner(extra_data['Green Assessment Property Status Date'])
 
                     if 'Opt Out' in extra_data:
                         green_assessment_data["opt_out"] = cleaners.bool_cleaner(extra_data['Opt Out'])
                         
                     if 'Green Assessment Property Url' in extra_data:
                         green_assessment_data["urls"] = [extra_data['Green Assessment Property Url']]
-                 
+                                         
                     score_type = ("Metric" if assessment.is_numeric_score else "Rating") 
                     score_value = test_score_value(score_type, extra_data['Green Assessment Property '+score_type])
                     if score_value not in ['','FALSE']:
                         green_assessment_data.update({score_type.lower(): score_value}) 
            
+                        print green_assessment_data
                         log, prop_assess = loader.create_green_assessment_property(
                             green_assessment_data, normalized_address, postal_code)
                         results['new_assessments'] += log['created']
@@ -123,7 +128,6 @@ def helix_certification_create(user, file_pk):
                                     results['new_assessments'] += log['created']
                                     results['updated_assessments'] += log['updated']
             except Exception as e:
-                print str(e) #don't return error since many extra data items are not assessments
                 return {'status': 'error', 'message': str(e)}                    
             
     return {'status': 'success', 'data': results}
@@ -224,21 +228,26 @@ def _setup_measurements(extra_data, assessment_property):
     :param extra_data           source dict for data
     :param assessment_property  source property
     """
+    measurement_list = ['{0} '.format(i[0]) for i in HelixMeasurement.MEASUREMENT_TYPE_CHOICES]
     data = {
         'created': 0,
         'updated': 0,
     }
 
     for k, dat in extra_data.items():
-        if (k.startswith('CONS') or k.startswith('PROD') or k.startswith('CAP')):
+        if k.startswith(tuple(measurement_list)):
             if not dat:
                 continue
                  
             dat = json.loads(dat)
+            fuel = None
             # find fuel and measurement type
             for fuel in list(HelixMeasurement.HES_FUEL_TYPES.keys()):
-                if fuel in k:
+                if (fuel in k) or (fuel in dat.values()):
                     break
+                    
+            if fuel is None:
+                continue
                     
             measurement_data = {
                 'measurement_type': k.split(' ')[0],
