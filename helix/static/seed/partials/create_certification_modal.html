@@ -1,0 +1,66 @@
+<div class="modal-header">
+    <h4 class="modal-title">Create a New Certification</h4>
+</div>
+<div class="modal-body row">
+    <div class="form-horizontal">
+        <div class="alert alert-danger" ng-show="certification.alert">
+            The certification <strong>name "{$ certification.name $}" already exists</strong>. Please select a new one.
+        </div>
+        <div class="form-group" ng-class="{'has-error': certification.alert, 'has-feedback': certification.alert}">
+            <label class="control-label left col-lg-3 col-sm-3" for="inputCertificationName">Certification Name</label>
+            <div class="col-lg-8 col-sm-8">
+                <input type="text" class="form-control" id="inputCertificationdName" ng-model="certification.name" placeholder="certification name" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-lg-3 col-sm-3" for="inputCertificationAwardBody">Award Body</label>
+            <div class="col-lg-8 col-sm-8">
+                <input type="text" class="form-control" id="inputCertificationdAwardBody" ng-model="certification.award_body" placeholder="award body" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-3" for="inputCertificationRecognitionType">Recognition Type</label>
+            <div class="col-lg-8 col-sm-8">
+                <select class="form-control" id="inputCertificationRecognitionType" name="inputCertificationRecognitionType" ng-model="certification.recognition_type">
+                   <option value='SCR'>Score</option>
+                   <option value='CRT'>Certification</option>
+                   <option value='AWD'>Award</option>
+                   <option value='LBL'>Label</option>
+                   <option value='PRT'>Participant</option>
+                   <option value='RAT'>Rating</option>
+                   <option value='ZER'>Zero Energy Ready home</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" >
+            <label class="control-label col-lg-3 col-sm-3" for="inputCertificationIsNumericScore">Numeric</label>
+            <div class="col-sm-8 col-lg-8">
+				<input class="form-control" type="checkbox" id="inputCertificationIsNumericScore" ng-checked="certification.recognition_type === 'SCR' || certification.recognition_type === 'RAT'"  ng-model="certification.is_numeric_score"></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-lg-3 col-sm-3" for="name">Description</label>
+            <div class="col-sm-8 col-lg-8">
+                <textarea type=textarea rows="3" class="form-control" id='inputCertificationDescription' ng-model="certification.description"></textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-sm-3" for="inputCertificationValidityDuration">Valid For</label>
+            <div class="col-sm-8">
+                <input type='number' class="form-control" id='inputCertificationValidityDuration'  ng-model="certification.validity_duration" placeHolder='Enter duration in days'>
+            </div>
+        </div>
+        <div class="form-group" >
+            <label class="control-label col-sm-3" for="inputCertificationIsResoCertification">Export to MLS?</label>
+            <div class="col-sm-8">
+				<input class="form-control" type="checkbox" checked="checked" id="inputCertificationIsResoCertification" ng-model="certification.is_reso_certification"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <div class="row text-center">
+        <button type="button" class="btn btn-default" ng-click="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary"  ng-disabled="certification.disabled()" ng-click="create_certification(certification.name)" autofocus>Create Certification</button>
+    </div>
+</div>

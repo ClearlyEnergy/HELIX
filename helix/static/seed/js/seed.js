@@ -42,6 +42,9 @@ angular.module('BE.seed.controllers', [
   'BE.seed.controller.concat_modal',
   'BE.seed.controller.create_sub_organization_modal',
   'BE.seed.controller.data_upload_modal',
+  'BE.seed.controller.certification',	
+  'BE.seed.controller.delete_certification_modal',
+  'BE.seed.controller.create_certification_modal',
   'BE.seed.controller.dataset',
   'BE.seed.controller.dataset_detail',
   'BE.seed.controller.delete_dataset_modal',
@@ -98,6 +101,7 @@ angular.module('BE.seed.services', [
   'BE.seed.service.data_quality',
   'BE.seed.service.column_mappings',
   'BE.seed.service.cycle',
+  'BE.seed.service.certification',
   'BE.seed.service.dataset',
   'BE.seed.service.flippers',
   'BE.seed.service.httpParamSerializerSeed',
@@ -180,28 +184,6 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
     $locationProvider.hashPrefix('');
     $urlRouterProvider.otherwise('/');
 	
-    stateHelperProvider
-      //Begin HELIX changes
-      //These changes should add the certifications page as a state
-      .state({
-        name: 'certifications',
-        url: '/certifications',
-		templateUrl: '/helix/certifications/'
-//        templateUrl: '/helix/green_assessments.html',
-//		controller: 'green_assessments_controller',
-//		resolve: {
-//			assessment_payload: ['organization_service', function (organization_service) {
-//          return organization_service.get_organizations();
-//        }]
-//		}
-      })
-
-      .state({
-        name: 'certifications_edit',
-        url: '/certifications/edit/{id:int}',
-        templateUrl: function (stateParams){ return '/helix/certifications/edit/?id='+stateParams.id }
-      })
-      //End HELIX changes
     stateHelperProvider
       .state({
         name: 'home',
@@ -648,6 +630,17 @@ SEED_app.config(['stateHelperProvider', '$urlRouterProvider', '$locationProvider
             });
           }]
         }
+      })
+      .state({
+        name: 'certification_list',
+        url: '/certifications',
+        templateUrl: static_url + 'seed/partials/certification_list.html',
+		controller: 'certification_list_controller',
+		resolve: {
+  		  certifications_payload: ['certification_service', function (certification_service) {
+	        return certification_service.get_certifications();
+          }],
+		}
       })
       .state({
         name: 'dataset_list',
