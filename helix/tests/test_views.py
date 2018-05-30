@@ -62,6 +62,7 @@ class TestHelixView(TestCase):
         self.password = 'helix123'
         self.user_key = '520df908c6cb4bea8c14691ee95aff88'
         self.building_id = '144148'
+        self.CLIENT_URL = 'https://sandbeta.hesapi.labworks.org/st_api/wsdl'
 
         self.assessment_factory = FakeGreenAssessmentFactory(
             organization=self.org
