@@ -99,7 +99,6 @@ def helix_certification_create(user, file_pk):
                     if score_value not in ['','FALSE']:
                         green_assessment_data.update({score_type.lower(): score_value}) 
            
-                        print green_assessment_data
                         log, prop_assess = loader.create_green_assessment_property(
                             green_assessment_data, normalized_address, postal_code)
                         results['new_assessments'] += log['created']
@@ -122,7 +121,11 @@ def helix_certification_create(user, file_pk):
                                         "date": cleaners.date_cleaner(extra_data['Green Assessment Property Date']),
                                         "assessment": assessment
                                     }
+                                    if assessment.name + ' Version' in extra_data:
+                                        green_assessment_data["version"] = extra_data[assessment.name + ' Version']
+                                        
                                     green_assessment_data.update({score_type.lower(): score_value}) 
+                                    
                                     log, prop_assess = loader.create_green_assessment_property(
                                         green_assessment_data, normalized_address, postal_code)
                                     results['new_assessments'] += log['created']
