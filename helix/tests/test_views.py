@@ -3,17 +3,25 @@ from django.core.urlresolvers import reverse
 from django.core import management
 from django.utils import timezone
 import datetime
+import json
 
 from seed.landing.models import SEEDUser as User
-from seed.lib.superperms.orgs.models import Organization, OrganizationUser
+#from seed.lib.superperms.orgs.models import Organization, OrganizationUser
+from seed.lib.superperms.orgs.models import OrganizationUser
+from helix.models import HELIXOrganization as Organization
 from seed.models import Cycle, PropertyView
-from seed.models.certification import GreenAssessment
+
+#from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from seed.models.certification import GreenAssessmentPropertyAuditLog
+#from seed.models.certification import GreenAssessment
 from seed.data_importer.models import ImportRecord
 from seed.test_helpers.fake import (
     FakeGreenAssessmentFactory,
     FakeGreenAssessmentPropertyFactory, FakeGreenAssessmentURLFactory,
 )
 
+from helix.models import HELIXGreenAssessment as GreenAssessment
+from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
 from helix.models import HelixMeasurement
 
 
@@ -60,9 +68,9 @@ class TestHelixView(TestCase):
         # start failing, make sure this is up to date.
         self.user_name = 'TST-HELIX'
         self.password = 'helix123'
-        self.user_key = '520df908c6cb4bea8c14691ee95aff88'
-        self.building_id = '144148'
-        self.CLIENT_URL = 'https://sandbeta.hesapi.labworks.org/st_api/wsdl'
+        self.user_key = '38681c487f054bfa9bb090cc93404e9f'
+        self.building_id = '142543'
+        self.CLIENT_URL = 'https://sandbox.hesapi.labworks.org/st_api/wsdl' 
 
         self.assessment_factory = FakeGreenAssessmentFactory(
             organization=self.org
@@ -70,7 +78,8 @@ class TestHelixView(TestCase):
         self.green_assessment = self.assessment_factory.get_green_assessment(
             name="Green Test Score", award_body="Green TS Inc",
             recognition_type=GreenAssessment.SCORE,
-            validity_duration=(365 * 5)
+            validity_duration=(365 * 5),
+            is_reso_certification=True
         )
         self.url_factory = FakeGreenAssessmentURLFactory()
         self.gap_factory = FakeGreenAssessmentPropertyFactory(
@@ -97,18 +106,21 @@ class TestHelixView(TestCase):
 # Check that a simple case of helix_hes return the correct status code
 # when completed successfully.
     def test_helix_hes(self):
-        data = {'user_key': self.user_key,
+        data = {'client_url': self.CLIENT_URL,
+                'user_key': self.user_key,
                 'user_name': self.user_name,
                 'password': self.password,
                 'building_id': self.building_id,
                 'dataset': self.record.pk,
                 'cycle': self.cycle.pk}
         res = self.client.post(reverse('helix:helix_hes'), data)
+        print res
         self.assertEqual(200, res.status_code)
 
 # Check that a simple case of helix_hes fails for bad building_id or user_key        
     def test_helix_hes_bad_id_400(self):
-        data = {'user_key': self.user_key,
+        data = {'client_url': self.CLIENT_URL,
+                'user_key': self.user_key,
                 'user_name': self.user_name,
                 'password': self.password,
                 'building_id': '123456',
@@ -119,7 +131,8 @@ class TestHelixView(TestCase):
         self.assertEqual(400, res.status_code)
 
     def test_helix_hes_bad_hes_key_400(self):
-        data = {'user_key': '123456',
+        data = {'client_url': self.CLIENT_URL,
+                'user_key': '123456',
                 'user_name': self.user_name,
                 'password': self.password,
                 'building_id': self.building_id,
@@ -140,7 +153,7 @@ class TestHelixView(TestCase):
         self.assertFalse('Efficiency Vermont' in res.content)
 
 
-    def test_helix_csv_upload_create_measurement(self):
+#    def test_helix_csv_upload_create_measurement(self):
 #        with open('./helix/helix_upload_sample.csv') as csv:
 #            data = {'user_key': self.user_key,
 #                    'user_name': self.user_name,
@@ -153,7 +166,6 @@ class TestHelixView(TestCase):
 
 #            self.assertTrue(HelixMeasurement.objects.filter(fuel='NATG', quantity=495, unit='THERM').exists())
 #            self.assertTrue(HelixMeasurement.objects.filter(fuel='ELEC', quantity=12339, unit='KWH').exists())
-        self.assertTrue(2,2)
 
 
 
