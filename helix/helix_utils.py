@@ -151,12 +151,11 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     # find assessment entry for hes by name. Maybe not ideal!
     hes_assessment = GreenAssessment.objects.get(name='Home Energy Score', organization_id=user.default_organization.id)
+    print hes_assessment
 #    if len(hes_assessment) != 1:
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
-    print start_date
-#    hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
-    hes_ids = ['142543']
+    hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
     print hes_ids
     if not hes_ids:
         return {'status': 'error', 'message': 'no data found'}

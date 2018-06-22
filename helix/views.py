@@ -80,7 +80,7 @@ def helix_hes(request):
     cycle = Cycle.objects.get(pk=request.POST['cycle'])
 
     try: 
-        hes_client = hes.HesHelix(hes.CLIENT_URL, request.POST['user_name'], request.POST['password'], request.POST['user_key'])
+        hes_client = hes.HesHelix(request.POST['client_url'], request.POST['user_name'], request.POST['password'], request.POST['user_key'])
         try:
             res = hes_client.query_hes(request.POST['building_id'])
             res["status"] = "success"
@@ -106,9 +106,11 @@ def hes_upload(request):
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
                 
     hes_auth = {'user_key': settings.HES_USER_KEY, 
-                'user_name': settings.HES_USER_NAME,
-                'password': settings.HES_PASSWORD,
+                'user_name': org.hes_partner_name,
+                'password': org.hes_partner_password,
                 'client_url': settings.HES_CLIENT_URL}
+                
+    hes_auth['client_url'] = 'http://hesapi.labworks.org/st_api/wsdl'
 
     partner = org.hes
     if org.hes_start_date is None:

@@ -25,14 +25,19 @@ class HELIXOrganization(Organization):
     hes             Home Energy Score identifier
     hes_start_date  Start date for home energy score retrieval
     hes_end_date    End date for home energy score retrieval
+    hes_partner_name    Home Energy Score Partner User Name
+    hes_partner_password    Home Energy Score Partner Password
     """
     hes = models.CharField(max_length=100, null=True, blank=True)
     hes_start_date = models.DateField(null=True, blank=True)
     hes_end_date = models.DateField(null=True, blank=True)
+    hes_partner_name = models.CharField(max_length=100, null=True, blank=True)
+    hes_partner_password = models.CharField(max_length=100, null=True, blank=True)
     
     def add_hes(self, hes):
         """Add Home Energy Score ID to organization"""
-        self.hes = hes        
+        for key, value in hes.items():
+            setattr(self, key, value)
         return self.save()
 
 class HelixMeasurement(models.Model):
