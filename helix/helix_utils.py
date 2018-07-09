@@ -113,10 +113,10 @@ def helix_certification_create(user, file_pk):
                     for assessment in assessments:
                         if assessment.name in extra_data:
                             value = extra_data[assessment.name]
-                            if value:
-                                score_type = ("Metric" if assessment.is_numeric_score else "Rating")
+                            score_type = ("Metric" if assessment.is_numeric_score else "Rating")
+                            if value is not None:
                                 score_value = test_score_value(score_type, value)
-                                if score_value not in ['','FALSE']:
+                                if (score_type == 'Metric' and score_value is not None) or (score_type == 'Rating' and score_value not in ['','FALSE']):
                                     green_assessment_data = {
                                         "date": cleaners.date_cleaner(extra_data['Green Assessment Property Date']),
                                         "assessment": assessment
