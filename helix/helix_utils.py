@@ -16,7 +16,10 @@ from seed.models import (
     ColumnMapping,
     PropertyState,
     DATA_STATE_IMPORT,
-    DATA_STATE_UNKNOWN)
+    DATA_STATE_UNKNOWN, 
+    DATA_STATE_MATCHING,
+    MERGE_STATE_MERGED,
+    MERGE_STATE_NEW)
 from zeep.exceptions import Fault
 
 from helix.models import HelixMeasurement
