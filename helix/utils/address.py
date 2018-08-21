@@ -239,14 +239,11 @@ def normalize_state(state_val):
     """
     Normalize the state to a two letter abbreviation
     """
-    if state_val: 
-        if len(state_val) > 2:
-            if state_val.capitalize() in STATE_MAP:
-                return STATE_MAP[state_val.capitalize()]
-            else:
-                return state_val
+    if len(state_val) > 2:
+        if state_val.capitalize() in STATE_MAP:
+            return STATE_MAP[state_val.capitalize()]
         else:
-            return state_val.upper()
+            return state_val
     else:
-        return state_val
+        return state_val.upper()
     

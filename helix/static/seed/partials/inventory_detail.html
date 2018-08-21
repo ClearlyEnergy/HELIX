@@ -64,7 +64,7 @@ END HELIX REMOVE -->
 					<tbody ng-repeat="certification in certifications">
                         <!-- Certification values -->
                         <tr ng-click="isOpen=!isOpen">
-							<td><a ng-if="certification.measurements.length"><i class="ui-grid-icon-info-circled"></i></a></td>
+							<td><a ng-if="certification.measurements.length || certification.urls.length" ><i class="ui-grid-icon-info-circled"></i></a></td>
 	                        <td>{$ certification.assessment.award_body  | limitTo: 25 $}{$ certification.assessment.award_body.length  > 25 ? '&hellip;' : ''$}</td>
 	                        <td>{$ certification.assessment.name | limitTo: 30 $}{$ certification.assessment.name.length  > 30 ? '&hellip;' : ''$}</td>
 	                        <td>{$ certification.version $}</td>

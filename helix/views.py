@@ -127,6 +127,34 @@ def hes_upload(request):
         org.save() 
         return JsonResponse(response, status=200)    
 
+# Retrieve LEED records and generate file to use in rest of upload process
+# responds with file content and status 200 on success, 400 on fail
+# Parameters:
+#   dataset: id of import record that data will be uploaded to
+#   cycle: id of cycle that data will be uploaded to
+@login_required
+def leed_upload(request):
+    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
+    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
+    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
+                
+    if org.hes_start_date is None:
+        start_date = datetime.date.today() - datetime.timedelta(7)
+    else:
+        start_date = org.hes_start_date
+                
+    leed_region = '6611'
+    start_date = datetime.date(2015,1,1)
+    print start_date
+    response = utils.helix_leed_to_file(request.user, dataset, cycle, leed_region, start_date)
+    
+    if(response['status'] == 'error'):
+        return JsonResponse(response, status=400)
+    else:
+        org.hes_start_date = datetime.date.today()
+        org.save() 
+        return JsonResponse(response, status=200)    
+
 # Add certifications to already imported file
 # Parameters:
 #   import_file_id: id of import file

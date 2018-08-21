@@ -33,16 +33,15 @@
             <div class="col-sm-10 col-sm-offset-1" ng-hide="uploader.in_progress">
                 <div class="row" style="display: none;">
                     <label class="col-sm-3 col-sm-offset-1 control-label" for="selected-cycle" style="margin-top: 5px;" translate>Time Period</label>
-                    <div class="col-sm-7">
+                    <div class="col-sm-7" style="display: none;">
                         <select id="selected-cycle" name="selected-cycle" class="form-control input-sm" ng-change="cycleChanged(selectedCycle)" ng-model="selectedCycle" ng-options="cycle.name for cycle in cycles track by cycle.id"></select>
                     </div>
                 </div>
-				<!--
-                <div class="row">
-                    <div class="col-sm-10 col-sm-offset-4">
+                <div class="row" style="display: none;">
+                    <div class="col-sm-10 col-sm-offset-4" style="display: none;">
                         <a ui-sref="organization_cycles(::{organization_id: organization.id})" ng-click="cancel()" translate>Manage available cycles.</a>
                     </div>
-                </div> -->
+                </div>
             </div>
         </div>
         <div class="row">
@@ -56,6 +55,14 @@
                 <div class="btn btn-primary" style="display: block; font-weight: bold;" ng-click="goto_step(13)">Import Portfolio Manager Data</div>
             </div>
         </div>
+        <!-- Helix begin modifications -->
+        <div class="row" style="padding-top: 20px;">
+            <button type="button" id="synchronize_hes" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Synchronize Home Energy Score</button>
+        </div>
+        <div class="row" style="padding-top: 20px;">
+            <button type="button" id="synchronize_leed" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Synchronize LEED</button>
+        </div>
+		<!-- Helix end modifications -->
         <div class="row">
             <div class="col-sm-9 col-sm-offset-2" ng-hide="uploader.in_progress">
                 <!--<div class="row">-->
@@ -65,26 +72,16 @@
                 <!--</div>-->
             </div>
         </div>
-        <!-- Helix begin modifications -->
-        <div class="row" style="padding-top: 20px;">
-            <button type="button" id="synchronize_hes" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Synchronize Home Energy Score</button>
-        </div>
-<!--        <div class="row" style="padding-top: 20px;">
-            <button type="button" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="goto_step(14)"  ng-hide="uploader.in_progress">Synchronize Home Energy Score Data</button>
-        </div> -->
-        <!-- begin modifications
-       <div class="row">
+        <!--<div class="row">
             <div class="col-sm-8 col-sm-offset-2 green_button" sd-uploader sourcetype="Green Button Raw" sourceprog="" sourcever="" importrecord="dataset.id" buttontext="{$:: 'Upload Green Button Data' | translate $}" eventfunc="uploaderfunc(message, file, progress)" ng-hide="uploader.in_progress" ng-disabled="true" style="padding-top: 10px;"></div>
-        </div>
-        end modifications -->
-
+        </div>-->
         <div class="progress_bar_container" ng-show="uploader.in_progress">
             <div class="progress_bar_copy_top"
                  translate="UPLOADING_PROGRESS"
                  translate-values="{ dataset_filename: dataset.filename }"></div>
 
             <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
-            <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$ uploader.status_message | translate $}</div>
+            <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
         </div>
         <div ng-hide="uploader.in_progress" style="margin-top: 30px;">
             <div>
@@ -113,7 +110,7 @@
                          translate-values="{ dataset_filename: dataset.filename }"></div>
 
                     <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
-                    <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$ uploader.status_message | translate$}</div>
+                    <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
                 </div>
             </div>
         </div>
@@ -143,7 +140,7 @@
                     <div class="progress_bar_copy_top">{$:: 'Finding inventory matches for' | translate $}
                         <strong>{$ dataset.filename $}</strong></div>
                     <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
-                    <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $}</div>
+                    <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
                 </div>
             </div>
         </div>
@@ -211,6 +208,40 @@
                     <p translate>An error occurred while processing the file. Please ensure that your file meets the required specifications.</p>
                     <pre ng-class="{'pre-scrollable': step_12_error_message.length >= 300}" ng-show="step_12_error_message">{$ step_12_error_message | translate $}</pre>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- Step 13: Portfolio Manager Data Import -->
+    <div class="data_upload_steps pm_import" ng-switch-when="13">
+        <div class="alert alert-danger" ng-show="pm_error_alert">{$ pm_error_alert $}</div>
+        <div class="row" style="padding-bottom:10px">
+            <label class="control-label col-lg-4 col-sm-4" for="inputPMUsername">Portfolio Manager Username</label>
+            <div class="col-lg-8 col-sm-8">
+                <input type="text" class="form-control" id="inputPMUsername" name="username" ng-model="pm_username" ng-disabled="!pm_buttons_enabled" required>
+            </div>
+        </div>
+        <div class="row" style="padding-bottom:10px">
+            <label class="control-label col-lg-4 col-sm-4" for="inputPMPassword">Portfolio Manager Password</label>
+            <div class="col-lg-8 col-sm-8">
+                <input type="password" class="form-control" id="inputPMPassword" name="password" ng-model="pm_password" ng-disabled="!pm_buttons_enabled" required>
+            </div>
+        </div>
+        <div class="row" style="padding-bottom:10px">
+            <div class="col-lg-4 col-sm-4"></div>
+            <div class="col-lg-8 col-sm-8">
+                <div class="btn btn-primary" style="display: block; font-weight: bold;" ng-disabled="!pm_buttons_enabled" ng-click="get_pm_report_template_names(pm_username, pm_password);">Get Report Templates</div>
+            </div>
+        </div>
+        <div class="row" style="padding-bottom:10px">
+            <label class="control-label col-lg-4 col-sm-4" for="inputPMReportTemplateName">Report Template Name <small>{$ pm_templates.length ? '(' + pm_templates.length + ')' : '' $}</small></label>
+            <div class="col-lg-8 col-sm-8">
+                <select ng-model="pm_template" ng-disabled="!pm_buttons_enabled" ng-options="x.name for x in pm_templates"></select>
+            </div>
+        </div>
+        <div class="row" style="padding-bottom:10px">
+            <div class="col-lg-4 col-sm-4"></div>
+            <div class="col-lg-8 col-sm-8">
+                <div class="btn btn-primary" style="display: block; font-weight: bold;" ng-disabled="!pm_buttons_enabled || !pm_template" ng-click="get_pm_report(pm_username, pm_password, pm_template);">Submit</div>
             </div>
         </div>
     </div>

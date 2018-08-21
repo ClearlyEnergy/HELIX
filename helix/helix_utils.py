@@ -27,6 +27,7 @@ from helix.utils.address import normalize_address_str
 
 from autoload import autoload
 from hes import hes
+from leed import leed
     
 # Create certifications
 def helix_certification_create(user, file_pk):
@@ -154,7 +155,6 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     # find assessment entry for hes by name. Maybe not ideal!
     hes_assessment = GreenAssessment.objects.get(name='Home Energy Score', organization_id=user.default_organization.id)
-    print hes_assessment
 #    if len(hes_assessment) != 1:
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
@@ -169,17 +169,9 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
         hes_data = hes_client.query_hes(hes_id)
         if hes_data['status'] == 'error':
             continue
-            
-        #change a few naming conventions
-        hes_data['green_assessment_property_metric']= hes_data.pop('base_score')     
-        hes_data['green_assessment_name'] = 'Home Energy Score'
-        hes_data['green_assessment_property_source'] = 'Department of Energy'
-        hes_data['green_assessment_property_status'] = hes_data.pop('assessment_type')
-        hes_data['green_assessment_property_version'] = hes_data.pop('hescore_version')
-        hes_data['green_assessment_property_url'] = hes_data.pop('pdf')
-        hes_data['green_assessment_property_date'] = hes_data.pop('assessment_date')
-        hes_data['green_assessment_property_extra_data'] = ''
-        
+        else:
+            del hes_data['status']
+                    
         hes_all.append(hes_data)
 
         try:
@@ -189,29 +181,85 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
         else:
             hes_headers = list(set(hes_headers + hes_data.keys()))
             
-    buf = StringIO.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=hes_headers)
-    writer.writeheader()
-    for dat in hes_all:
-        writer.writerow(dat) #merge in with green assessment data
-
-    csv_file = buf.getvalue()
-    buf.close()
+    hes_csv = save_formatted_data(hes_headers, hes_all)
     
-    # load some of the data directly from csv
-    loader = autoload.AutoLoad(user, user.default_organization)
-    # upload and save to Property state table
-    file_pk = loader.upload('home_energy_score.csv', csv_file, dataset, cycle)
-    # save raw data
-    resp = loader.save_raw_data(file_pk)
-    if (resp['status'] == 'error'):
-        return resp
-
+    resp = load_csv_data(user, dataset, cycle, hes_csv, 'home_energy_score.csv')
+        
     # revoke session token created for the hes client
     # if the client was never instantiated, nothing needs to be done
     if(hes_client is not None):
         hes_client.end_session()
         
+    return resp
+
+
+def helix_leed_to_file(user, dataset, cycle, leed_region, start_date=None):
+    """
+    Retrieves home energy score records and formats file for rest of upload process
+    user        user object
+    dataset     reference dataset to attach records to
+    cycle       reference cycle to attach records to
+    leed_region LEED identifier of region/State to query data for
+    start_date  Date to start pulling Home Energy Score records from
+    Returns
+    results     dictionary with status and primary key of file created
+    """
+
+    leed_client = leed.LeedHelix()
+    # find assessment entry for hes by name. Maybe not ideal!
+    leed_assessment = GreenAssessment.objects.get(name='LEED for Homes', organization_id=user.default_organization.id)
+#    if len(hes_assessment) != 1:
+#        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
+
+    leed_ids = leed_client.query_leed_building_ids(start_date)
+    if not leed_ids:
+        return {'status': 'error', 'message': 'no data found'}
+#    print("number of ids: " + str(len(leed_ids)))
+    leed_all = []
+    for leed_id in leed_ids:
+        leed_data = leed_client.query_leed(leed_id)
+        if leed_data['status'] == 'error':
+            continue
+        else:
+            del leed_data['status']
+                    
+        leed_all.append(leed_data)
+
+        try:
+            leed_headers
+        except:
+            leed_headers = leed_data.keys()
+        else:
+            leed_headers = list(set(leed_headers + leed_data.keys()))
+            
+    leed_csv = save_formatted_data(leed_headers, leed_all)
+    
+    resp = load_csv_data(user, dataset, cycle, leed_csv, 'leed.csv')
+        
+    return resp
+    
+def save_formatted_data(headers, data):
+    buf = StringIO.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=headers)
+    writer.writeheader()
+    for dat in data:
+        writer.writerow(dat)
+
+    csv_file = buf.getvalue()
+    buf.close()
+    
+    return csv_file
+
+def load_csv_data(user, dataset, cycle, csv_file, file_name):
+    # load some of the data directly from csv
+    loader = autoload.AutoLoad(user, user.default_organization)
+    # upload and save to Property state table
+    file_pk = loader.upload(file_name, csv_file, dataset, cycle)
+    # save raw data
+    resp = loader.save_raw_data(file_pk)
+    if (resp['status'] == 'error'):
+        return resp
+
     return {'status': 'success', 'file': file_pk}
 
 # Test for valid score value
