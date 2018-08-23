@@ -114,7 +114,7 @@ def hes_upload(request):
 
     partner = org.hes
     if org.hes_start_date is None:
-        start_date = datetime.date.today() - datetime.timedelta(7)
+        start_date = datetime.date.today() - datetime.timedelta(100)
     else:
         start_date = org.hes_start_date
                 
@@ -138,20 +138,17 @@ def leed_upload(request):
     cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
                 
-    if org.hes_start_date is None:
+    if org.leed_start_date is None:
         start_date = datetime.date.today() - datetime.timedelta(7)
     else:
-        start_date = org.hes_start_date
+        start_date = org.leed_start_date
                 
-    leed_region = '6611'
-    start_date = datetime.date(2015,1,1)
-    print start_date
-    response = utils.helix_leed_to_file(request.user, dataset, cycle, leed_region, start_date)
+    response = utils.helix_leed_to_file(request.user, dataset, cycle, org.leed_geo_id, start_date)
     
     if(response['status'] == 'error'):
         return JsonResponse(response, status=400)
     else:
-        org.hes_start_date = datetime.date.today()
+        org.leed_start_date = datetime.date.today()
         org.save() 
         return JsonResponse(response, status=200)    
 

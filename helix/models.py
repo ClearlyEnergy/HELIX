@@ -33,10 +33,19 @@ class HELIXOrganization(Organization):
     hes_end_date = models.DateField(null=True, blank=True)
     hes_partner_name = models.CharField(max_length=100, null=True, blank=True)
     hes_partner_password = models.CharField(max_length=100, null=True, blank=True)
+    leed_start_date = models.DateField(null=True, blank=True)
+    leed_end_date = models.DateField(null=True, blank=True)
+    leed_geo_id = models.CharField(max_length=100, null=True, blank=True)
     
     def add_hes(self, hes):
         """Add Home Energy Score ID to organization"""
         for key, value in hes.items():
+            setattr(self, key, value)
+        return self.save()
+
+    def add_leed(self, leed):
+        """Add LEED info to organization"""
+        for key, value in leed.items():
             setattr(self, key, value)
         return self.save()
 

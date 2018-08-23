@@ -81,6 +81,7 @@ def helix_certification_create(user, file_pk):
                     }
                     assessment = GreenAssessment.objects.get(name=extra_data['Green Assessment Name'], 
                         organization=org)
+                    print extra_data
                     green_assessment_data = {"assessment": assessment}
                     for key, value in gap_fields.items():
                         if key in extra_data:
@@ -96,7 +97,8 @@ def helix_certification_create(user, file_pk):
                         green_assessment_data["opt_out"] = cleaners.bool_cleaner(extra_data['Opt Out'])
                         
                     if 'Green Assessment Property Url' in extra_data:
-                        green_assessment_data["urls"] = [extra_data['Green Assessment Property Url']]
+                        if extra_data['Green Assessment Property Url']:
+                            green_assessment_data["urls"] = [extra_data['Green Assessment Property Url']] 
                                          
                     score_type = ("Metric" if assessment.is_numeric_score else "Rating") 
                     score_value = test_score_value(score_type, extra_data['Green Assessment Property '+score_type])
@@ -159,12 +161,11 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
     hes_ids = hes_client.query_by_partner(partner, start_date=start_date)
-    print hes_ids
-    if not hes_ids:
+    if hes_ids['status'] == 'error':
         return {'status': 'error', 'message': 'no data found'}
-    print("number of ids: " + str(len(hes_ids)))
+    print("number of ids: " + str(len(hes_ids['building_ids'])))
     hes_all = []
-    for hes_id in hes_ids:
+    for hes_id in hes_ids['building_ids']:
         print(hes_id)
         hes_data = hes_client.query_hes(hes_id)
         if hes_data['status'] == 'error':
@@ -193,7 +194,7 @@ def helix_hes_to_file(user, dataset, cycle, hes_auth, partner, start_date=None):
     return resp
 
 
-def helix_leed_to_file(user, dataset, cycle, leed_region, start_date=None):
+def helix_leed_to_file(user, dataset, cycle, leed_geo_id, start_date=None):
     """
     Retrieves home energy score records and formats file for rest of upload process
     user        user object
@@ -211,7 +212,7 @@ def helix_leed_to_file(user, dataset, cycle, leed_region, start_date=None):
 #    if len(hes_assessment) != 1:
 #        return {"status": "error", "message": 'Bad Home Energy Score Assessment match, check spelling or number of entries'}
 
-    leed_ids = leed_client.query_leed_building_ids(start_date)
+    leed_ids = leed_client.query_leed_building_ids(leed_geo_id, start_date)
     if not leed_ids:
         return {'status': 'error', 'message': 'no data found'}
 #    print("number of ids: " + str(len(leed_ids)))

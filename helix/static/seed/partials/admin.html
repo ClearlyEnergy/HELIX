@@ -157,13 +157,13 @@
                 <div class="section_content">
                         <form name="orgHes" novalidate class="form-horizontal css-form" role="form">
 	                        <div class="form-group">
-                                <label class="col-sm-2 control-label" for="hes_orgs">Organization:</label>
+                                <label class="col-sm-2 control-label" for="hes_orgs">{$:: 'Organizations' | translate $}:</label>
                                 <div class="col-sm-4">
-                                    <select name="orgs" class="form-control" id="orgs" ng-options="o as o.name for o in org_user.organizations" ng-model="org_hes.organization" ng-change="get_organizations_users(org_user.organization)"></select>
+                                    <select name="orgs" class="form-control" id="orgs" ng-options="o as o.name for o in org_user.organizations" ng-model="org_hes.organization"></select>
                                 </div>
                             </div>
 	                        <div class="form-group">
-	                            <label class="col-sm-2 control-label" for="org_hes_start_date">Home Energy Score ID:</label>
+	                            <label class="col-sm-2 control-label" for="org_hes_id">Home Energy Score ID:</label>
 	                            <div class="col-sm-4">
 	                                <input type="text" class="form-control" id="org_hes_id" ng-model="org_hes.hes" placeholder="Home Energy Score ID, for example TST">
 	                            </div>
@@ -183,6 +183,35 @@
                             <div class="form-group">
                                 <div class="col-sm-offset-2 col-sm-10">
                                     <button class="btn btn-primary" type="submit" ng-click="org_hes.add(org_hes)">Add ID</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+				</div>	
+
+            <div class="section_header_container has_btm_margin">
+                <div class="section_header">
+                    <h2><i class="fa fa-leaf"></i> Add LEED Information</h2>
+                </div>
+            </div>
+            <div class="section_content_container org_leed_admin container-fluid">
+                <div class="section_content">
+                        <form name="orgLeed" novalidate class="form-horizontal css-form" role="form">
+	                        <div class="form-group">
+                                <label class="col-sm-2 control-label" for="leed_orgs">{$:: 'Organizations' | translate $}:</label>
+                                <div class="col-sm-4">
+                                    <select name="orgs" class="form-control" id="orgs" ng-options="o as o.name for o in org_user.organizations" ng-model="org_leed.organization"></select>
+                                </div>
+                            </div>							
+	                        <div class="form-group">
+	                            <label class="col-sm-2 control-label" for="org_leed_geo_id">LEED Geographic Identifier:</label>
+	                            <div class="col-sm-4">
+	                                <input type="text" class="form-control" id="org_leed_geo_id" ng-model="org_leed.leed_geo_id" placeholder="LEED Geographic Identifier, for example 6611 for Vermont">
+	                            </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-sm-offset-2 col-sm-10">
+                                    <button class="btn btn-primary" type="submit" ng-click="org_leed.add(org_leed)">Add Geographic ID</button>
                                 </div>
                             </div>
                         </form>
