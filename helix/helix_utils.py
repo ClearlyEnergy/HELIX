@@ -81,7 +81,6 @@ def helix_certification_create(user, file_pk):
                     }
                     assessment = GreenAssessment.objects.get(name=extra_data['Green Assessment Name'], 
                         organization=org)
-                    print extra_data
                     green_assessment_data = {"assessment": assessment}
                     for key, value in gap_fields.items():
                         if key in extra_data:
