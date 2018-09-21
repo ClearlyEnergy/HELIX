@@ -25,7 +25,7 @@
 	                    <form class="row action edit_file_name form form-inline edit_import_meta_form" role="form" sd-enter="save_certification_name(d)">
 	                        <td class="name container-fluid">
 	                            <span class="view" id="data-link-{$:: $index $}">
-	                                <a ui-sref="dataset_detail(::{dataset_id: d.id})" class="import_name" ng-show="!d.edit_form_showing">{$:: d.name $}</a>
+	                                <span ng-show="!d.edit_form_showing">{$:: d.name $}</span>
 	                                <a class="delete_link" ng-click="confirm_delete_certification(d)" ng-show="!d.edit_form_showing && menu.user.organization.user_role !== 'viewer'"><i class='fa fa-trash-o'></i></a>
 	                                <a class="replace_file_button edit_file_name" ng-click="edit_certification_name(d)" ng-show="!d.edit_form_showing && menu.user.organization.user_role !== 'viewer'" style="margin-right: 8px;"><i class="fa fa-pencil"></i></a>
 								</span>
