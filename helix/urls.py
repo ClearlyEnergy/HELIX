@@ -4,7 +4,8 @@ from helix.views import (
     assessment_edit,
     helix_hes,
     helix_csv_export,
-    helix_reso_export_xml
+    helix_reso_export_xml,
+    helix_reso_export_list_xml
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     url(r'^helix-hes/$', helix_hes, name='helix_hes'),
     url(r'^helix-csv-export/$', helix_csv_export, name="helix_csv_export"),
     url(r'^helix-reso-export-xml/$', helix_reso_export_xml, name="helix_reso_export_xml"),
+    url(r'^helix-reso-export-list-xml/$', helix_reso_export_list_xml, name="helix_reso_export_list_xml"),
 ]

@@ -67,11 +67,15 @@
             </div>
         </div>
         <!-- Helix begin modifications -->
-        <div class="row" style="padding-top: 20px;">
-            <button type="button" id="synchronize_hes" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Synchronize Home Energy Score</button>
+        <div class="row">
+	        <div class="col-sm-8 col-sm-offset-2" style="padding-top: 20px; padding-bottom: 10px;" ng-disabled="!selectedCycle" ng-hide="uploader.in_progress">
+            	<div class="btn btn-primary upload-btn" id="synchronize_hes"  ng-click="synchronize_hes()"  ng-hide="uploader.in_progress">Synchronize Home Energy Score</div>
+			</div>
         </div>
-        <div class="row" style="padding-top: 20px;">
-            <button type="button" id="synchronize_leed" class="btn btn-primary col-sm-8 col-sm-offset-2 text-center" ng-click="synchronize_leed()"  ng-hide="uploader.in_progress">Synchronize LEED</button>
+        <div class="row">
+	        <div class="col-sm-8 col-sm-offset-2" style="padding-top: 20px; padding-bottom: 10px;" ng-disabled="!selectedCycle" ng-hide="uploader.in_progress">
+            	<div class="btn btn-primary upload-btn" id="synchronize_leed"  ng-click="synchronize_leed()"  ng-hide="uploader.in_progress">Synchronize LEED</div>
+			</div>
         </div>
 		<!-- Helix end modifications -->
         <!--<div class="row">
@@ -208,7 +212,7 @@
             <div class="col-sm-12">
                 <div>
                     <p translate>An error occurred while processing the file. Please ensure that your file meets the required specifications.</p>
-                    <pre ng-class="{'pre-scrollable': step_12_error_message.length >= 300}" ng-show="step_12_error_message">{$ step_12_error_message | translate $}</pre>
+                    <pre ng-class="{'pre-scrollable': step_12_error_message.length >= 300}" ng-show="step_12_error_message">{$ step_12_error_message $}</pre>
                 </div>
             </div>
         </div>

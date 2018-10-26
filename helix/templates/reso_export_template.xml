@@ -5,7 +5,7 @@
 			<Location>
 				<Address>
 					<StreetName>
-						{{property.property.normalized_address}}
+						{{property.property.address_line_1}}
 					</StreetName>
 					<StreetNumber>
 					</StreetNumber>

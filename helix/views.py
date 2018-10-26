@@ -6,7 +6,10 @@ import csv
 import datetime
 import string
 
+from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create
+
 from django.conf import settings
+from django.core import serializers
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -21,8 +24,11 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 
 from seed.models import Cycle, PropertyView, Property
+from seed.models.data_quality import DataQualityCheck
 
 from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from seed.lib.progress_data.progress_data import ProgressData
+from seed.lib.mcm.utils import batch
 from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement
 from seed.models.auditlog import (
     AUDIT_USER_EDIT,
@@ -41,7 +47,7 @@ import helix.helix_utils as utils
 from zeep.exceptions import Fault
 
 from hes import hes
-
+from leed import leed
 
 # Return the green assessment front end page. This can be accessed through
 # the seed side bar or at /app/assessments
@@ -95,7 +101,6 @@ def helix_hes(request):
         return JsonResponse(res, status=200)
         
 # Retrieve HES records and generate file to use in rest of upload process
-# responds with file content and status 200 on success, 400 on fail
 # Parameters:
 #   dataset: id of import record that data will be uploaded to
 #   cycle: id of cycle that data will be uploaded to
@@ -104,28 +109,20 @@ def hes_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
     cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
-                
-    hes_auth = {'user_key': settings.HES_USER_KEY, 
-                'user_name': org.hes_partner_name,
-                'password': org.hes_partner_password,
-                'client_url': settings.HES_CLIENT_URL}
-                
-    hes_auth['client_url'] = 'http://hesapi.labworks.org/st_api/wsdl'
-
-    partner = org.hes
-    if org.hes_start_date is None:
-        start_date = datetime.date.today() - datetime.timedelta(100)
+# TRY    organization = Organization.objects.get(pk=request.query_params['organization_id'])
+    return_value = helix_hes_to_file(org)
+    if return_value['status'] in ['error','warning']:
+        return JsonResponse({
+            'status': return_value['status'],
+            'message': return_value['message'],
+        })
     else:
-        start_date = org.hes_start_date
-                
-    response = utils.helix_hes_to_file(request.user, dataset, cycle, hes_auth, partner, start_date)
-    
-    if(response['status'] == 'error'):
-        return JsonResponse(response, status=400)
-    else:
-        org.hes_start_date = datetime.date.today()
-        org.save() 
-        return JsonResponse(response, status=200)    
+        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'hes.csv')    
+        return JsonResponse({
+            'progress_key': return_value['progress_key'],
+            'progress': return_value,
+            'file_pk': resp['file'],
+        })
 
 # Retrieve LEED records and generate file to use in rest of upload process
 # responds with file content and status 200 on success, 400 on fail
@@ -137,20 +134,20 @@ def leed_upload(request):
     dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
     cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
-                
-    if org.leed_start_date is None:
-        start_date = datetime.date.today() - datetime.timedelta(7)
-    else:
-        start_date = org.leed_start_date
-                
-    response = utils.helix_leed_to_file(request.user, dataset, cycle, org.leed_geo_id, start_date)
     
-    if(response['status'] == 'error'):
-        return JsonResponse(response, status=400)
+    return_value = helix_leed_to_file(org)
+    if return_value['status'] in ['error','warning']:
+        return JsonResponse({
+            'status': return_value['status'],
+            'message': return_value['message'],
+        })
     else:
-        org.leed_start_date = datetime.date.today()
-        org.save() 
-        return JsonResponse(response, status=200)    
+        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'leed.csv')    
+        return JsonResponse({
+            'progress_key': return_value['progress_key'],
+            'progress': return_value,
+            'file_pk': resp['file'],
+        })
 
 # Add certifications to already imported file
 # Parameters:
@@ -162,7 +159,7 @@ def leed_upload(request):
 #   Get /helix/add_certifications/?import_file_id=1
 @login_required
 def add_certifications(request, import_file_id):
-    response = utils.helix_certification_create(request.user,import_file_id)
+    response = helix_certification_create(request.user, import_file_id)
     
     if(response['status'] == 'error'):
         return JsonResponse(response, status=400)
@@ -214,6 +211,57 @@ def helix_csv_export(request):
             description='Exported via csv')
     return response
 
+# Export List of updated properties in an xml
+# format
+# Parameters:
+#    start_date: A date in the format yyyy-mm-dd specifying the earliest
+#                date to export.
+#    end_date: A date in the same format specifying the last date to export.
+#    private_data: An optional parameter, not included in the official documentation. 
+#                   If equal to True, then all matching
+#                  records are returned. If absent or equal to anything other
+#                  than true, only records with a disclosure are returned.
+#                  At the moment, this can be set by any user. It might be
+#                  that case that only owners/admins should be able to retrieve
+#                  private data.
+# Example:
+#    http://localhost:8000/helix/helix-reso-export-list-xml/?11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
+@api_endpoint
+@api_view(['GET'])
+def helix_reso_export_list_xml(request):
+    start_date = end_date = None
+    ga_pks = GreenAssessmentPropertyAuditLog.objects.none()
+    if 'start_date' in request.GET:
+        start_date = request.GET['start_date']
+    if 'end_date' in request.GET:
+        end_date = request.GET['end_date']
+    organizations = Organization.objects.filter(users=request.user)
+    organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations) #add sub-organizations with same parent
+    properties = Property.objects.filter(organization_id__in=organizations)
+    try:
+# select green assessment properties that are in the specified create / update date range
+# and associated with the correct property view
+
+        if start_date:
+            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=(request.GET['start_date']))
+        if end_date:
+            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=(request.GET['end_date'])) 
+        
+        if ga_pks:
+            content = ga_pks.values_list('property_view_id', flat=True)
+            content = list(content)
+        else:
+            return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+    except PropertyView.DoesNotExist:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
+        
+        content.append(property_info) 
+
+    context = {
+        'content': content
+        }
+    rendered_xml = render_to_string('reso_export_list_template.xml', context)
+    return HttpResponse(rendered_xml, content_type='text/xml')
 
 # Export GreenAssessmentProperty information for a property view in an xml
 # format using RESO fields
@@ -221,112 +269,63 @@ def helix_csv_export(request):
 #    propertyview_pk: primary key into the property view table. Determines
 #                     which records are exported. If the key does not exist
 #                     in the database, a response code 404 is returned.
-#    start_date: A date in the format yyyy-mm-dd specifying the earliest
-#                date to export.
-#    end_date: A date in the same format specifying the last date to export.
-#    private_data: An optional parameter. If equal to True, then all matching
-#                  records are returned. If absent or equal to anything other
-#                  than true, only records with a disclosure are returned.
-#                  At the moment, this can be set by any user. It might be
-#                  that case that only owners/admins should be able to retrieve
-#                  private data.
 # Example:
-#    http://localhost:8000/helix/helix-reso-export-xml/?propertyview_pk=11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
-
+#    http://localhost:8000/helix/helix-reso-export-xml/?property_id=11
 #@login_required
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_xml(request):
-    # Get the relevant property view form its table. If it can't be found,
-    # a 404 error is returned.
-    # Get properties updated within dates
-    # Green Assessment Property Audit Log
-    # Property Audit Log
+    if 'property_id' in request.GET:
+        propertyview_pk = request.GET['property_id']
+    else:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
+
     today = datetime.datetime.today()
-    start_date = end_date = None
-    ga_pks = GreenAssessmentPropertyAuditLog.objects.none()
-    if 'start_date' in request.GET:
-        start_date = request.GET['start_date']
-    if 'end_date' in request.GET:
-        end_date = request.GET['end_date']
-
-    organizations = Organization.objects.filter(users=request.user)
-    properties = Property.objects.filter(organization_id__in=organizations)
-    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
-        
-    try:
-# select green assessment properties that are in the specified create / update date range
-# and associated with the correct property view
-        if start_date:
-            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=(request.GET['start_date']))
-        if end_date:
-            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=(request.GET['end_date'])) 
-            
-        if ga_pks:
-            ga_pks = ga_pks.values_list('property_view_id', flat=True)
-            if 'propertyview_pk' in request.GET:
-                propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties, pk__in=ga_pks)
-            else:
-                propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], pk__in=ga_pks)
-        else:
-            if start_date or end_date:
-                return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-            else:
-                if 'propertyview_pk' in request.GET:
-                    propertyviews = PropertyView.objects.filter(pk=request.GET['propertyview_pk'], property_id__in=properties)
-                else:
-                    return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-    except PropertyView.DoesNotExist:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-    
-    if not propertyviews:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-
     content = []
-    for propertyview in propertyviews:  
-        matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
-            view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
-        
-        gis = {}
-        if 'Latitude' in propertyview.state.extra_data:
-            gis = {
-                'Latitude': propertyview.state.extra_data["Latitude"],
-                'Longitude': propertyview.state.extra_data["Longitude"]
-            }
-            
-        if matching_assessments:        
-            matching_measurements = HelixMeasurement.objects.filter(
-                assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
-                measurement_type__in=['PROD','CAP'],
-                measurement_subtype__in=['PV','WIND']
-            )
+    propertyview = PropertyView.objects.get(pk=propertyview_pk)
+    organizations = Organization.objects.filter(users=request.user)
+    matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
+        view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
     
-            measurement_dict = {}
-            for measure in matching_measurements:
-                measurement_dict.update(measure.to_reso_dict())
-            
-            property_info = {
-                "property": propertyview.state,
-                "assessments": matching_assessments.filter(assessment_id__in=reso_certifications),
-                "measurements": measurement_dict,
-                "gis": gis
-            }
-            
-            content.append(property_info) 
+    gis = {}
+    if 'Latitude' in propertyview.state.extra_data:
+        gis = {
+            'Latitude': propertyview.state.extra_data["Latitude"],
+            'Longitude': propertyview.state.extra_data["Longitude"]
+        }
+        
+    if matching_assessments:        
+        matching_measurements = HelixMeasurement.objects.filter(
+            assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
+            measurement_type__in=['PROD','CAP'],
+            measurement_subtype__in=['PV','WIND']
+        )
 
-        context = {
-            'start_date': start_date,
-            'end_date': end_date,
-            'content': content
-            }
-            
-        # log changes
-        for a in matching_assessments:
-            a.log(
-                user=request.user,
-                record_type=AUDIT_USER_EXPORT,
-                name='Export log',
-                description='Exported via xml')        
-        rendered_xml = render_to_string('reso_export_template.xml', context)
+        measurement_dict = {}
+        for measure in matching_measurements:
+            measurement_dict.update(measure.to_reso_dict())
+        
+        property_info = {
+            "property": propertyview.state,
+            "assessments": matching_assessments.filter(assessment_id__in=reso_certifications),
+            "measurements": measurement_dict,
+            "gis": gis
+        }
+        
+        content.append(property_info) 
+
+    context = {
+        'content': content
+        }
+        
+    # log changes
+    for a in matching_assessments:
+        a.log(
+            user=request.user,
+            record_type=AUDIT_USER_EXPORT,
+            name='Export log',
+            description='Exported via xml')        
+    rendered_xml = render_to_string('reso_export_template.xml', context)
 
     return HttpResponse(rendered_xml, content_type='text/xml')
