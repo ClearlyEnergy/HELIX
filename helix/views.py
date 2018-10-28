@@ -111,18 +111,13 @@ def hes_upload(request):
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
 # TRY    organization = Organization.objects.get(pk=request.query_params['organization_id'])
     return_value = helix_hes_to_file(org)
-    if return_value['status'] in ['error','warning']:
-        return JsonResponse({
-            'status': return_value['status'],
-            'message': return_value['message'],
-        })
-    else:
+    
+    if return_value['status'] in ['success']:
         resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'hes.csv')    
-        return JsonResponse({
-            'progress_key': return_value['progress_key'],
-            'progress': return_value,
-            'file_pk': resp['file'],
-        })
+        return_value.pop('list', None)
+        return_value['file_pk'] = resp['file']
+
+    return JsonResponse(return_value)
 
 # Retrieve LEED records and generate file to use in rest of upload process
 # responds with file content and status 200 on success, 400 on fail
@@ -136,18 +131,13 @@ def leed_upload(request):
     org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
     
     return_value = helix_leed_to_file(org)
-    if return_value['status'] in ['error','warning']:
-        return JsonResponse({
-            'status': return_value['status'],
-            'message': return_value['message'],
-        })
-    else:
+
+    if return_value['status'] in ['success']:
         resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'leed.csv')    
-        return JsonResponse({
-            'progress_key': return_value['progress_key'],
-            'progress': return_value,
-            'file_pk': resp['file'],
-        })
+        return_value.pop('list', None)
+        return_value['file_pk'] = resp['file']
+
+    return JsonResponse(return_value)
 
 # Add certifications to already imported file
 # Parameters:
