@@ -1,8 +1,13 @@
+import os
 import csv
 import StringIO
 import re
 import datetime
 import json
+import time, calendar
+
+from django.core.files.storage import default_storage, FileSystemStorage
+from django.conf import settings
 
 from celery import chord, shared_task
 #from celery.utils.log import get_task_logger
@@ -43,7 +48,7 @@ def save_and_load(user, dataset, cycle, data, file_name):
             headers = list(set(headers + elem.keys()))
 
     csv_data = save_formatted_data(headers, data)
-    resp = load_csv_data(user, dataset, cycle, csv_data, file_name)
+    resp = upload(file_name, csv_data, dataset, cycle)
     return resp    
     
 def save_formatted_data(headers, data):
@@ -58,18 +63,18 @@ def save_formatted_data(headers, data):
     
     return csv_file
 
-def load_csv_data(user, dataset, cycle, csv_file, file_name):
+#def load_csv_data(user, dataset, cycle, csv_file, file_name):
     # load some of the data directly from csv
-    loader = autoload.AutoLoad(user, user.default_organization)
+#    loader = autoload.AutoLoad(user, user.default_organization)
     # upload and save to Property state table
 #    file_pk = loader.upload(file_name, csv_file, dataset, cycle)
-    file_pk = upload(file_name, csv_file, dataset, cycle)
+#    file_pk = upload(file_name, csv_file, dataset, cycle)
     # save raw data
 #    resp = loader.save_raw_data(file_pk)
 #    if (resp['status'] == 'error'):
 #        return resp
 
-    return {'status': 'success', 'file': file_pk, 'message': 'successful file upload'}
+#    return {'status': 'success', 'file': file_pk, 'message': 'successful file upload'}
     
     
 """Upload a file to the specified import record"""
