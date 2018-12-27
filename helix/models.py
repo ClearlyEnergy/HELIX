@@ -1,5 +1,6 @@
 from django.db import models
 from seed.models import certification
+from seed.models import property_measures
 from seed.lib.superperms.orgs.models import Organization
 from django.contrib.auth.models import Group
 from tos.models import TermsOfService, UserAgreement, NoActiveTermsOfService
@@ -75,6 +76,52 @@ class HELIXOrganization(Organization):
             setattr(self, key, value)
         return self.save()
 
+class HELIXPropertyMeasure(property_measures.PropertyMeasure):
+    """
+    Additional fields for Property Measure
+    electric                RESO    Utilities Group -> Electric Field
+    current_financing       RESO    Listing Group -> Contract Group -> CurrentFinancing Field
+    installer               Name/company of installer of measures
+    """
+
+    FINANCING_CHOICES = (
+        ("LEASE", "Leased Renewables"),
+        ("PPA", "Power Purchase Agreement"),
+        ("PACE", "Property-Assessed Clean Energy")
+        )
+
+    FINANCING_CHOICES_REVERSE = {
+        "Leased Renewables":"LEASE",
+        "Power Purchase Agreement":"PPA",
+        "Property-Assessed Clean Energy":"PACE"
+        }
+        
+    ELECTRIC_CHOICES = (
+        ("NETMETER", "Net Meter"),
+        ("STORAGE", "Energy Storage Device"),
+        ("PVOWN", "Photovoltaics Seller Owned"),
+        ("PV3RD", "Photovoltaics Third-Party Owned"),
+        ("WINDOWN", "Wind Turbine Seller Owned"),
+        ("WIND3RD", "Wind Turbine Third-Party Owned"),
+        ("RENEWWIRED", "Pre-Wired for Renewables"),
+        ("RENEWREADY", "Ready for Renewables")
+    )
+
+    ELECTRIC_CHOICES_REVERSE = {
+        "Net Meter":"NETMETER",
+        "Energy Storage Device":"STORAGE",
+        "Photovoltaics Seller Owned":"PVOWN",
+        "Photovoltaics Third-Party Owned":"PV3RD",
+        "Wind Turbine Seller Owned":"WINDOWN",
+        "Wind Turbine Third-Party Owned":"WIND3RD",
+        "Pre-Wired for Renewables":"RENEWWIRED",
+        "Ready for Renewables":"RENEWREADY"
+    }
+    
+    current_financing = models.CharField(max_length=5, choices=FINANCING_CHOICES, null=True, blank=True)
+    electric = models.CharField(max_length=10, choices=ELECTRIC_CHOICES, null=True, blank=True)
+    installer = models.CharField(max_length=100, null=True, blank=True)
+
 class HelixMeasurement(models.Model):
     """
     Measurementsattached to a certification.
@@ -109,6 +156,13 @@ class HelixMeasurement(models.Model):
         "Cord Wood": "CWOOD",
         "Pellet Wood": "PWOOD",
         "Total": "TOTAL"}
+        
+    HES_TYPES = {
+        "Production": "PROD",
+        "Consumption": "CONS",
+        "Cost": "COST",
+        "Emissions": "EMIT",
+        "Capacity": "CAP"}
         
     HES_UNITS = {
         'kwh': "KWH",
@@ -167,7 +221,10 @@ class HelixMeasurement(models.Model):
         )
         
     assessment_property = models.ForeignKey(
-        certification.GreenAssessmentProperty, on_delete=models.CASCADE, related_name='measurements'
+        certification.GreenAssessmentProperty, on_delete=models.CASCADE, related_name='measurements', blank=True, null=True
+        )
+    measure_property = models.ForeignKey(
+        HELIXPropertyMeasure, on_delete=models.CASCADE, related_name='measurements', blank=True, null=True
         )
     measurement_type = models.CharField(max_length=4, choices=MEASUREMENT_TYPE_CHOICES)
     measurement_subtype = models.CharField(max_length=15, choices=MEASUREMENT_SUBTYPE_CHOICES, null=True, blank=True)
@@ -198,3 +255,11 @@ class HelixMeasurement(models.Model):
                 reso_dict[val] = getattr(self, key)
 
         return reso_dict
+        
+    
+    
+    
+    
+    
+    
+    
