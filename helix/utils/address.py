@@ -199,6 +199,7 @@ def normalize_address_str(address_val, address_val_2, extra_data):
 
         if 'StreetName' in addr and addr['StreetName'] is not None:
             normalized_address = normalized_address + ' ' + addr['StreetName']
+            extra_data['StreetName'] = addr['StreetName']
 
         if 'StreetNamePostType' in addr and addr['StreetNamePostType'] is not None:
             # remove any periods from abbreviations
@@ -224,7 +225,7 @@ def normalize_address_str(address_val, address_val_2, extra_data):
         formatter = StreetAddressFormatter()
         normalized_address = formatter.abbrev_street_avenue_etc(normalized_address)
 
-    return normalized_address.lower().strip()
+    return normalized_address.lower().strip(), extra_data
 
 def normalize_postal_code(postal_code_val):
     """
