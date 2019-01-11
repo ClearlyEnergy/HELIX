@@ -197,6 +197,12 @@ def normalize_address_str(address_val, address_val_2, extra_data):
             normalized_address = normalized_address + ' ' + _normalize_address_direction(
                 addr['StreetNamePreDirectional'])  # NOQA
 
+        if 'StreetNamePreModifier' in addr and addr['StreetNamePreModifier'] is not None:
+            normalized_address = normalized_address + ' ' + addr['StreetNamePreModifier']
+
+        if 'StreetNamePreType' in addr and addr['StreetNamePreType'] is not None:
+            normalized_address = normalized_address + ' ' + addr['StreetNamePreType']
+
         if 'StreetName' in addr and addr['StreetName'] is not None:
             normalized_address = normalized_address + ' ' + addr['StreetName']
             extra_data['StreetName'] = addr['StreetName']
