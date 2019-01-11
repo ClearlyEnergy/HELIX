@@ -14,19 +14,23 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from seed.decorators import (
-    ajax_request, get_prog_key
-)
+
+from seed.decorators import ajax_request, ajax_request_class
+from seed.decorators import get_prog_key
+
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.db.models import Q
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, detail_route, list_route, parser_classes, \
+    permission_classes
+
 
 from seed.models import Cycle, PropertyView, Property
 from seed.models.data_quality import DataQualityCheck
 
 from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.mcm.utils import batch
 from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement
@@ -41,7 +45,7 @@ from helix.models import HELIXOrganization as Organization
 #from seed.lib.superperms.orgs.models import Organization
 
 from seed.lib.mcm import cleaners, mapper, reader
-from seed.utils.api import api_endpoint
+from seed.utils.api import api_endpoint, api_endpoint_class
 
 import helix.helix_utils as utils
 from zeep.exceptions import Fault
@@ -124,20 +128,21 @@ def hes_upload(request):
 # Parameters:
 #   dataset: id of import record that data will be uploaded to
 #   cycle: id of cycle that data will be uploaded to
-@login_required
-def leed_upload(request):
-    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
-    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
-    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
+#@login_required
+#def leed_upload(request):
+#    print 'in leed upload'
+#    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
+#    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
+#    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
     
-    return_value = helix_leed_to_file(org)
+#    return_value = helix_leed_to_file(org)
 
-    if return_value['status'] in ['success']:
-        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'leed.csv')    
-        return_value.pop('list', None)
-        return_value['file_pk'] = resp['file']
+#    if return_value['status'] in ['success']:
+#        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'leed.csv')    
+#        return_value.pop('list', None)
+#        return_value['file_pk'] = resp['file']
 
-    return JsonResponse(return_value)
+#    return JsonResponse(return_value)
 
 # Add certifications to already imported file
 # Parameters:

@@ -34,16 +34,18 @@
             </div>
         </div>
     </div>
-    <div class="section_content_container">
-        <div class="section_content">
-<!-- HELIX REMOVE
-            <div style="float:right; width:250px; text-align:right; margin: 10px 10px 0 0;" class="ellipsis">
-                 <span popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$:: cycle.name $}">
-                     <strong>{$:: 'Cycle' | translate $}:</strong> {$:: cycle.name $}
-                 </span>
+    <!-- Certifications Section HELIX ADD-->
+    <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
+        <div class="section_header fixed_height_short has_no_padding">
+            <div class="section_action_container left" style="width: 50%;">
+            <span>
+                <h2><i class="fa fa-leaf"></i> Certifications</h2>
+            </span>
             </div>
-q
-END HELIX REMOVE -->
+        </div>
+    </div>
+	<div class="section_content_container">
+        <div class="section_content">
             <div class="table_list_container table_item_detail">
                 <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
 					<thead>
@@ -107,7 +109,95 @@ END HELIX REMOVE -->
 					</tbody>
                 </table>
 			</div>
+        </div>
+	</div>
 			
+			
+    <!-- Measures Section HELIX MOVED UP FROM DEFAULT LAYOUT-->
+    <div class="section">
+        <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
+            <div class="section_header fixed_height_short has_no_padding">
+                <div class="section_action_container left" style="width: 50%;">
+                <span>
+                    <h2><i class="fa fa-cogs"></i> Measures</h2>
+                </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="section_content_container">
+        <!-- List of measures -->
+        <div class="section_content">
+            <div class="table_list_container table_item_detail">
+                <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
+                    <thead>
+                        <tr>
+							<th sd-resizable width="40"></th>
+                            <th sd-resizable>Category</th>
+                            <th sd-resizable class="ellipsis-resizable">Measure Name</th>
+                            <th sd-resizable class="ellipsis-resizable">Measure Information</th>
+                        </tr>
+                    </thead>
+                    <tbody ng-repeat="measure in measures">
+                        <tr ng-click="isOpen=!isOpen">
+							<td><a ng-if="measure.measurements.length" ><i class="ui-grid-icon-info-circled"></i></a></td>
+                            <td>
+                                <div id="measureAnchor{$ measure.id $}">{$ measure.category_display_name $}</div>
+                            </td>
+                            <td> {$ measure.display_name $}</td>
+                            <td> Status: {$ measure.implementation_status $} <br>
+                                Recommended: {$ measure.recommended $} <br>
+                                Scale: {$ measure.application_scale $} <br>
+                                Category Affected: {$ measure.category_affected $} <br>
+                                Installation Cost: {$ measure.cost_installation $} <br>
+                                Material Cost: {$ measure.cost_material $} <br>
+                                M&V Cost: {$ measure.cost_mv $} <br>
+                                Residual Cost: {$ measure.cost_residual_value $} <br>
+                                Total First Cost: {$ measure.cost_total_first $} <br>
+                                Capital Replacement Cost: {$ measure.cost_capital_replacement $} <br>
+                                Description: {$ measure.description $} <br>
+                                Electric: {$ measure.electric $} <br>
+                                Installer: {$ measure.installer $} <br>
+                                Current Financing: {$ measure.current_financing $} <br>
+                            </td>
+                        </tr>
+						<tr ng-if="isOpen">
+							<th></th>
+	                        <th sd-resizable>Measurement Type</th>
+	                        <th sd-resizable>Sub-Type</th>
+	                        <th sd-resizable>Fuel</th>
+	                        <th sd-resizable>Quantity</th>
+	                        <th sd-resizable>Unit</th>
+	                        <th sd-resizable>Status</th>
+	                        <th sd-resizable>Year</th>
+						</tr>
+						<tr ng-repeat="meas in measure.measurements" ng-if="isOpen">
+							<td></td>
+							<td>{$ meas[0] $}</td>
+							<td>{$ meas[1] $}</td>
+							<td>{$ meas[2] $}</td>
+							<td>{$ meas[3] $}</td>
+							<td>{$ meas[4] $}</td>
+							<td>{$ meas[5] $}</td>
+							<td>{$ meas[6] $}</td>
+						</tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+			
+	<div class="section">
+	    <div class="section_content_container">
+	        <div class="section_content">
+<!-- HELIX REMOVE
+            <div style="float:right; width:250px; text-align:right; margin: 10px 10px 0 0;" class="ellipsis">
+                 <span popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$:: cycle.name $}">
+                     <strong>{$:: 'Cycle' | translate $}:</strong> {$:: cycle.name $}
+                 </span>
+            </div>
+q
+END HELIX REMOVE -->			
             <div style="margin:10px 250px 10px 0; padding:0 10px;">
                 <button type="button" class="btn btn-default" ng-click="open_update_labels_modal()" style="vertical-align: top;">
                     <i class="fa fa-tag"></i> {$:: 'Add/Remove Labels' | translate $}
@@ -313,57 +403,6 @@ END HELIX REMOVE -->
                         </table>
                     </div>
                 </div>
-            </div>
-
-            <!-- Measures Section
-            <div class="section">
-                <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
-                    <div class="section_header fixed_height_short has_no_padding">
-                        <div class="section_action_container left" style="width: 50%;">
-                        <span>
-                            <h2><i class="fa fa-cogs"></i> Measures</h2>
-                        </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-			-->
-            <div class="section_content_container">
-                <!-- List of measures 
-                <div class="section_content">
-                    <div class="table_list_container table_item_detail">
-                        <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
-                            <thead>
-                                <tr>
-                                    <th sd-resizable>Category</th>
-                                    <th sd-resizable class="ellipsis-resizable">Measure Name</th>
-                                    <th sd-resizable class="ellipsis-resizable">Measure Information</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr ng-repeat="measure in item_state.measures">
-                                    <td>
-                                        <div id="measureAnchor{$ measure.id $}">{$ measure.category_display_name $}</div>
-                                    </td>
-                                    <td> {$ measure.display_name $}</td>
-                                    <td> Status: {$ measure.implementation_status $} <br>
-                                        Recommended: {$ measure.recommended $} <br>
-                                        Scale: {$ measure.application_scale $} <br>
-                                        Category Affected: {$ measure.category_affected $} <br>
-                                        Installation Cost: {$ measure.cost_installation $} <br>
-                                        Material Cost: {$ measure.cost_material $} <br>
-                                        M&V Cost: {$ measure.cost_mv $} <br>
-                                        Residual Cost: {$ measure.cost_residual_value $} <br>
-                                        Total First Cost: {$ measure.cost_total_first $} <br>
-                                        Capital Replacement Cost: {$ measure.cost_capital_replacement $} <br>
-                                        Description: {$ measure.description $} <br>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-				-->
             </div>
 
             <!-- Scenarios Section

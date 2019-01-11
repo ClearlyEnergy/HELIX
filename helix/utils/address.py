@@ -147,7 +147,7 @@ def _normalize_secondary_address(secondary):
     
     return secondary    
 
-def normalize_address_str(address_val, address_val_2):
+def normalize_address_str(address_val, address_val_2, extra_data):
     """
     Normalize the address to conform to short abbreviations.
 
@@ -176,7 +176,9 @@ def normalize_address_str(address_val, address_val_2):
         if address_val_2:
             addr = usaddress.tag(str(address_val + ' ' + address_val_2), tag_mapping={'CornerOf': 'AddressNumber'})[0]
         else:
-            addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]            
+            addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]  
+            
+        print addr
     except usaddress.RepeatedLabelError:
         # usaddress can't parse this at all
         normalized_address = str(address_val)

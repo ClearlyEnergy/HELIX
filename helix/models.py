@@ -121,6 +121,7 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
     current_financing = models.CharField(max_length=5, choices=FINANCING_CHOICES, null=True, blank=True)
     electric = models.CharField(max_length=10, choices=ELECTRIC_CHOICES, null=True, blank=True)
     installer = models.CharField(max_length=100, null=True, blank=True)
+    reference_id = models.CharField(max_length=100, null=True, blank=True)
 
 class HelixMeasurement(models.Model):
     """
@@ -224,7 +225,7 @@ class HelixMeasurement(models.Model):
         certification.GreenAssessmentProperty, on_delete=models.CASCADE, related_name='measurements', blank=True, null=True
         )
     measure_property = models.ForeignKey(
-        HELIXPropertyMeasure, on_delete=models.CASCADE, related_name='measurements', blank=True, null=True
+        property_measures.PropertyMeasure, on_delete=models.CASCADE, related_name='measurements', blank=True, null=True
         )
     measurement_type = models.CharField(max_length=4, choices=MEASUREMENT_TYPE_CHOICES)
     measurement_subtype = models.CharField(max_length=15, choices=MEASUREMENT_SUBTYPE_CHOICES, null=True, blank=True)
