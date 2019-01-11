@@ -188,33 +188,40 @@ def normalize_address_str(address_val, address_val_2, extra_data):
     else:
         # Address can be parsed, so let's format it.
         normalized_address = ''
+        street_name = ''
 
         if 'AddressNumber' in addr and addr['AddressNumber'] is not None:
             normalized_address = _normalize_address_number(
                 addr['AddressNumber'])
+            extra_data['StreetNumber'] = _normalize_address_number(addr['AddressNumber'])
 
         if 'StreetNamePreDirectional' in addr and addr['StreetNamePreDirectional'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_address_direction(
                 addr['StreetNamePreDirectional'])  # NOQA
+            extra_data['StreetDirPrefix'] = _normalize_address_direction(addr['StreetNamePreDirectional'])
 
         if 'StreetNamePreModifier' in addr and addr['StreetNamePreModifier'] is not None:
             normalized_address = normalized_address + ' ' + addr['StreetNamePreModifier']
+            street_name = street_name + addr['StreetNamePreModifier'] + ' '
 
         if 'StreetNamePreType' in addr and addr['StreetNamePreType'] is not None:
             normalized_address = normalized_address + ' ' + addr['StreetNamePreType']
+            street_name = street_name + addr['StreetNamePreType'] + ' '
 
         if 'StreetName' in addr and addr['StreetName'] is not None:
             normalized_address = normalized_address + ' ' + addr['StreetName']
-            extra_data['StreetName'] = addr['StreetName']
+            street_name = street_name + addr['StreetName']
 
         if 'StreetNamePostType' in addr and addr['StreetNamePostType'] is not None:
             # remove any periods from abbreviations
             normalized_address = normalized_address + ' ' + _normalize_address_post_type(
                 addr['StreetNamePostType'])  # NOQA
+            extra_data['StreetSuffix'] = _normalize_address_direction(addr['StreetNamePostType'])
 
         if 'StreetNamePostDirectional' in addr and addr['StreetNamePostDirectional'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_address_direction(
                 addr['StreetNamePostDirectional'])  # NOQA
+            extra_data['StreetDirSuffix'] = _normalize_address_direction(addr['StreetNamePostDirectional'])
                 
         if 'SubaddressType' in addr and addr['SubaddressType'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_secondary_address(addr['SubaddressType'])
@@ -227,9 +234,12 @@ def normalize_address_str(address_val, address_val_2, extra_data):
 
         if 'OccupancyIdentifier' in addr and addr['OccupancyIdentifier'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_address_number(addr['OccupancyIdentifier'])
+            extra_data['UnitNumber'] = _normalize_address_number(addr['OccupancyIdentifier'])
 
         formatter = StreetAddressFormatter()
         normalized_address = formatter.abbrev_street_avenue_etc(normalized_address)
+        street_name = formatter.abbrev_street_avenue_etc(street_name)
+        extra_data['StreetName'] = street_name
 
     return normalized_address.lower().strip(), extra_data
 
