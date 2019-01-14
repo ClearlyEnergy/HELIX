@@ -189,7 +189,8 @@ def normalize_address_str(address_val, address_val_2, extra_data):
         # Address can be parsed, so let's format it.
         normalized_address = ''
         street_name = ''
-
+        extra_data['StreetNumber'] = extra_data['StreetName'] = extra_data['StreetNamePreDirectional'] = extra_data['StreetSuffix'] = extra_data['StreetDirSuffix'] = extra_data['UnitNumber'] = ''
+    
         if 'AddressNumber' in addr and addr['AddressNumber'] is not None:
             normalized_address = _normalize_address_number(
                 addr['AddressNumber'])
