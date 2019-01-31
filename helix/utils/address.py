@@ -147,7 +147,7 @@ def _normalize_secondary_address(secondary):
     
     return secondary    
 
-def normalize_address_str(address_val, address_val_2, extra_data):
+def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     """
     Normalize the address to conform to short abbreviations.
 
@@ -178,7 +178,6 @@ def normalize_address_str(address_val, address_val_2, extra_data):
         else:
             addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]  
             
-        print addr
     except usaddress.RepeatedLabelError:
         # usaddress can't parse this at all
         normalized_address = str(address_val)
@@ -239,6 +238,7 @@ def normalize_address_str(address_val, address_val_2, extra_data):
 
         formatter = StreetAddressFormatter()
         normalized_address = formatter.abbrev_street_avenue_etc(normalized_address)
+        normalized_address = normalized_address + ' ' + postal_code
         street_name = formatter.abbrev_street_avenue_etc(street_name)
         extra_data['StreetName'] = street_name
 
@@ -253,7 +253,7 @@ def normalize_postal_code(postal_code_val):
     normalized_postal_code = str(postal_code_val).strip()
     if len(normalized_postal_code) < 5:
         normalized_postal_code = normalized_postal_code.zfill(5)
-    return normalized_postal_code
+    return normalized_postal_code[:5]
     
 def normalize_state(state_val):
     """
