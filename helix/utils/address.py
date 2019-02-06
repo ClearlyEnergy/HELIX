@@ -193,7 +193,11 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
         if 'AddressNumber' in addr and addr['AddressNumber'] is not None:
             normalized_address = _normalize_address_number(
                 addr['AddressNumber'])
-            extra_data['StreetNumber'] = _normalize_address_number(addr['AddressNumber'])
+                
+        if 'AddressNumberSuffix' in addr and addr['AddressNumberSuffix'] is not None:
+            normalized_address = normalized_address + addr['AddressNumberSuffix']
+            
+        extra_data['StreetNumber'] = normalized_address
 
         if 'StreetNamePreDirectional' in addr and addr['StreetNamePreDirectional'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_address_direction(
