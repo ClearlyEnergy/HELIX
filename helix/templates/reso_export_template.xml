@@ -1,57 +1,52 @@
 <?xml version="1.0"?>
 <document>
-	{% for property in content %}
-		<Property> 
-			<Location>
-				<Address>
-					<StreetName>
-						{{property.property.address_line_1}}
-					</StreetName>
-					<StreetNumber>
-					</StreetNumber>
-					<City>
-						{{ property.property.city }}
-					</City>
-					<StateOrProvince>
-						{{ property.property.state }}
-					</StateOrProvince>
-					<PostalCode>
-						{{ property.property.postal_code }}
-					</PostalCode>
-					<Country>
-						USA
-					</Country>
-				</Address>
-				{% if property.gis %}
-				<GIS>
-					{% for k,v in property.gis.items %}
-	                <{{ k }}>{{ v }}</{{ k }}>
-					{% endfor %}
-				</GIS>
+	<Property>
+		<Location>
+			<Address>
+				<City>{{content.city}}</City>
+				<Country>US</Country>
+				{% if content.property.extra_data.County %}
+					<CountyOrParish>{{content.property.extra_data.County}}</CountyOrParish>
 				{% endif %}
-			</Location>	
-			{% if property.assessments %}
-			<Structure>
-				<Performance>
-					<GreenVerification>
-					        {% for assessment_property in property.assessments %}
-					        <GreenBuildingVerification>
-					                {% for k,v in assessment_property.to_reso_dict.items %}
-					                <{{ k }}>{{ v }}</{{ k }}>
-					                {% endfor %}
-					        </GreenBuildingVerification>
-					        {% endfor %}
-					</GreenVerification>
-				</Performance>
-			</Structure>
-			{% endif %}
-			{%  if property.measurements %}
-			<Utilities>
-				{% for k,v in property.measurements.items %}
-		        <{{ k }}>{{ v }}</{{ k }}>
-				{% endfor %}
-			</Utilities>
-			{% endif %}
-		</Property>
-	{% endfor %}
+				<PostalCode>{{content.property.postal_code}}</PostalCode>
+				<StateOrProvince>{{content.property.state}}</StateOrProvince>
+				<StreetDirPrefix>{{content.property.extra_data.StreetDirPrefix}}</StreetDirPrefix>
+				<StreetDirSuffix>{{content.property.extra_data.StreetDirSuffix}}</StreetDirSuffix>
+				<StreetName>{{content.property.extra_data.StreetName}}</StreetName>
+				<StreetNumber>{{content.property.extra_data.StreetNumber}}</StreetNumber>
+				<StreetSuffix>{{content.property.extra_data.StreetSuffix}}</StreetSuffix>
+				<UnitNumber>{{content.property.extra_data.UnitNumber}}</UnitNumber>
+				<UnparsedAddress>{{content.property.address_line_1}}
+					{% if content.property.address_line_2 %}
+					, {{ content.property.address_line_2}}
+					{% endif %}</UnparsedAddress>
+			</Address>
+			<GIS>
+				<Latitude>{{content.property.latitude}}</Latitude>
+				<Longitude>{{content.property.longitude}}</Longitude>
+			</GIS>
+		</Location>	
+		{% if content.assessments %}
+		<Structure>
+			<Performance>
+				<GreenVerification>
+				        {% for assessment_property in content.assessments %}
+				        <GreenBuildingVerification>
+				                {% for k,v in assessment_property.to_reso_dict.items %}
+				                <{{ k }}>{{ v }}</{{ k }}>
+				                {% endfor %}
+				        </GreenBuildingVerification>
+				        {% endfor %}
+				</GreenVerification>
+			</Performance>
+		</Structure>
+		{% endif %}
+		{%  if content.measurements %}
+		<Utilities>
+			{% for k,v in content.measurements.items %}
+	        <{{ k }}>{{ v }}</{{ k }}>
+			{% endfor %}
+		</Utilities>
+		{% endif %}
+	</Property>
 </document>

@@ -99,10 +99,6 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
     ELECTRIC_CHOICES = (
         ("NETMETER", "Net Meter"),
         ("STORAGE", "Energy Storage Device"),
-        ("PVOWN", "Photovoltaics Seller Owned"),
-        ("PV3RD", "Photovoltaics Third-Party Owned"),
-        ("WINDOWN", "Wind Turbine Seller Owned"),
-        ("WIND3RD", "Wind Turbine Third-Party Owned"),
         ("RENEWWIRED", "Pre-Wired for Renewables"),
         ("RENEWREADY", "Ready for Renewables")
     )
@@ -110,18 +106,65 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
     ELECTRIC_CHOICES_REVERSE = {
         "Net Meter":"NETMETER",
         "Energy Storage Device":"STORAGE",
-        "Photovoltaics Seller Owned":"PVOWN",
-        "Photovoltaics Third-Party Owned":"PV3RD",
-        "Wind Turbine Seller Owned":"WINDOWN",
-        "Wind Turbine Third-Party Owned":"WIND3RD",
         "Pre-Wired for Renewables":"RENEWWIRED",
         "Ready for Renewables":"RENEWREADY"
     }
     
+    OWNERSHIP_CHOICES = (
+        ("OWN", "Seller Owned"),
+        ("3RD", "Third-Party Owned"),
+    )
+
+    OWNERSHIP_CHOICES_REVERSE = {
+        "Seller Owned":"PVOWN",
+        "Third-Party Owned":"PV3RD",
+    }
+    
+    SOURCE_CHOICES = (
+        ("ADMIN", "Administrator"),
+        ("ASSES", "Assessor"),
+        ("BILDR", "Builder"),
+        ("CONTR", "Contractor/Installer"),
+        ("OTH", "Other"),
+        ("OWN", "Owner"),
+        ("SPNSR", "Program Sponsor"),
+        ("VERIF", "Program Verifier"),
+        ("PUBRE", "Public Records")
+    )
+
+    SOURCE_CHOICES_REVERSE = {
+        "Administrator": "ADMIN",
+        "Assessor": "ASSES",
+        "Builder": "BILDR",
+        "Contractor/Installer": "CONTR",
+        "Other": "OTH",
+        "Owner": "OWN",
+        "Program Sponsor": "SPNSR",
+        "Program Verifier": "VERIF",
+        "Public Records": "PUBRE"
+    }
+    
     current_financing = models.CharField(max_length=5, choices=FINANCING_CHOICES, null=True, blank=True)
+    ownership = models.CharField(max_length=3, choices=OWNERSHIP_CHOICES,null=True,blank=True)
     electric = models.CharField(max_length=10, choices=ELECTRIC_CHOICES, null=True, blank=True)
     installer = models.CharField(max_length=100, null=True, blank=True)
     reference_id = models.CharField(max_length=100, null=True, blank=True)
+    source = models.CharField(max_length=5, choices=SOURCE_CHOICES, null=True, blank=True)
+    
+    def to_reso_dict(self):
+        """
+        Return a dict where keys are RESO Power Production Ownership and Electric compatible names.
+        """
+        reso_dict = {}
+        if self.electric:
+            reso_dict['Electric'] = dict(self.ELECTRIC_CHOICES)[self.electric]
+        if self.ownership:
+            reso_dict['PowerProductOwnership'] = dict(self.OWNERSHIP_CHOICES)[self.ownership]
+        if self.source:
+            reso_dict['PowerProductionSource'] = dict(self.SOURCE_CHOICES)[self.source]
+            
+
+        return reso_dict
 
 class HelixMeasurement(models.Model):
     """
