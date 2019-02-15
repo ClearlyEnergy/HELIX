@@ -116,8 +116,8 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
     )
 
     OWNERSHIP_CHOICES_REVERSE = {
-        "Seller Owned":"PVOWN",
-        "Third-Party Owned":"PV3RD",
+        "Seller Owned":"OWN",
+        "Third-Party Owned":"3RD",
     }
     
     SOURCE_CHOICES = (
