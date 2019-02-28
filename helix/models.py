@@ -46,6 +46,43 @@ class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
     opt_out = models.BooleanField(default=False)
     reference_id = models.CharField(max_length=100, null=True, blank=True)
     
+    def to_label_dict(self):
+        ga_dict = {}
+        
+        ga_dict['green_certification_date_verified'] = self.date.strftime('%m/%d/%y')
+        if self.assessment.name == 'NGBS New Construction':
+            ga_dict['ngbs_'+self.assesment.rating.lower()] = 'On'
+            ga_dict['green_certification_organization_url'] = 'https://www.homeinnovation.com/green'
+        elif self.assessment.name == 'LEED for Homes':
+            ga_dict['leed_'+self.assesment.rating.lower()] = 'On'
+            ga_dict['green_certification_organization_url'] = 'https://new.usgbc.org/cert-guide/homes'
+        elif self.assessment.name == 'ENERGY STAR Certified Homes':
+            ga_dict['energy_star'] = 'On'
+        elif self.assessment.name == 'DOE Zero Energy Ready Home':
+            ga_dict['zerh'] = 'On'
+        elif self.assessment.name == 'Home Energy Score':
+            ga_dict['hes_score'] = str(self.metric)
+            ga_dict['hes_official'] = 'On'
+            ga_dict['hes_url'] = 'On'
+        elif self.assessment.name == 'HERS Index Score':
+            ga_dict['hers_rating'] = str(self.metric)
+            ga_dict['hers_confirmed_rating'] = 'On'
+            ga_dict['resnet_url'] = 'On'
+        elif self.assessment.name == 'Efficiency Vermont Residential New Construction Program':
+            ga_dict['other_certification'] = self.assessment.name
+            ga_dict['gren_certification_organization_url'] = 'https://veic.org'
+        if self.version:
+            if self.assessment.name in ['NGBS New Construction', 'LEED for Homes']:
+                ga_dict['green_certification_version'] = self.version
+            if self.assessment.name in ['Home Energy Score', 'HERS Index Score']:
+                ga_dict['score_version'] = self.version
+                            
+        return ga_dict
+    
+    # verification_reviewed_on_site, verification_attached
+    # hers_estimated_savings, hers_rate
+    # hes_estimated_savings, hes_rate
+    
 class HELIXOrganization(Organization):
     """
     Additional fields for Organization
@@ -165,6 +202,21 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
             
 
         return reso_dict
+        
+    def to_label_dict(self):
+        ga_dict = {}
+        if self.measure.name == 'install_photovoltaic_system':
+            if self.ownership == 'OWN':
+                ga_dict['solar_owned'] = 'On'
+            if self.current_financing == 'LEASE':
+                ga_dict['solar_lease'] = 'On'
+            if self.current_financing == 'PPA':
+                ga_dict['solar_ppa'] = 'On'
+            if self.application_scale in [7,8,9]:
+                ga_dict['solar_location'] = self.get_application_scale_display()
+                
+        return ga_dict
+        
 
 class HelixMeasurement(models.Model):
     """
@@ -300,6 +352,15 @@ class HelixMeasurement(models.Model):
 
         return reso_dict
         
+    def to_label_dict(self):
+        ga_dict = {}
+        if self.measurement_type == 'PROD':
+            ga_dict['solar_production'] = str(self.quantity)
+            ga_dict['solar_production_type'] = self.status
+        if self.measurement_type == 'CAP':
+            ga_dict['solar_size'] = str(self.quantity)
+            ga_dict['solar_age'] = str(self.year)
+        return ga_dict
     
     
     

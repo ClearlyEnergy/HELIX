@@ -5,13 +5,15 @@ import subprocess
 import csv
 import datetime
 import string
+import boto3
 
 from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create
 
 from django.conf import settings
 from django.core import serializers
+from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseRedirect, FileResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
@@ -26,14 +28,14 @@ from rest_framework.decorators import api_view, detail_route, list_route, parser
     permission_classes
 
 
-from seed.models import Cycle, PropertyView, Property
+from seed.models import Cycle, PropertyView, PropertyState
 from seed.models.data_quality import DataQualityCheck
 
-from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog, GreenAssessmentURL
 from seed.lib.superperms.orgs.decorators import has_perm_class
 from seed.lib.progress_data.progress_data import ProgressData
 from seed.lib.mcm.utils import batch
-from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement
+from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement, HELIXPropertyMeasure
 from seed.models.auditlog import (
     AUDIT_USER_EDIT,
     AUDIT_USER_CREATE,
@@ -50,8 +52,9 @@ from seed.utils.api import api_endpoint, api_endpoint_class
 import helix.helix_utils as utils
 from zeep.exceptions import Fault
 
-from hes import hes
-from leed import leed
+#from hes import hes
+#from leed import leed
+from label import label
 
 # Return the green assessment front end page. This can be accessed through
 # the seed side bar or at /app/assessments
@@ -103,63 +106,7 @@ def helix_hes(request):
         return JsonResponse(res, status=400)
     else:
         return JsonResponse(res, status=200)
-        
-# Retrieve HES records and generate file to use in rest of upload process
-# Parameters:
-#   dataset: id of import record that data will be uploaded to
-#   cycle: id of cycle that data will be uploaded to
-@login_required
-def hes_upload(request):
-    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
-    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
-    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
-# TRY    organization = Organization.objects.get(pk=request.query_params['organization_id'])
-    return_value = helix_hes_to_file(org)
-    
-    if return_value['status'] in ['success']:
-        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'hes.csv')    
-        return_value.pop('list', None)
-        return_value['file_pk'] = resp['file']
-
-    return JsonResponse(return_value)
-
-# Retrieve LEED records and generate file to use in rest of upload process
-# responds with file content and status 200 on success, 400 on fail
-# Parameters:
-#   dataset: id of import record that data will be uploaded to
-#   cycle: id of cycle that data will be uploaded to
-#@login_required
-#def leed_upload(request):
-#    print 'in leed upload'
-#    dataset = ImportRecord.objects.get(pk=request.POST.get('dataset', request.GET.get('dataset')))
-#    cycle = Cycle.objects.get(pk=request.POST.get('cycle', request.GET.get('cycle')))
-#    org = Organization.objects.get(pk=request.POST.get('organization_id', request.GET.get('organization_id')))
-    
-#    return_value = helix_leed_to_file(org)
-
-#    if return_value['status'] in ['success']:
-#        resp = utils.save_and_load(request.user, dataset, cycle, return_value['list'], 'leed.csv')    
-#        return_value.pop('list', None)
-#        return_value['file_pk'] = resp['file']
-
-#    return JsonResponse(return_value)
-
-# Add certifications to already imported file
-# Parameters:
-#   import_file_id: id of import file
-# Returns:
-#   status: 
-#   json structure with number of new and updated certifications and measurements
-# Example:
-#   Get /helix/add_certifications/?import_file_id=1
-@login_required
-def add_certifications(request, import_file_id):
-    response = helix_certification_create(request.user, import_file_id)
-    
-    if(response['status'] == 'error'):
-        return JsonResponse(response, status=400)
-    else:
-        return JsonResponse(response, status=200)    
+ 
 
 # Export the GreenAssessmentProperty information for the list of property view
 # ids provided
@@ -278,40 +225,38 @@ def helix_reso_export_xml(request):
     today = datetime.datetime.today()
     content = []
     propertyview = PropertyView.objects.get(pk=propertyview_pk)
+    property_info = {
+        "property": propertyview.state,
+    }
+    
     organizations = Organization.objects.filter(users=request.user)
     matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
         view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
-    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
-    
-    gis = {}
-    if 'Latitude' in propertyview.state.extra_data:
-        gis = {
-            'Latitude': propertyview.state.extra_data["Latitude"],
-            'Longitude': propertyview.state.extra_data["Longitude"]
-        }
-        
+    matching_measures = HELIXPropertyMeasure.objects.filter(property_state=propertyview.state) #only pv can be exported
+
     if matching_assessments:        
-        matching_measurements = HelixMeasurement.objects.filter(
-            assessment_property__pk__in=matching_assessments.values_list('pk',flat=True),
-            measurement_type__in=['PROD','CAP'],
-            measurement_subtype__in=['PV','WIND']
-        )
+        reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
+        property_info["assessments"] = matching_assessments.filter(assessment_id__in=reso_certifications)
+        
+    if matching_measures:    
+        for measure in matching_measures:
+            print measure
+            print measure.to_reso_dict()
+            matching_measurements = HelixMeasurement.objects.filter(
+                measure_property__pk=measure.propertymeasure_ptr_id,
+                measurement_type__in=['PROD','CAP'],
+                measurement_subtype__in=['PV','WIND']
+            )
 
         measurement_dict = {}
-        for measure in matching_measurements:
+        for match in matching_measurements:
+            measurement_dict.update(match.to_reso_dict())
             measurement_dict.update(measure.to_reso_dict())
-        
-        property_info = {
-            "property": propertyview.state,
-            "assessments": matching_assessments.filter(assessment_id__in=reso_certifications),
-            "measurements": measurement_dict,
-            "gis": gis
-        }
-        
-        content.append(property_info) 
 
+        property_info["measurements"] = measurement_dict
+    
     context = {
-        'content': content
+        'content': property_info
         }
         
     # log changes
@@ -322,5 +267,86 @@ def helix_reso_export_xml(request):
             name='Export log',
             description='Exported via xml')        
     rendered_xml = render_to_string('reso_export_template.xml', context)
+    
+    print context
 
     return HttpResponse(rendered_xml, content_type='text/xml')
+    
+
+@api_endpoint
+@api_view(['GET'])
+def helix_green_addendum(request, pk=None):
+    org_id = request.GET['organization_id']
+    user = request.user
+#    try:
+    assessment = HELIXGreenAssessment.objects.get(name='Green Addendum', organization_id=org_id)
+    property_state = PropertyState.objects.get(pk=pk)
+    property_view = PropertyView.objects.get(state=property_state) 
+    assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
+
+    data_dict = {
+        'street': property_state.address_line_1, 
+        'street_2': property_state.address_line_1, 
+        'street_3': property_state.address_line_1, 
+        'city': property_state.city,
+        'state': property_state.state,
+        'zip': property_state.postal_code
+    }   
+    if 'Utility' in property_state.extra_data:
+        data_dict['utility_name'] = property_state.extra_data['Utility']
+
+    # retrieve green assessment properties
+    assessments = HELIXGreenAssessmentProperty.objects.filter(view=property_view).filter(opt_out=False)
+    for assess in assessments:
+        data_dict.update(assess.to_label_dict())
+
+    #retrieve measures
+    measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
+    for meas in measures:
+        data_dict.update(meas.to_label_dict())
+        #add _2 for second solar
+        measurements = HelixMeasurement.objects.filter(measure_property=meas)
+        for measurement in measurements:
+            data_dict.update(measurement.to_label_dict())
+        
+    lab = label.Label()
+    key = lab.green_addendum(data_dict)
+#    key = 'labels/28d0d1f7-8009-4a6c-8d57-a0c563074061.pdf'
+#        s3 = boto3.client('s3')
+#        url = s3.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': settings.AWS_BUCKET_NAME, 'Key': key}, ExpiresIn=3600)
+#    https://s3.amazonaws.com/ce-seed/labels/28d0d1f7-8009-4a6c-8d57-a0c563074061.pdf
+    url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+
+    priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+            view=property_view,
+            assessment=assessment)
+
+    if(not priorAssessments.exists()):
+        # If the property does not have an assessment in the database
+        # for the specifed assesment type create a new one.
+        green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
+        green_property.initialize_audit_logs(user=user)
+        green_property.save()
+    else:
+        # find most recently created property and a corresponding audit log
+        green_property = priorAssessments.order_by('date').last()
+        old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
+
+        # log changes
+        green_property.log(
+                changed_fields=assessment_data,
+                ancestor=old_audit_log.ancestor,
+                parent=old_audit_log,
+                user=user)   
+        
+    ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
+    ga_url.url = url
+    ga_url.description = 'Green Addendum Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    ga_url.save()
+
+    return JsonResponse({'status': 'success', 'url': url})   
+#    except:
+#        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
+    
+    
+    
