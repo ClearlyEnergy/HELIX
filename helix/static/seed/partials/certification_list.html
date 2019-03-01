@@ -46,7 +46,7 @@
 	                        <td class="is_aligned_left">{$:: d.validity_duration ? d.validity_duration + ' Days' : ''  $}</td>
 	                        <td class="is_aligned_center">{$:: d.is_reso_certification ? '&#10004;':'' $}</td>
 	                        <td class="is_aligned_left">
-								<span ng-show="!d.edit_form_showing">{$:: d.description | limitTo:100 $}{$:: d.description.length > 100 ? '...' : '' $}</span>
+								<span ng-show="!d.edit_form_showing">{$:: d.description $}</span>
                                 <div class="form-group col-sm-8" ng-show="d.edit_form_showing">
                                     <label class="sr-only" for="editCertificationDescription">Edit Description</label>
                                     <input class="form-control input-sm" id="editCertificationDescription" type="text" name="description" ng-model="d.description" style="width: 100%;">
