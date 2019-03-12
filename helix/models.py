@@ -51,10 +51,10 @@ class HELIXGreenAssessmentProperty(certification.GreenAssessmentProperty):
         
         ga_dict['green_certification_date_verified'] = self.date.strftime('%m/%d/%y')
         if self.assessment.name == 'NGBS New Construction':
-            ga_dict['ngbs_'+self.assesment.rating.lower()] = 'On'
+            ga_dict['ngbs_'+self.rating.lower()] = 'On'
             ga_dict['green_certification_organization_url'] = 'https://www.homeinnovation.com/green'
         elif self.assessment.name == 'LEED for Homes':
-            ga_dict['leed_'+self.assesment.rating.lower()] = 'On'
+            ga_dict['leed_'+self.rating.lower()] = 'On'
             ga_dict['green_certification_organization_url'] = 'https://new.usgbc.org/cert-guide/homes'
         elif self.assessment.name == 'ENERGY STAR Certified Homes':
             ga_dict['energy_star'] = 'On'
@@ -203,17 +203,18 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
 
         return reso_dict
         
-    def to_label_dict(self):
+    def to_label_dict(self,index=0):
+        ext = '' if index==0 else '_'+str(index+1)
         ga_dict = {}
         if self.measure.name == 'install_photovoltaic_system':
             if self.ownership == 'OWN':
-                ga_dict['solar_owned'] = 'On'
+                ga_dict['solar_owned'+ext] = 'On'
             if self.current_financing == 'LEASE':
-                ga_dict['solar_lease'] = 'On'
+                ga_dict['solar_lease'+ext] = 'On'
             if self.current_financing == 'PPA':
-                ga_dict['solar_ppa'] = 'On'
+                ga_dict['solar_ppa'+ext] = 'On'
             if self.application_scale in [7,8,9]:
-                ga_dict['solar_location'] = self.get_application_scale_display()
+                ga_dict['solar_location'+ext] = self.get_application_scale_display()
                 
         return ga_dict
         
@@ -352,14 +353,15 @@ class HelixMeasurement(models.Model):
 
         return reso_dict
         
-    def to_label_dict(self):
+    def to_label_dict(self, index=0):
         ga_dict = {}
+        ext = '' if index==0 else '_'+str(index+1)
         if self.measurement_type == 'PROD':
-            ga_dict['solar_production'] = str(self.quantity)
-            ga_dict['solar_production_type'] = self.status
+            ga_dict['solar_production'+ext] = str(self.quantity)
+            ga_dict['solar_production_type'+ext] = self.status
         if self.measurement_type == 'CAP':
-            ga_dict['solar_size'] = str(self.quantity)
-            ga_dict['solar_age'] = str(self.year)
+            ga_dict['solar_size'+ext] = str(self.quantity)
+            ga_dict['solar_age'+ext] = str(self.year)
         return ga_dict
     
     

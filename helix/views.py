@@ -302,12 +302,14 @@ def helix_green_addendum(request, pk=None):
 
     #retrieve measures
     measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
-    for meas in measures:
-        data_dict.update(meas.to_label_dict())
+    for index, meas in enumerate(measures):
+        print(index)
+#    for meas in measures:
+        data_dict.update(meas.to_label_dict(index))
         #add _2 for second solar
         measurements = HelixMeasurement.objects.filter(measure_property=meas)
         for measurement in measurements:
-            data_dict.update(measurement.to_label_dict())
+            data_dict.update(measurement.to_label_dict(index))
         
     lab = label.Label()
     key = lab.green_addendum(data_dict)
