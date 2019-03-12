@@ -5,7 +5,6 @@ import subprocess
 import csv
 import datetime
 import string
-import boto3
 
 from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create
 
@@ -313,10 +312,6 @@ def helix_green_addendum(request, pk=None):
         
     lab = label.Label()
     key = lab.green_addendum(data_dict)
-#    key = 'labels/28d0d1f7-8009-4a6c-8d57-a0c563074061.pdf'
-#        s3 = boto3.client('s3')
-#        url = s3.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': settings.AWS_BUCKET_NAME, 'Key': key}, ExpiresIn=3600)
-#    https://s3.amazonaws.com/ce-seed/labels/28d0d1f7-8009-4a6c-8d57-a0c563074061.pdf
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
