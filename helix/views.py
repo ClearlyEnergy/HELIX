@@ -26,8 +26,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, detail_route, list_route, parser_classes, \
     permission_classes
 
-
-from seed.models import Cycle, PropertyView, PropertyState
+from seed.models import Cycle, PropertyView, PropertyState, Property
 from seed.models.data_quality import DataQualityCheck
 
 from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog, GreenAssessmentURL
@@ -166,45 +165,53 @@ def helix_csv_export(request):
 #                  that case that only owners/admins should be able to retrieve
 #                  private data.
 # Example:
-#    http://localhost:8000/helix/helix-reso-export-list-xml/?11&start_date=2016-09-14&end_date=2017-07-11&private_data=True
+#    http://localhost:8000/helix/helix-reso-export-list-xml/?start_date=2016-09-14&end_date=2017-07-11&private_data=True
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_list_xml(request):
     start_date = end_date = None
+    content = []
     ga_pks = GreenAssessmentPropertyAuditLog.objects.none()
+    property_pks = Property.objects.none()
     if 'start_date' in request.GET:
         start_date = request.GET['start_date']
     if 'end_date' in request.GET:
         end_date = request.GET['end_date']
     organizations = Organization.objects.filter(users=request.user)
     organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations) #add sub-organizations with same parent
-    properties = Property.objects.filter(organization_id__in=organizations)
+    
+#    if propertyview.state.data_quality == 2:
+#        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')   
+    
     try:
 # select green assessment properties that are in the specified create / update date range
 # and associated with the correct property view
-
         if start_date:
-            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=(request.GET['start_date']))
+            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=start_date)
+            property_pks = Property.objects.filter(organization_id__in=organizations, updated__gte=start_date)
         if end_date:
-            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=(request.GET['end_date'])) 
-        
+            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=end_date) 
+            property_pks = property_pks & Property.objects.filter(organization_id__in=organizations, updated__lte=end_date)
+            
+        if property_pks:
+            property_views = PropertyView.objects.filter(property__in=property_pks)
+            content = list(property_views.values_list('id', flat=True))
         if ga_pks:
-            content = ga_pks.values_list('property_view_id', flat=True)
-            content = list(content)
+            content = list(set(content) | set(list(ga_pks.values_list('property_view_id', flat=True))))
+            
+        if content:
+            context = {
+                'content': content
+                }
+            rendered_xml = render_to_string('reso_export_list_template.xml', context)
+            return HttpResponse(rendered_xml, content_type='text/xml')
         else:
             return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
         
-        content.append(property_info) 
 
-    context = {
-        'content': content
-        }
-    rendered_xml = render_to_string('reso_export_list_template.xml', context)
-    return HttpResponse(rendered_xml, content_type='text/xml')
-
-# Export GreenAssessmentProperty information for a property view in an xml
+# Export GreenAssessmentProperty and Measures information for a property view in an xml
 # format using RESO fields
 # Parameters:
 #    propertyview_pk: primary key into the property view table. Determines
@@ -229,6 +236,9 @@ def helix_reso_export_xml(request):
     }
     
     organizations = Organization.objects.filter(users=request.user)
+    if propertyview.state.data_quality == 2:
+        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
+    
     matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
         view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
     matching_measures = HELIXPropertyMeasure.objects.filter(property_state=propertyview.state) #only pv can be exported
@@ -239,8 +249,6 @@ def helix_reso_export_xml(request):
         
     if matching_measures:    
         for measure in matching_measures:
-            print measure
-            print measure.to_reso_dict()
             matching_measurements = HelixMeasurement.objects.filter(
                 measure_property__pk=measure.propertymeasure_ptr_id,
                 measurement_type__in=['PROD','CAP'],
@@ -267,8 +275,6 @@ def helix_reso_export_xml(request):
             description='Exported via xml')        
     rendered_xml = render_to_string('reso_export_template.xml', context)
     
-    print context
-
     return HttpResponse(rendered_xml, content_type='text/xml')
     
 
