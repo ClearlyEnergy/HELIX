@@ -249,7 +249,7 @@ class HelixMeasurement(models.Model):
         "Electric": "ELEC",
         "Natural Gas": "NATG",
         "Fuel Oil": "FUEL",
-        "Lpg": "PROP",
+        "Propane": "PROP",
         "Cord Wood": "CWOOD",
         "Pellet Wood": "PWOOD",
         "Total": "TOTAL"}
@@ -258,6 +258,7 @@ class HelixMeasurement(models.Model):
         "Production": "PROD",
         "Consumption": "CONS",
         "Cost": "COST",
+        "Savings": "SAVE",
         "Emissions": "EMIT",
         "Capacity": "CAP"}
         
@@ -280,6 +281,7 @@ class HelixMeasurement(models.Model):
         ("PROD", "Production"),
         ("CONS", "Consumption"),
         ("COST", "Cost"),
+        ("SAVE", "Savings"),
         ("EMIT", "Emissions"),
         ("CAP", "Capacity"))
 
@@ -290,7 +292,7 @@ class HelixMeasurement(models.Model):
     FUEL_CHOICES = (
         ("ELEC", "Electric"),
         ("NATG", "Natural Gas"),
-        ("HEAT", "Heating Oil"),
+        ("HEAT", "Fuel Oil"),
         ("PROP", "Propane"),
         ("CWOOD", "Cord Wood"),
         ("PWOOD", "Pellet Wood"))
