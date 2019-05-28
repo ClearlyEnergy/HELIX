@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <document>
 	<Property>
+		<UniversalPropertyId>{{content.property.jurisdiction_property_id}}</UniversalPropertyId>
 		<Location>
 			<Address>
 				<City>{{content.city}}</City>

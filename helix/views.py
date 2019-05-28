@@ -106,26 +106,33 @@ def helix_hes(request):
         return JsonResponse(res, status=200)
  
 
-# Export the GreenAssessmentProperty information for the list of property view
-# ids provided
+# Export the GreenAssessmentProperty information for the list of property ids provided
 # Parameters:
-#   view_ids: comma separated list of views ids to retrieve
+#   ids: comma separated list of views ids to retrieve
 #   file_name: optional parameter that can be set to have the web browser open
 #              a save dialog with this as the file name. When not set, raw text
 #              is displayed
 # Example:
 #   GET /helix/helix-csv-export/?view_ids=11,12,13,14
-@login_required
+@api_endpoint
+@api_view(['GET','POST'])
 def helix_csv_export(request):
-    # splitting view_ids parameter string into list of integer view_ids
-    property_ids = map(lambda view_id: int(view_id), request.GET['view_ids'].split(','))
+#    property_ids = map(lambda view_id: int(view_id), request.data.get['ids'].split(','))
+    property_ids = request.data.get('ids', [])
     view_ids = PropertyView.objects.filter(property_id__in=property_ids)
+    state_ids = view_ids.values_list('state_id', flat=True)
 
     # retrieve green assessment properties that belong to one of these ids
-    assessments = HELIXGreenAssessmentProperty.objects.filter(view__pk__in=view_ids).filter(opt_out=False)
+    today = datetime.datetime.today()
+    organizations = Organization.objects.filter(users=request.user)
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
+    assessments = HELIXGreenAssessmentProperty.objects.filter(
+        view__pk__in=view_ids).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications)
     
+    #retrieve measures that belogn to one of these ids
+    matching_measures = HELIXPropertyMeasure.objects.filter(property_state__in=state_ids) #only pv can be exported
 
-    file_name = request.GET.get('file_name')
+    file_name = request.data.get('filename')
 
     # Handle optional parameter
     if (file_name is not None):
@@ -133,22 +140,50 @@ def helix_csv_export(request):
         response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
     else:
         response = HttpResponse()
-
+        
     # Dump all fields of all retrieved assessments properties into csv
-    fieldnames = [f.name for f in HELIXGreenAssessmentProperty._meta.get_fields()]
-    for l in ['id', 'view', 'assessment', 'urls','measurements','gapauditlog_assessment','greenassessmentproperty_ptr']:
-        fieldnames.remove(l) 
-    writer = csv.writer(response)
+    addressmap = {'custom_id_1': 'UniversalPropertyId', 'city': 'City', 'postal_code': 'PostalCode', 'state': 'State', 'latitude': 'Latitude', 'longitude': 'Longitude'}
+    addressmapxd = {'StreetDirPrefix': 'StreetDirPrefix', 'StreetDirSuffix': 'StreetDirSuffix', 'StreetName': 'StreetName', 'StreetNumber': 'StreetNumber', 'StreetSuffix':'StreetSuffix', 'UnitNumber': 'UnitNumber'}
+    fieldnames = ['GreenVerificationRating', 'GreenVerificationVersion', 'GreenVerificationYear', 'GreenVerificationBody',  'GreenBuildingVerificationType', 'GreenVerificationSource', 'GreenVerificationMetric', 'GreenVerificationStatus', 'GreenVerificationURL']
+    measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'YearInstall']
 
-    writer.writerow(['Address1', 'Address1', 'City','State', 'Postal Code', 'Certification'] + [string.capwords(str(f).replace('_',' ')) for f in fieldnames])
+    writer = csv.writer(response)
+    writer.writerow([value for key, value in addressmap.iteritems()] + 
+        [value for key, value in addressmapxd.iteritems()] + ['Unparsed Address'] + 
+        [str(f) for f in fieldnames] + [str(m) for m in measurenames])
     for a in assessments:
-        writer.writerow([a.assessment.name] + [str(getattr(a, f)) for f in fieldnames])
+        a_dict = a.to_reso_dict()
+        unparsedAddress = a.view.state.address_line_1
+        if a.view.state.address_line_2:
+            unparsedAddress += ' ' + a.view.state.address_line_2
+        writer.writerow([str(getattr(a.view.state, key, '')) for key, value in addressmap.iteritems()] + 
+            [str(getattr(a.view.state, key, '')) for key, value in addressmapxd.iteritems()] + [unparsedAddress] +
+            [str(a_dict.get(f,'')) for f in fieldnames])
         # log changes
         a.log(
             user=request.user,
             record_type=AUDIT_USER_EXPORT,
             name='Export log',
             description='Exported via csv')
+
+    for measure in matching_measures:
+        matching_measurements = HelixMeasurement.objects.filter(
+            measure_property__pk=measure.propertymeasure_ptr_id,
+            measurement_type__in=['PROD','CAP'],
+            measurement_subtype__in=['PV','WIND']
+        )
+        measurement_dict = {}
+        for match in matching_measurements:
+            measurement_dict.update(match.to_reso_dict())
+            measurement_dict.update(measure.to_reso_dict())
+        unparsedAddress = measure.property_state.address_line_1
+        if measure.property_state.address_line_2:
+            unparsedAddress += ' ' + measure.property_state.address_line_2
+        
+        writer.writerow([str(getattr(measure.property_state, key, '')) for key, value in addressmap.items()] + 
+            [str(getattr(measure.property_state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] + 
+            [str(getattr({}, f, '')) for f in fieldnames ] + [measurement_dict[m] for m in measurenames])
+    
     return response
 
 # Export List of updated properties in an xml
@@ -225,12 +260,23 @@ def helix_reso_export_list_xml(request):
 def helix_reso_export_xml(request):
     if 'property_id' in request.GET:
         propertyview_pk = request.GET['property_id']
+        propertyview = PropertyView.objects.get(pk=propertyview_pk)
+    elif 'property_uid' in request.GET:
+        property_uid = request.GET['property_uid']        
+        state_ids = PropertyState.objects.filter(ubid=property_uid)
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids).first()
     else:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
+        
+    if not propertyview:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
 
     today = datetime.datetime.today()
     content = []
-    propertyview = PropertyView.objects.get(pk=propertyview_pk)
+    
+    if 'crsdata' in request.GET:
+        propertyview.state.jurisdiction_property_id = propertyview.state.custom_id_1
+        
     property_info = {
         "property": propertyview.state,
     }

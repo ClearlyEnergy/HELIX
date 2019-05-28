@@ -192,14 +192,13 @@ class HELIXPropertyMeasure(property_measures.PropertyMeasure):
         """
         Return a dict where keys are RESO Power Production Ownership and Electric compatible names.
         """
-        reso_dict = {}
+        reso_dict = {'Electric': None, 'PowerProductionOwnership': None, 'PowerProductionSource': None}
         if self.electric:
             reso_dict['Electric'] = dict(self.ELECTRIC_CHOICES)[self.electric]
         if self.ownership:
-            reso_dict['PowerProductOwnership'] = dict(self.OWNERSHIP_CHOICES)[self.ownership]
+            reso_dict['PowerProductionOwnership'] = dict(self.OWNERSHIP_CHOICES)[self.ownership]
         if self.source:
             reso_dict['PowerProductionSource'] = dict(self.SOURCE_CHOICES)[self.source]
-            
 
         return reso_dict
         
