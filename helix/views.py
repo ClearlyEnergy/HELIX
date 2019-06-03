@@ -50,8 +50,6 @@ from seed.utils.api import api_endpoint, api_endpoint_class
 import helix.helix_utils as utils
 from zeep.exceptions import Fault
 
-#from hes import hes
-#from leed import leed
 from label import label
 
 # Return the green assessment front end page. This can be accessed through
@@ -182,7 +180,7 @@ def helix_csv_export(request):
         
         writer.writerow([str(getattr(measure.property_state, key, '')) for key, value in addressmap.items()] + 
             [str(getattr(measure.property_state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] + 
-            [str(getattr({}, f, '')) for f in fieldnames ] + [measurement_dict[m] for m in measurenames])
+            [str(getattr({}, f, '')) for f in fieldnames ] + [measurement_dict.get( m, '') for m in measurenames])
     
     return response
 
@@ -397,5 +395,58 @@ def helix_green_addendum(request, pk=None):
 #    except:
 #        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
     
+@api_endpoint
+@api_view(['GET'])
+def helix_vermont_profile(request, pk=None):
+    org_id = request.GET['organization_id']
+    user = request.user
+    
+    assessment_name = 'Vermont Profile'
+    assessment = HELIXGreenAssessment.objects.get(name=assessment_name, organization_id=org_id)
+    property_state = PropertyState.objects.get(pk=pk)
+    property_view = PropertyView.objects.get(state=property_state) 
+    assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
+
+    data_dict = {'street': '123 Main St', 'city': 'Montpelier', 'state': 'VT', 'zipcode': '05000', 
+        'yearbuilt': 2005, 'finishedsqft': 2200, 'score': 3137, 'score_btu': 93, 
+        'heatingfuel': 'Heating Oil', 'fuel_score': 1531, 'fuel_cons': 500, 'fuel_cost': 2.5, 'elec_score': 1600, 'elec_cons': 15000, 'elec_cost': 0.2}
+    
+        
+    lab = label.Label()
+    key = lab.vermont_energy_profile(data_dict)
+    url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+    print(url)
+
+    #consolidate with green addendum
+    priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+            view=property_view,
+            assessment=assessment)
+
+    if(not priorAssessments.exists()):
+        # If the property does not have an assessment in the database
+        # for the specifed assesment type create a new one.
+        green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
+        green_property.initialize_audit_logs(user=user)
+        green_property.save()
+    else:
+        # find most recently created property and a corresponding audit log
+        green_property = priorAssessments.order_by('date').last()
+        old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
+
+        # log changes
+        green_property.log(
+                changed_fields=assessment_data,
+                ancestor=old_audit_log.ancestor,
+                parent=old_audit_log,
+                user=user)   
+        
+    ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
+    ga_url.url = url
+    ga_url.description =  assessment_name + 'Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    ga_url.save()
+
+    return JsonResponse({'status': 'success', 'url': url})   
+#    except:
+#        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
     
     

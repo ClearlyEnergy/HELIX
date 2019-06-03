@@ -5,7 +5,9 @@ from helix.views import (
     helix_hes,
     helix_csv_export,
     helix_reso_export_xml,
-    helix_reso_export_list_xml
+    helix_reso_export_list_xml,
+    helix_green_addendum,
+    helix_vermont_profile
 )
 
 urlpatterns = [
@@ -15,5 +17,6 @@ urlpatterns = [
     url(r'^helix-csv-export/$', helix_csv_export, name="helix_csv_export"),
     url(r'^helix-reso-export-xml/$', helix_reso_export_xml, name="helix_reso_export_xml"),
     url(r'^helix-reso-export-list-xml/$', helix_reso_export_list_xml, name="helix_reso_export_list_xml"),
-    url(r'^helix-green-addendum/$', helix_reso_export_list_xml, name="helix_green_addendum"),
+    url(r'^helix-green-addendum/$', helix_green_addendum, name="helix_green_addendum"),
+    url(r'^helix-vermont-profile/$', helix_vermont_profile, name="helix_vermont_profile"),
 ]
