@@ -104,7 +104,8 @@ class HELIXOrganization(Organization):
     def add_hes(self, hes):
         """Add Home Energy Score ID to organization"""
         for key, value in hes.items():
-            setattr(self, key, value)
+            if value:
+                setattr(self, key, value)
         return self.save()
 
     def add_leed(self, leed):
