@@ -60,13 +60,14 @@
 	                        <th sd-resizable id="assessment_score">Status</th>
 	                        <th sd-resizable id="assessment_score">Reference ID</th>
 	                        <th sd-resizable id="assessment_score">Opt-Out?</th>
+							<th sd-resizable width="120"></th>
 						</tr>
 					</thead>
 										
 					<tbody ng-repeat="certification in certifications">
                         <!-- Certification values -->
                         <tr ng-click="isOpen=!isOpen">
-							<td><a ng-if="certification.measurements.length || certification.urls.length" ><i class="ui-grid-icon-info-circled"></i></a></td>
+							<td><a ng-if="certification.measurements.length || certification.urls.length"><i class="ui-grid-icon-info-circled"></i></a></td>
 	                        <td>{$ certification.assessment.award_body$}</td>
 	                        <td>{$ certification.assessment.name$}</td>
 	                        <td>{$ certification.version $}</td>
@@ -76,7 +77,19 @@
 	                        <td>{$ certification.expiration_date $}</td>
 	                        <td>{$ certification.status $}</td>
 	                        <td>{$ certification.reference_id $}</td>
-	                        <td>{$ certification.opt_out $}</td>
+	                        <td><span ng-show="!certification.edit_form_showing">{$ certification.opt_out $}</span>							
+                            <div class="form-check" ng-show="certification.edit_form_showing">
+                                <label class="form-check-label" for="editAssessmentOptIin">Check to Opt Out</label>
+                                <input class="form-check-input" id="editAssessmentOptOut" type="checkbox" name="opt_out" ng-model="certification.opt_out">								
+                            </div>
+							</td>
+							
+							<td>
+								<a class="delete_link" ng-click="confirm_delete_assessment(certification)" ng-show="!certification.edit_form_showing && menu.user.organization.user_role !== 'viewer'"><i class='fa fa-trash-o'></i></a>
+								<a class="replace_file_button edit_file_name" ng-click="edit_assessment_status(certification)" ng-show="!certification.edit_form_showing && menu.user.organization.user_role !== 'viewer'" style="margin-right: 8px;"><i class="fa fa-pencil"></i></a>
+								<button type="button" ng-show="certification.edit_form_showing && menu.user.organization.user_role !== 'viewer'" class="cancel_button btn btn-sm" ng-click="cancel_edit_assessment(certification)" value="Cancel" style="text-align: right;">Cancel</button>
+								<button type="button" ng-show="certification.edit_form_showing && menu.user.organization.user_role !== 'viewer'" class="submit_button btn btn-sm btn-primary" ng-click="save_assessment_status(certification)" value="Save">Save</button>
+							</td>
 						</tr>
 						<tr ng-if="isOpen">
 							<th></th>

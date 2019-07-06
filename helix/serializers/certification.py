@@ -173,7 +173,7 @@ class GreenAssessmentPropertySerializer(OrgValidateMixin,
         fields = ('id', 'source', 'status', 'status_date', 'score',
                   'metric', 'rating', 'version', 'date', 'target_date',
                   'eligibility', 'expiration_date', 'is_valid', 'year',
-                  'urls', 'assessment', 'view')
+                  'urls', 'assessment', 'view', 'opt_out')
 
     def create(self, validated_data):
         """Override create to handle urls"""
