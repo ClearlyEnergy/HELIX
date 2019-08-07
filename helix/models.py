@@ -292,7 +292,7 @@ class HelixMeasurement(models.Model):
     FUEL_CHOICES = (
         ("ELEC", "Electric"),
         ("NATG", "Natural Gas"),
-        ("HEAT", "Fuel Oil"),
+        ("FUEL", "Fuel Oil"),
         ("PROP", "Propane"),
         ("CWOOD", "Cord Wood"),
         ("PWOOD", "Pellet Wood"))

@@ -318,7 +318,16 @@ class GreenAssessmentPropertyReadOnlySerializer(serializers.BaseSerializer):
     def to_representation(self, obj):
         """Serialize green assessment property"""
         urls = [(url.url, url.description) for url in obj.urls.all()]
-        measurements = [(measure.measurement_type, measure.measurement_subtype, measure.fuel, measure.quantity, measure.unit, measure.status, measure.year) for measure in obj.measurements.all()]
+        """Serialize measures property"""
+        measurements = [(
+            measure.get_measurement_type_display(), 
+            measure.get_measurement_subtype_display(), 
+            measure.get_fuel_display(), 
+            measure.quantity, 
+            measure.get_unit_display(), 
+            measure.get_status_display(), 
+            measure.year) for measure in obj.measurements.all()]
+
         assessment = OrderedDict((
             ('id', obj.assessment.id),
             ('name', obj.assessment.name),
