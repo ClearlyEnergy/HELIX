@@ -398,55 +398,72 @@ def helix_green_addendum(request, pk=None):
 @api_endpoint
 @api_view(['GET'])
 def helix_vermont_profile(request, pk=None):
+    print(request.GET)
     org_id = request.GET['organization_id']
+    if 'property_uid' in request.GET:
+        property_uid = request.GET['property_uid']        
+    
     user = request.user
     
     assessment_name = 'Vermont Profile'
     assessment = HELIXGreenAssessment.objects.get(name=assessment_name, organization_id=org_id)
-    property_state = PropertyState.objects.get(pk=pk)
-    property_view = PropertyView.objects.get(state=property_state) 
-    assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
-
-    data_dict = {'street': '123 Main St', 'city': 'Montpelier', 'state': 'VT', 'zipcode': '05000', 
-        'yearbuilt': 2005, 'finishedsqft': 2200, 'score': 3137, 'score_btu': 93, 
-        'heatingfuel': 'Heating Oil', 'fuel_score': 1531, 'fuel_cons': 500, 'fuel_cost': 2.5, 'elec_score': 1600, 'elec_cons': 15000, 'elec_cost': 0.2}
+    print(property_uid)
     
+    data_dict = {}
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh']
+    floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
+        'finishedsqft','yearbuilt','hers_score',
+        'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
+        'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
+    for var in txtvars:
+        data_dict[var] = request.GET[var]
+    for var in floatvars:
+        if request.GET[var]:
+            data_dict[var] = float(request.GET[var])
+        else:
+            data_dict[var] = request.GET[var]
         
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
     print(url)
 
-    #consolidate with green addendum
-    priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
-            view=property_view,
-            assessment=assessment)
+    try:
+        if property_uid:
+            property_state = PropertyState.objects.get(custom_id_1=property_uid)
+        else:
+            property_state = PropertyState.objects.get(pk=pk)
+        property_view = PropertyView.objects.get(state=property_state) 
+        assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
+        #consolidate with green addendum
+        priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+                view=property_view,
+                assessment=assessment)
 
-    if(not priorAssessments.exists()):
-        # If the property does not have an assessment in the database
-        # for the specifed assesment type create a new one.
-        green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
-        green_property.initialize_audit_logs(user=user)
-        green_property.save()
-    else:
-        # find most recently created property and a corresponding audit log
-        green_property = priorAssessments.order_by('date').last()
-        old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
+        if(not priorAssessments.exists()):
+            # If the property does not have an assessment in the database
+            # for the specifed assesment type create a new one.
+            green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
+            green_property.initialize_audit_logs(user=user)
+            green_property.save()
+        else:
+            # find most recently created property and a corresponding audit log
+            green_property = priorAssessments.order_by('date').last()
+            old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
 
-        # log changes
-        green_property.log(
-                changed_fields=assessment_data,
-                ancestor=old_audit_log.ancestor,
-                parent=old_audit_log,
-                user=user)   
+            # log changes
+            green_property.log(
+                    changed_fields=assessment_data,
+                    ancestor=old_audit_log.ancestor,
+                    parent=old_audit_log,
+                    user=user)   
         
-    ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
-    ga_url.url = url
-    ga_url.description =  assessment_name + 'Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    ga_url.save()
+        ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
+        ga_url.url = url
+        ga_url.description =  assessment_name + 'Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        ga_url.save()
+    except:
+        print('no existing home')
 
-    return JsonResponse({'status': 'success', 'url': url})   
-#    except:
-#        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
-    
+    return JsonResponse({'status': 'success', 'url': url})       
     
