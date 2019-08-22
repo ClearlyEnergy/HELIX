@@ -22,3 +22,11 @@
      text-overflow: clip;
      overflow: visible;
 }
+
+#logo_text_link > a {
+	color: black;
+    text-decoration: none;
+}
+#logo_text_link > a:hover {
+	color: #00a0af;	
+}
