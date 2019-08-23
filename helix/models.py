@@ -239,6 +239,10 @@ class HelixMeasurement(models.Model):
         'status': 'PowerProductionAnnualStatus',
     }
     
+    PV_COST_MAPPING = {
+        'quantity': 'EnergyCost'
+    }
+    
     PV_CAP_MAPPING = {
         # attribute: RESO field, need to add YearInstall
         'quantity': 'PowerProductionSize',
@@ -351,6 +355,10 @@ class HelixMeasurement(models.Model):
 
         if self.measurement_type == 'CAP':
             for key, val in self.PV_CAP_MAPPING.iteritems():
+                reso_dict[val] = getattr(self, key)
+
+        if self.measurement_type == 'COST':
+            for key, val in self.PV_COST_MAPPING.iteritems():
                 reso_dict[val] = getattr(self, key)
 
         return reso_dict

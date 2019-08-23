@@ -290,6 +290,16 @@ def helix_reso_export_xml(request):
     if matching_assessments:        
         reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
         property_info["assessments"] = matching_assessments.filter(assessment_id__in=reso_certifications)
+        measurement_dict = {}
+        for assessment in matching_assessments.filter(assessment_id__in=reso_certifications):
+            matching_measurements = HelixMeasurement.objects.filter(
+                assessment_property__pk=assessment.greenassessmentproperty_ptr_id
+            )
+            for match in matching_measurements:
+                measurement_dict.update(match.to_reso_dict())
+        property_info["measurements"] = measurement_dict
+        print(property_info)
+        
         
     if matching_measures:    
         for measure in matching_measures:
@@ -407,11 +417,10 @@ def helix_vermont_profile(request, pk=None):
     
     assessment_name = 'Vermont Profile'
     assessment = HELIXGreenAssessment.objects.get(name=assessment_name, organization_id=org_id)
-    print(property_uid)
     
     data_dict = {}
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh']
-    floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','owner_name']
+    floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
         'finishedsqft','yearbuilt','hers_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
         'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
