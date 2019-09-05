@@ -309,9 +309,9 @@ class HelixMeasurement(models.Model):
         ("LB", "pound"),
         ("CORD", "cord"),
         ("THERM", "therm"),
-        ("DOLLAR","dollar"),
+        ("DOLLAR","dollars"),
         ("GHG","Greenhouse Gas"),
-        ("CO2","Carbon Dioxide"),
+#        ("CO2","Carbon Dioxide"),
         ("CO2e","Carbon Dioxide Equivalent"))
     STATUS_CHOICES = (
         ("ACTUAL", "Actual"),
