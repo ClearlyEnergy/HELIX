@@ -260,8 +260,9 @@ def helix_reso_export_xml(request):
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.get(pk=propertyview_pk)
     elif 'property_uid' in request.GET:
-        property_uid = request.GET['property_uid']        
-        state_ids = PropertyState.objects.filter(ubid=property_uid)
+#        property_uid = request.GET['property_uid']
+        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
+        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
         propertyview = PropertyView.objects.filter(state_id__in=state_ids).first()
     else:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
@@ -298,7 +299,6 @@ def helix_reso_export_xml(request):
             for match in matching_measurements:
                 measurement_dict.update(match.to_reso_dict())
         property_info["measurements"] = measurement_dict
-        print(property_info)
         
         
     if matching_measures:    
