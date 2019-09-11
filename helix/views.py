@@ -143,7 +143,7 @@ def helix_csv_export(request):
     addressmap = {'custom_id_1': 'UniversalPropertyId', 'city': 'City', 'postal_code': 'PostalCode', 'state': 'State', 'latitude': 'Latitude', 'longitude': 'Longitude'}
     addressmapxd = {'StreetDirPrefix': 'StreetDirPrefix', 'StreetDirSuffix': 'StreetDirSuffix', 'StreetName': 'StreetName', 'StreetNumber': 'StreetNumber', 'StreetSuffix':'StreetSuffix', 'UnitNumber': 'UnitNumber'}
     fieldnames = ['GreenVerificationRating', 'GreenVerificationVersion', 'GreenVerificationYear', 'GreenVerificationBody',  'GreenBuildingVerificationType', 'GreenVerificationSource', 'GreenVerificationMetric', 'GreenVerificationStatus', 'GreenVerificationURL']
-    measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'YearInstall']
+    measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'PowerProductionYearInstall']
 
     writer = csv.writer(response)
     writer.writerow([value for key, value in addressmap.iteritems()] + 
@@ -258,12 +258,12 @@ def helix_reso_export_list_xml(request):
 def helix_reso_export_xml(request):
     if 'property_id' in request.GET:
         propertyview_pk = request.GET['property_id']
-        propertyview = PropertyView.objects.get(pk=propertyview_pk)
+        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
     elif 'property_uid' in request.GET:
-#        property_uid = request.GET['property_uid']
-        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
+        property_uid = request.GET['property_uid']
+#        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids).first()
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
     else:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
         
@@ -276,22 +276,24 @@ def helix_reso_export_xml(request):
     if 'crsdata' in request.GET:
         propertyview.state.jurisdiction_property_id = propertyview.state.custom_id_1
         
-    property_info = {
-        "property": propertyview.state,
-    }
-    
     organizations = Organization.objects.filter(users=request.user)
-    if propertyview.state.data_quality == 2:
-        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
-    
-    matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
-        view=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
-    matching_measures = HELIXPropertyMeasure.objects.filter(property_state=propertyview.state) #only pv can be exported
 
+    property_info = {
+        "property": propertyview.first().state,
+    }
+
+    for pv in propertyview:
+        if pv.state.data_quality == 2: #exclude records with data quality errors
+            propertyview.exclude(pv)
+#        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
+    
+    measurement_dict = {}
+    #assessments
+    matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
+        view__in=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
     if matching_assessments:        
         reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
         property_info["assessments"] = matching_assessments.filter(assessment_id__in=reso_certifications)
-        measurement_dict = {}
         for assessment in matching_assessments.filter(assessment_id__in=reso_certifications):
             matching_measurements = HelixMeasurement.objects.filter(
                 assessment_property__pk=assessment.greenassessmentproperty_ptr_id
@@ -299,26 +301,28 @@ def helix_reso_export_xml(request):
             for match in matching_measurements:
                 measurement_dict.update(match.to_reso_dict())
         property_info["measurements"] = measurement_dict
-        
-        
-    if matching_measures:    
-        for measure in matching_measures:
-            matching_measurements = HelixMeasurement.objects.filter(
-                measure_property__pk=measure.propertymeasure_ptr_id,
-                measurement_type__in=['PROD','CAP'],
-                measurement_subtype__in=['PV','WIND']
-            )
 
-        measurement_dict = {}
-        for match in matching_measurements:
-            measurement_dict.update(match.to_reso_dict())
-            measurement_dict.update(measure.to_reso_dict())
+    #measures
+    for pv in propertyview:
+        matching_measures = HELIXPropertyMeasure.objects.filter(property_state=pv.state) #only pv can be exported
+        if matching_measures:    
+            for measure in matching_measures:
+                matching_measurements = HelixMeasurement.objects.filter(
+                    measure_property__pk=measure.propertymeasure_ptr_id,
+                    measurement_type__in=['PROD','CAP'],
+                    measurement_subtype__in=['PV','WIND']
+                )
 
-        property_info["measurements"] = measurement_dict
+            for match in matching_measurements:
+                measurement_dict.update(match.to_reso_dict())
+                measurement_dict.update(measure.to_reso_dict())
+
+            property_info["measurements"] = measurement_dict
     
     context = {
         'content': property_info
         }
+        
         
     # log changes
     for a in matching_assessments:
@@ -407,21 +411,28 @@ def helix_green_addendum(request, pk=None):
     
 @api_endpoint
 @api_view(['GET'])
-def helix_vermont_profile(request, pk=None):
-    print(request.GET)
-    org_id = request.GET['organization_id']
-    if 'property_uid' in request.GET:
-        property_uid = request.GET['property_uid']        
+def helix_vermont_profile(request):
+    if 'property_id' in request.GET:
+        propertyview_pk = request.GET['property_id']
+        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
+    elif 'property_uid' in request.GET:
+        property_uid = request.GET['property_uid']
+        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    else:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
     
+    if not propertyview:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
+    
+    org = Organization.objects.get(name=request.GET['organization_name'])
     user = request.user
     
-    assessment_name = 'Vermont Profile'
-    assessment = HELIXGreenAssessment.objects.get(name=assessment_name, organization_id=org_id)
-    
+    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
     data_dict = {}
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','owner_name']
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
-        'finishedsqft','yearbuilt','hers_score',
+        'finishedsqft','yearbuilt','hers_score', 'hes_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
         'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
     for var in txtvars:
@@ -431,48 +442,48 @@ def helix_vermont_profile(request, pk=None):
             data_dict[var] = float(request.GET[var])
         else:
             data_dict[var] = request.GET[var]
-        
+                    
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
-    print(url)
-
-    try:
-        if property_uid:
-            property_state = PropertyState.objects.get(custom_id_1=property_uid)
-        else:
-            property_state = PropertyState.objects.get(pk=pk)
-        property_view = PropertyView.objects.get(state=property_state) 
-        assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
-        #consolidate with green addendum
-        priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
-                view=property_view,
-                assessment=assessment)
-
-        if(not priorAssessments.exists()):
-            # If the property does not have an assessment in the database
-            # for the specifed assesment type create a new one.
-            green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
-            green_property.initialize_audit_logs(user=user)
-            green_property.save()
-        else:
-            # find most recently created property and a corresponding audit log
-            green_property = priorAssessments.order_by('date').last()
-            old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
-
-            # log changes
-            green_property.log(
-                    changed_fields=assessment_data,
-                    ancestor=old_audit_log.ancestor,
-                    parent=old_audit_log,
-                    user=user)   
+    
+    if propertyview is not None:
+        for pv in propertyview:
+#        property_view = PropertyView.objects.get(state=property_state) 
+            assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
+            #consolidate with green addendum
+            priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+                    view=pv,
+                    assessment=assessment)
+                    
+            if(not priorAssessments.exists()):
+                # If the property does not have an assessment in the database
+                # for the specifed assesment type create a new one.
+                green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
+                green_property.initialize_audit_logs(user=user)
+                green_property.save()
+            else:
+                # find most recently created property and a corresponding audit log
+                green_property = priorAssessments.order_by('date').last()
+                old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
+                if old_audit_log is not None:
+                    # log changes
+                    green_property.log(
+                            changed_fields=assessment_data,
+                            ancestor=old_audit_log.ancestor,
+                            parent=old_audit_log,
+                            user=user)   
+                else:
+                    green_property.initialize_audit_logs(user=user)
+                    green_property.save()                    
         
-        ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
-        ga_url.url = url
-        ga_url.description =  assessment_name + 'Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        ga_url.save()
-    except:
-        print('no existing home')
+            ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
+            ga_url.url = url
+            ga_url.description = 'Vermont profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            ga_url.save()
+            
+        return JsonResponse({'status': 'success', 'url': url})       
+    else:
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
 
-    return JsonResponse({'status': 'success', 'url': url})       
     
