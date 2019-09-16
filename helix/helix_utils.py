@@ -28,6 +28,7 @@ from seed.models import (
 
 from helix.models import HelixMeasurement
 from helix.utils.address import normalize_address_str
+from seed.utils.cache import get_cache
     
 """Create csv output format"""
 def save_and_load(user, dataset, cycle, data, file_name):
@@ -84,4 +85,10 @@ def upload(filename, data, dataset, cycle):
             source_type="Assessed Raw")
     return f.pk
     
-
+""" wait for a celery task to finish running"""
+def wait_for_task(key):
+    prog = 0
+    while prog < 100:
+        prog = int(get_cache(key)['progress'])
+        # Call to sleep is required otherwise this method will hang.
+        time.sleep(0.5)

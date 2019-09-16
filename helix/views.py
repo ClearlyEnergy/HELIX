@@ -6,7 +6,7 @@ import csv
 import datetime
 import string
 
-from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create
+from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings
 
 from django.conf import settings
 from django.core import serializers
@@ -412,21 +412,52 @@ def helix_green_addendum(request, pk=None):
 @api_endpoint
 @api_view(['GET'])
 def helix_vermont_profile(request):
+    org = Organization.objects.get(name=request.GET['organization_name'])
+    user = request.user
+    create = False
     if 'property_id' in request.GET:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
     elif 'property_uid' in request.GET:
         property_uid = request.GET['property_uid']
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    else:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
-    
+        if state_ids:
+            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+            if not propertyview:
+                create = True
+        else:
+            create = True
+    if create:
+        cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this        
+        dataset = ImportRecord.objects.get(name="Vermont Profile", super_organization = org)
+        result = [{'Address Line 1': request.GET['street'], #fix that into line 1 & 2
+            'City': request.GET['city'], 
+            'Postal Code': request.GET['zipcode'], 
+            'State': request.GET['state'],
+            'Custom ID 1': request.GET['property_uid']}]
+        file_pk = utils.save_and_load(user, dataset, cycle, result, "vt_profile.csv")
+        #save data
+        resp = save_raw_data(file_pk)            
+        save_prog_key = resp['progress_key']
+        utils.wait_for_task(save_prog_key)
+        #map data
+#        save_column_mappings(file_id, col_mappings) #perform column mapping
+        resp = map_data(file_pk)
+        map_prog_key = resp['progress_key']
+        utils.wait_for_task(map_prog_key)
+#       attempt to match with existing records
+        resp = match_buildings(file_pk)
+#            if (resp['status'] == 'error'):
+#                return resp
+        match_prog_key = resp['progress_key']
+        utils.wait_for_task(match_prog_key)
+#       retrieve property        
+        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+        if state_ids:
+            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+            
     if not propertyview:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
-    
-    org = Organization.objects.get(name=request.GET['organization_name'])
-    user = request.user
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
     data_dict = {}
@@ -449,7 +480,6 @@ def helix_vermont_profile(request):
     
     if propertyview is not None:
         for pv in propertyview:
-#        property_view = PropertyView.objects.get(state=property_state) 
             assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
             #consolidate with green addendum
             priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
