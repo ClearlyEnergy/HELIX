@@ -8,16 +8,19 @@
     │   └── helix
     ├── helix-hes
     │   └── hes
+    ├── helix-leed
+    │   └── leed
+    ├── helix-label
+    │   └── label
     ├── seed
-    └── seed-autoload
-        └── autoload
     ```
     execute the folowing commands from within the seed directory.
 
     ```
     $ ln -s ../HELIX/helix/ helix
     $ ln -s ../helix-hes/hes hes
-    $ ln -s ../seed-autoload/autoload autoload
+    $ ln -s ../helix-leed/leed leed
+    $ ln -s ../helix-leed/label label
     ```
     This should yield the folowing directory structure
     ```
@@ -27,16 +30,15 @@
     ├── helix-hes
     │   └── hes
     ├── seed
-    │   ├── autoload -> ../seed-autoload/autoload/
     │   ├── helix -> ../HELIX/helix/
     │   └── hes -> ../helix-hes/hes
-    └── seed-autoload
-        └── autoload
+    │   └── leed -> ../helix-leed/leed
+    │   └── label -> ../helix-leed/label
     ```
-    (for deployment, helix-hes and seed-autoload could be installed through pip install but, this is inconvienient for development)
+    (for deployment, helix-hes, helix-label and helix-leed could be installed through pip install but, this is inconvienient for development)
   * Add to config/settings/common.py below the last line where INSTALLED_APPS is modified by the existing seed code.
      ```
-     INSTALLED_APPS = ('helix','autoload','hes',) + INSTALLED_APPS 
+     INSTALLED_APPS = ('helix','hes','leed','label',) + INSTALLED_APPS 
      ```
     This should place helix templates at a higher priority than existing seed templates.
     (It might be better to add this to config/settings/local_untracked.py)
