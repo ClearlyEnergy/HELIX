@@ -461,7 +461,7 @@ def helix_vermont_profile(request):
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
     data_dict = {}
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name']
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name','heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
         'finishedsqft','yearbuilt','hers_score', 'hes_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
@@ -513,6 +513,50 @@ def helix_vermont_profile(request):
             ga_url.save()
             
         return JsonResponse({'status': 'success', 'url': url})       
+    else:
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+
+@api_endpoint
+@api_view(['GET'])
+def helix_remove_vermont_profile(request):
+    org = Organization.objects.get(name=request.GET['organization_name'])
+    user = request.user
+    if 'property_id' in request.GET:
+        propertyview_pk = request.GET['property_id']
+        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
+    elif 'property_uid' in request.GET:
+        property_uid = request.GET['property_uid']
+        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+        if state_ids:
+            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+
+    if not propertyview:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
+    
+    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)                    
+    lab = label.Label()
+    
+    if propertyview is not None:
+        for pv in propertyview:
+            #consolidate with green addendum
+            priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
+                    view=pv,
+                    assessment=assessment)
+                    
+            if priorAssessments:
+                # find most recently created property and a corresponding audit log
+                green_property = priorAssessments.order_by('date').last()
+                ga_url, _created = GreenAssessmentURL.objects.get(property_assessment=green_property)
+                label_link = ga_url.url
+                print('before delete DB')
+                ga_url.delete() #delete URL entry in DB
+                print('after delete DB')
+                lab = label.Label()
+                success = lab.remove_label(label_link)
+                print(success)
+                print('after delete S3')
+            
+        return JsonResponse({'status': 'success'})       
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
 
