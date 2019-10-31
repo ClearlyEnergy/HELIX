@@ -114,10 +114,14 @@
 						<tr ng-if="isOpen">
 							<th></th>
 	                        <th sd-resizable>Report Links</th>
+							<th></th>
 						</tr>
 						<tr ng-repeat="url in certification.urls" ng-if="isOpen">
 							<td></td>
 							<td><a href="{$ url[0] $}" target="_blank">{$ url[0] $}</a></td>
+							<td>
+								<a class="delete_link" ng-click="confirm_delete_assessment_url(url)" ng-show="menu.user.organization.user_role !== 'viewer'"><i class='fa fa-trash-o'></i></a>
+							</td>
 						</tr>
 					</tbody>
                 </table>

@@ -461,7 +461,7 @@ def helix_vermont_profile(request):
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
     data_dict = {}
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name','heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar']
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name','heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar','has_audit','auditor']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
         'finishedsqft','yearbuilt','hers_score', 'hes_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
@@ -533,7 +533,7 @@ def helix_remove_vermont_profile(request):
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
-    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)                    
+    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)                    
     lab = label.Label()
     
     if propertyview is not None:
