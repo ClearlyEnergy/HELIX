@@ -5,6 +5,8 @@ import subprocess
 import csv
 import datetime
 import string
+from urlparse import urlparse
+#from urllib.parse import urlparse
 
 from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings
 
@@ -126,6 +128,7 @@ def helix_csv_export(request):
     reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
     assessments = HELIXGreenAssessmentProperty.objects.filter(
         view__pk__in=view_ids).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications)
+#    num_certification = assessments.values_list('assessment_id', flat=True)
     
     #retrieve measures that belogn to one of these ids
     matching_measures = HELIXPropertyMeasure.objects.filter(property_state__in=state_ids) #only pv can be exported
@@ -142,13 +145,14 @@ def helix_csv_export(request):
     # Dump all fields of all retrieved assessments properties into csv
     addressmap = {'custom_id_1': 'UniversalPropertyId', 'city': 'City', 'postal_code': 'PostalCode', 'state': 'State', 'latitude': 'Latitude', 'longitude': 'Longitude'}
     addressmapxd = {'StreetDirPrefix': 'StreetDirPrefix', 'StreetDirSuffix': 'StreetDirSuffix', 'StreetName': 'StreetName', 'StreetNumber': 'StreetNumber', 'StreetSuffix':'StreetSuffix', 'UnitNumber': 'UnitNumber'}
-    fieldnames = ['GreenVerificationRating', 'GreenVerificationVersion', 'GreenVerificationYear', 'GreenVerificationBody',  'GreenBuildingVerificationType', 'GreenVerificationSource', 'GreenVerificationMetric', 'GreenVerificationStatus', 'GreenVerificationURL']
+    fieldnames = ['GreenVerificationBody',  'GreenBuildingVerificationType', 'GreenVerificationRating', 'GreenVerificationMetric', 'GreenVerificationVersion', 'GreenVerificationYear',  'GreenVerificationSource',  'GreenVerificationStatus', 'GreenVerificationURL']
     measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'PowerProductionYearInstall']
 
     writer = csv.writer(response)
-    writer.writerow([value for key, value in addressmap.iteritems()] + 
-        [value for key, value in addressmapxd.iteritems()] + ['Unparsed Address'] + 
-        [str(f) for f in fieldnames] + [str(m) for m in measurenames])
+    arr = [value for key, value in addressmap.iteritems()] + [value for key, value in addressmapxd.iteritems()] + ['Unparsed Address'] + [str(f) for f in fieldnames]
+    if matching_measures:
+        arr += [str(m) for m in measurenames]
+    writer.writerow(arr)
     for a in assessments:
         a_dict = a.to_reso_dict()
         unparsedAddress = a.view.state.address_line_1
@@ -518,8 +522,7 @@ def helix_vermont_profile(request):
 
 @api_endpoint
 @api_view(['GET'])
-def helix_remove_vermont_profile(request):
-    org = Organization.objects.get(name=request.GET['organization_name'])
+def helix_remove_profile(request):
     user = request.user
     if 'property_id' in request.GET:
         propertyview_pk = request.GET['property_id']
@@ -533,7 +536,9 @@ def helix_remove_vermont_profile(request):
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
-    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)                    
+#    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)                    
+    org = Organization.objects.get(name='VEIC-Efficiency Vermont') ##Change
+    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org) ##Change                    
     lab = label.Label()
     
     if propertyview is not None:
@@ -546,16 +551,19 @@ def helix_remove_vermont_profile(request):
             if priorAssessments:
                 # find most recently created property and a corresponding audit log
                 green_property = priorAssessments.order_by('date').last()
-                ga_url, _created = GreenAssessmentURL.objects.get(property_assessment=green_property)
-                label_link = ga_url.url
-                print('before delete DB')
-                ga_url.delete() #delete URL entry in DB
-                print('after delete DB')
-                lab = label.Label()
-                success = lab.remove_label(label_link)
-                print(success)
-                print('after delete S3')
-            
+                ga_urls = GreenAssessmentURL.objects.filter(property_assessment=green_property)
+                for ga_url in ga_urls: 
+                    label_link = ga_url.url
+                    print(label_link)
+                    o = urlparse(label_link)
+                    if o:
+                        link_parts = os.path.split(o.path)
+                        label_link = link_parts[1]
+                        lab = label.Label()
+                        success = lab.remove_label(label_link)
+                        ga_url.delete() #delete URL entry in DB
+                    else:
+                        JsonResponse({'status': 'success', 'message': 'no existing profile'}) 
         return JsonResponse({'status': 'success'})       
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
