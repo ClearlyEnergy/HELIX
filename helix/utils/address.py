@@ -173,7 +173,7 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     # now parse the address into number, street name and street type
     try:
         # Add in the mapping of CornerOf to the AddressNumber.
-        if address_val_2:
+        if address_val_2 and ('lot' not in address_val_2) :
             addr = usaddress.tag(str(address_val + ' ' + address_val_2), tag_mapping={'CornerOf': 'AddressNumber'})[0]
         else:
             addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]  

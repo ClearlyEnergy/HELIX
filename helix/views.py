@@ -50,6 +50,7 @@ from seed.lib.mcm import cleaners, mapper, reader
 from seed.utils.api import api_endpoint, api_endpoint_class
 
 import helix.helix_utils as utils
+from helix.utils.address import normalize_address_str
 from zeep.exceptions import Fault
 
 from label import label
@@ -268,6 +269,10 @@ def helix_reso_export_xml(request):
 #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
         propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    elif 'street' in request.GET and 'postal_code' in request.GET:
+        normalized_address, extra_data = normalize_address_str(request.GET['street'], '', request.GET['postal_code'],{})
+        state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
     else:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
         
@@ -286,9 +291,9 @@ def helix_reso_export_xml(request):
         "property": propertyview.first().state,
     }
 
-    for pv in propertyview:
-        if pv.state.data_quality == 2: #exclude records with data quality errors
-            propertyview.exclude(pv)
+#    for pv in propertyview:
+#        if pv.state.data_quality == 2: #exclude records with data quality errors
+#            propertyview.exclude(pv)
 #        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
     
     measurement_dict = {}
@@ -465,11 +470,12 @@ def helix_vermont_profile(request):
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
     data_dict = {}
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','estar_wh','author_name','heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar','has_audit','auditor']
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','author_name','has_audit','auditor']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
         'finishedsqft','yearbuilt','hers_score', 'hes_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
         'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
+    boolvars = ['estar_wh', 'heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar',]
     for var in txtvars:
         data_dict[var] = request.GET[var]
     for var in floatvars:
@@ -477,6 +483,11 @@ def helix_vermont_profile(request):
             data_dict[var] = float(request.GET[var])
         else:
             data_dict[var] = request.GET[var]
+    for var in boolvars:
+        if request.GET[var] == "true":
+            data_dict[var] = True
+        else:
+            data_dict[var] = False
                     
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
