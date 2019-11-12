@@ -375,7 +375,6 @@ def helix_green_addendum(request, pk=None):
     #retrieve measures
     measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
     for index, meas in enumerate(measures):
-        print(index)
 #    for meas in measures:
         data_dict.update(meas.to_label_dict(index))
         #add _2 for second solar
@@ -423,113 +422,69 @@ def helix_green_addendum(request, pk=None):
 def helix_vermont_profile(request):
     org = Organization.objects.get(name=request.GET['organization_name'])
     user = request.user
-    create = False
-    if 'property_id' in request.GET:
-        propertyview_pk = request.GET['property_id']
-        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    elif 'property_uid' in request.GET:
-        property_uid = request.GET['property_uid']
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        if state_ids:
-            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-            if not propertyview:
-                create = True
-        else:
-            create = True
-    if create:
-        cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this        
-        dataset = ImportRecord.objects.get(name="Vermont Profile", super_organization = org)
-        result = [{'Address Line 1': request.GET['street'], #fix that into line 1 & 2
-            'City': request.GET['city'], 
-            'Postal Code': request.GET['zipcode'], 
-            'State': request.GET['state'],
-            'Custom ID 1': request.GET['property_uid']}]
-        file_pk = utils.save_and_load(user, dataset, cycle, result, "vt_profile.csv")
-        #save data
-        resp = save_raw_data(file_pk)            
-        save_prog_key = resp['progress_key']
-        utils.wait_for_task(save_prog_key)
-        #map data
-#        save_column_mappings(file_id, col_mappings) #perform column mapping
-        resp = map_data(file_pk)
-        map_prog_key = resp['progress_key']
-        utils.wait_for_task(map_prog_key)
-#       attempt to match with existing records
-        resp = match_buildings(file_pk)
-#            if (resp['status'] == 'error'):
-#                return resp
-        match_prog_key = resp['progress_key']
-        utils.wait_for_task(match_prog_key)
-#       retrieve property        
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        if state_ids:
-            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    propertyview = utils.propertyview_find_or_create(request, org, user)
             
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
-    data_dict = {}
+
     txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','author_name','has_audit','auditor']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
         'finishedsqft','yearbuilt','hers_score', 'hes_score',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
         'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
     boolvars = ['estar_wh', 'heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar',]
-    for var in txtvars:
-        data_dict[var] = request.GET[var]
-    for var in floatvars:
-        if request.GET[var]:
-            data_dict[var] = float(request.GET[var])
-        else:
-            data_dict[var] = request.GET[var]
-    for var in boolvars:
-        if request.GET[var] == "true":
-            data_dict[var] = True
-        else:
-            data_dict[var] = False
+    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, boolvars)
                     
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
     
     if propertyview is not None:
-        for pv in propertyview:
-            assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
-            #consolidate with green addendum
-            priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
-                    view=pv,
-                    assessment=assessment)
-                    
-            if(not priorAssessments.exists()):
-                # If the property does not have an assessment in the database
-                # for the specifed assesment type create a new one.
-                green_property = HELIXGreenAssessmentProperty.objects.create(**assessment_data)
-                green_property.initialize_audit_logs(user=user)
-                green_property.save()
-            else:
-                # find most recently created property and a corresponding audit log
-                green_property = priorAssessments.order_by('date').last()
-                old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
-                if old_audit_log is not None:
-                    # log changes
-                    green_property.log(
-                            changed_fields=assessment_data,
-                            ancestor=old_audit_log.ancestor,
-                            parent=old_audit_log,
-                            user=user)   
-                else:
-                    green_property.initialize_audit_logs(user=user)
-                    green_property.save()                    
-        
-            ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
-            ga_url.url = url
-            ga_url.description = 'Vermont profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            ga_url.save()
-            
+        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
         return JsonResponse({'status': 'success', 'url': url})       
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+
+@api_endpoint
+@api_view(['GET'])
+def helix_massachusetts_scorecard(request, pk=None):
+    org_id = request.GET['organization_id']
+    user = request.user
+    property_state = PropertyState.objects.get(pk=pk)
+    propertyview = PropertyView.objects.filter(state=property_state)
+            
+    if not propertyview:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
+        
+    print(property_state.extra_data)
+    
+    assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization_id=org_id)
+    data_dict = {'address_line_1': '123 Main St.', 'address_line_2': '', 'city': 'Whately', 'state': 'MA', 'postal_code': '01903', 
+        'year_built': 1850, 'conditioned_floor_area': 2735, 'number_of_bedrooms': 3, 'primary_heating_fuel_type': 'Fuel Oil', 
+        'assessment_date': 'N/A', 'company': 'Dave Saves', 'total_energy_usage_base': 205, 'total_energy_usage_improved': 122, 
+        'electric_energy_usage_base': 3613, 'fuel_energy_base': 1324,
+        'total_energy_cost_base': 4343, 'total_energy_cost_improved': 2798, 
+        'propane_percentage':4, 'fuel_oil_percentage': 90, 'electricity_percentage': 6,
+        'co2_production_base': 16.4, 'co2_production_improved': 10.2,
+        'fuel_oil_percentage_co2': 93, 'electricity_percentage_co2': 7
+    }
+    
+    txtvars = ['street', 'city', 'state', 'zipcode']
+    floatvars = []
+    boolvars = []
+
+    lab = label.Label()
+    key = lab.massachusetts_energy_scorecard(data_dict)
+    url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+
+    if propertyview is not None:
+        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
+        return JsonResponse({'status': 'success', 'url': url})       
+    else:
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+    return None
 
 @api_endpoint
 @api_view(['GET'])
@@ -578,5 +533,3 @@ def helix_remove_profile(request):
         return JsonResponse({'status': 'success'})       
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
-
-    
