@@ -105,50 +105,24 @@ def wait_for_task(key):
         # Call to sleep is required otherwise this method will hang.
         time.sleep(0.5)
 
-""" find propertyview by id, uid or address, create if propertyview does not exist"""
-def propertyview_find_or_create(request, org, user):
-    create = False
-    if 'property_id' in request.GET:
+
+""" find propertyview by id, uid or address """
+def propertyview_find(request):
+    if 'property_id' in request.GET and request.GET['property_id']:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    elif 'property_uid' in request.GET:
+    elif 'property_uid' in request.GET and request.GET['property_uid']:
         property_uid = request.GET['property_uid']
+#        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        if state_ids:
-            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-            if not propertyview:
-                create = True
-        else:
-            create = True
-    if create:
-        cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this        
-        dataset = ImportRecord.objects.get(name="Vermont Profile", super_organization = org)
-        result = [{'Address Line 1': request.GET['street'], #fix that into line 1 & 2
-            'City': request.GET['city'], 
-            'Postal Code': request.GET['zipcode'], 
-            'State': request.GET['state'],
-            'Custom ID 1': request.GET['property_uid']}]
-        file_pk = utils.save_and_load(user, dataset, cycle, result, "vt_profile.csv")
-        #save data
-        resp = save_raw_data(file_pk)            
-        save_prog_key = resp['progress_key']
-        utils.wait_for_task(save_prog_key)
-        #map data
-#        save_column_mappings(file_id, col_mappings) #perform column mapping
-        resp = map_data(file_pk)
-        map_prog_key = resp['progress_key']
-        utils.wait_for_task(map_prog_key)
-#       attempt to match with existing records
-        resp = match_buildings(file_pk)
-#            if (resp['status'] == 'error'):
-#                return resp
-        match_prog_key = resp['progress_key']
-        utils.wait_for_task(match_prog_key)
-#       retrieve property        
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        if state_ids:
-            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    elif 'street' in request.GET and 'postal_code' in request.GET:
+        normalized_address, extra_data = normalize_address_str(request.GET['street'], '', request.GET['postal_code'],{})
+        state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
+        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    else:
+        propertyview = None
+        
     return propertyview
     
 """ Create data dictionary from request variables """

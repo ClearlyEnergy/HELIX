@@ -261,21 +261,8 @@ def helix_reso_export_list_xml(request):
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_xml(request):
-    if 'property_id' in request.GET:
-        propertyview_pk = request.GET['property_id']
-        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    elif 'property_uid' in request.GET:
-        property_uid = request.GET['property_uid']
-#        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    elif 'street' in request.GET and 'postal_code' in request.GET:
-        normalized_address, extra_data = normalize_address_str(request.GET['street'], '', request.GET['postal_code'],{})
-        state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    else:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property specified --!>')
-        
+    propertyview = utils.propertyview_find(request)
+            
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
 
@@ -422,8 +409,33 @@ def helix_green_addendum(request, pk=None):
 def helix_vermont_profile(request):
     org = Organization.objects.get(name=request.GET['organization_name'])
     user = request.user
-    propertyview = utils.propertyview_find_or_create(request, org, user)
-            
+    propertyview = utils.propertyview_find(request)
+    if not propertyview:
+        cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this        
+        dataset = ImportRecord.objects.get(name="Vermont Profile", super_organization = org)
+        result = [{'Address Line 1': request.GET['street'], #fix that into line 1 & 2
+            'City': request.GET['city'], 
+            'Postal Code': request.GET['zipcode'], 
+            'State': request.GET['state'],
+            'Custom ID 1': request.GET['property_uid']}]
+        file_pk = utils.save_and_load(user, dataset, cycle, result, "vt_profile.csv")
+        #save data
+        resp = save_raw_data(file_pk)   
+        save_prog_key = resp['progress_key']
+        utils.wait_for_task(save_prog_key)
+        #map data
+    #        save_column_mappings(file_id, col_mappings) #perform column mapping
+        resp = map_data(file_pk)
+        map_prog_key = resp['progress_key']
+        utils.wait_for_task(map_prog_key)
+    #       attempt to match with existing records - not needed since new
+        resp = match_buildings(file_pk)
+    #            if (resp['status'] == 'error'):
+    #                return resp
+        match_prog_key = resp['progress_key']
+        utils.wait_for_task(match_prog_key)
+        propertyview = utils.propertyview_find(request)
+
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
@@ -458,23 +470,45 @@ def helix_massachusetts_scorecard(request, pk=None):
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
         
-    print(property_state.extra_data)
-    
     assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization_id=org_id)
-    data_dict = {'address_line_1': '123 Main St.', 'address_line_2': '', 'city': 'Whately', 'state': 'MA', 'postal_code': '01903', 
-        'year_built': 1850, 'conditioned_floor_area': 2735, 'number_of_bedrooms': 3, 'primary_heating_fuel_type': 'Fuel Oil', 
-        'assessment_date': 'N/A', 'company': 'Dave Saves', 'total_energy_usage_base': 205, 'total_energy_usage_improved': 122, 
-        'electric_energy_usage_base': 3613, 'fuel_energy_base': 1324,
-        'total_energy_cost_base': 4343, 'total_energy_cost_improved': 2798, 
-        'propane_percentage':4, 'fuel_oil_percentage': 90, 'electricity_percentage': 6,
-        'co2_production_base': 16.4, 'co2_production_improved': 10.2,
-        'fuel_oil_percentage_co2': 93, 'electricity_percentage_co2': 7
-    }
+    data_dict = {
+        'address_line_1': property_state.address_line_1, 
+        'address_line_2': property_state.address_line_2, 
+        'city': property_state.city,
+        'state': property_state.state,
+        'postal_code': property_state.postal_code
+    } 
+        
+    floatvars = ['Utility Price > Fuel Oil', 'Utility Price > Electricity', 'Utility Price > Natural Gas', 'Utility Price > Wood', 'Utility Price > Pellets', 'Utility Price > Propane',
+    'Utilities > Primary Heating Fuel Type', 
+    'Metrics > Fuel Energy Cost Base ($/yr)', 'Metrics > Fuel Energy Cost Saved ($/yr)', 'Metrics > Fuel Energy Cost Improved ($/yr)', 
+    'Metrics > Fuel Energy Usage Saved (therms/yr)', 'Metrics > Fuel Energy Usage Improved (therms/yr)', 'Metrics > Fuel Energy Usage Base (therms/yr)', 
+    'Metrics > Total Energy Cost Improved ($/yr)', 'Metrics > Total Energy Cost Base ($/yr)', 'Metrics > Total Energy Cost Saved ($/yr)', 
+    'Metrics > Total Energy Usage Improved (MMBtu/yr)', 'Metrics > Total Energy Usage Saved (MMBtu/yr)', 'Metrics > Total Energy Usage Base (MMBtu/yr)',
+    'Metrics > Electric Energy Usage Improved (kWh/yr)', 'Metrics > Electric Energy Usage Saved (kWh/yr)', 
+    'Metrics > Electric Energy Usage Base (kWh/yr)', 
+    'Metrics > Electric Energy Cost Improved ($/yr)', 'Metrics > Electric Energy Cost Saved ($/yr)', 'Metrics > Electric Energy Cost Base ($/yr)', 
+    'Metrics > CO2 Production Improved (Tons/yr)', 'Metrics > CO2 Production Base (Tons/yr)', 'Metrics > CO2 Production Saved (Tons/yr)',
+    'Program > Incentive 1',
+    'Building > Conditioned Area', 'Building > Year Built', 'Building > Number Of Bedrooms', 'Contractor > Name', 
+    'Green Assessment Property Date']
     
-    txtvars = ['street', 'city', 'state', 'zipcode']
-    floatvars = []
-    boolvars = []
-
+    for var in floatvars:
+        part1 = var.split('>')[-1].lstrip()
+        part2 = part1.split('(')[0].rstrip()
+        part3 = part2.replace(' ','_').lower()
+        data_dict[part3] = property_state.extra_data[var]
+        
+    to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+    to_co2 = {'electric': 0.00061}
+    
+    for fuel in ['propane', 'fuel_oil', 'electric', 'natural_gas', 'wood', 'pellets']:
+        data_dict[fuel+'_percentage'] = data_dict[fuel+'_energy_usage_base']*to_btu[fuel]/data_dict['total_energy_usage_base']
+        if fuel == 'electric':
+            data_dict[fuel+'_percentage_co2'] = to_co2['electric'] * data_dict['electric_energy_usage_base']
+        else:
+            data_dict[fuel+'_percentage_co2'] = data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']
+    
     lab = label.Label()
     key = lab.massachusetts_energy_scorecard(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
