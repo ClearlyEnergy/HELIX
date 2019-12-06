@@ -501,14 +501,17 @@ def helix_massachusetts_scorecard(request, pk=None):
         
     to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
-    
-    for fuel in ['propane', 'fuel_oil', 'electric', 'natural_gas', 'wood', 'pellets']:
-        data_dict[fuel+'_percentage'] = data_dict[fuel+'_energy_usage_base']*to_btu[fuel]/data_dict['total_energy_usage_base']
-        if fuel == 'electric':
-            data_dict[fuel+'_percentage_co2'] = to_co2['electric'] * data_dict['electric_energy_usage_base']
-        else:
-            data_dict[fuel+'_percentage_co2'] = data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']
-    
+
+    if data_dict['fuel_energy_usage_base'] is not None:
+        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base'] / (data_dict['fuel_energy_usage_base'] + data_dict['electric_energy_usage_base']*to_btu['electric'])
+        data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+    else:
+        data_dict['fuel_percentage'] = 0.0
+        data_dict['fuel_percentage_co2'] = 0.0
+
+    data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
+    data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
+
     lab = label.Label()
     key = lab.massachusetts_energy_scorecard(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
