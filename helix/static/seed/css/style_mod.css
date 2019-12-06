@@ -31,6 +31,13 @@
 	color: #00a0af;	
 }
 
+.logo_text_platform_em {
+	font-size: 14px;
+	font-style: italic;
+	margin-top: -10px;
+    float: left;
+}
+
 /* Color for the text */
 a, a:active, a:visited{
   color:#00a0af; 
