@@ -2,32 +2,32 @@ from django.db import models
 from seed.models import certification
 from seed.models import property_measures
 from seed.lib.superperms.orgs.models import Organization
-from django.contrib.auth.models import Group
-from tos.models import TermsOfService, UserAgreement, NoActiveTermsOfService
+#from django.contrib.auth.models import Group
+#from tos.models import TermsOfService, UserAgreement, NoActiveTermsOfService
             
-class HELIXTermsOfServiceManager(models.Manager):
-    def get_current_group_tos(self, group_pk):
-        try:
-            return self.get(active=True, group_id=group_pk)
-        except self.model.DoesNotExist:
-            raise NoActiveTermsOfService(
-                u'Please create an active Terms-of-Service'
-            )
+#class HELIXTermsOfServiceManager(models.Manager):
+#    def get_current_group_tos(self, group_pk):
+#        try:
+#            return self.get(active=True, group_id=group_pk)
+#        except self.model.DoesNotExist:
+#            raise NoActiveTermsOfService(
+#                u'Please create an active Terms-of-Service'
+#            )
 
-class HELIXTermsOfService(TermsOfService):
-    """
-    Additional field for Terms of Service
-    group Attach to authentication group
-    """    
-    group = models.ForeignKey(Group, related_name='group') 
-    objects = HELIXTermsOfServiceManager()
+#class HELIXTermsOfService(TermsOfService):
+#    """
+#    Additional field for Terms of Service
+#    group Attach to authentication group
+#    """    
+#    group = models.ForeignKey(Group, related_name='group') 
+#    objects = HELIXTermsOfServiceManager()
     
-def has_user_agreed_latest_group_tos(user):
-    group_id = user.get_group_id()
-    return UserAgreement.objects.filter(
-        terms_of_service=HELIXTermsOfService.objects.get_current_group_tos(group_id),
-        user=user,
-    ).exists()
+#def has_user_agreed_latest_group_tos(user):
+#    group_id = user.get_group_id()
+#    return UserAgreement.objects.filter(
+#        terms_of_service=HELIXTermsOfService.objects.get_current_group_tos(group_id),
+#        user=user,
+#    ).exists()
        
 
 class HELIXGreenAssessment(certification.GreenAssessment):

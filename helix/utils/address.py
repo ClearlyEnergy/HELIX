@@ -8,6 +8,7 @@
 import re
 
 import usaddress
+# from past.builtins import basestring
 from streetaddress import StreetAddressFormatter
 
 STATE_MAP = {
@@ -69,6 +70,28 @@ STATE_MAP = {
         'West Virginia': 'WV',
         'Wyoming': 'WY'
 }
+
+def _normalize_subaddress_type(subaddress_type):
+    subaddress_type = subaddress_type.lower().replace('.', '')
+    map = {
+        'bldg': 'building',
+        'blg': 'building',
+    }
+    if subaddress_type in map:
+        return map[subaddress_type]
+    return subaddress_type
+
+
+def _normalize_occupancy_type(occupancy_id):
+    occupancy_id = occupancy_id.lower().replace('.', '')
+    map = {
+        'ste': 'suite',
+        'suite': 'suite',
+    }
+    if occupancy_id in map:
+        return map[occupancy_id]
+    return occupancy_id
+
 
 def _normalize_address_direction(direction):
     direction = direction.lower().replace('.', '')
@@ -160,7 +183,13 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     if not address_val:
         return None
 
-    address_val = unicode(address_val).encode('utf-8')
+    # if this is a byte string, then convert to a string-string
+    if isinstance(address_val, bytes):
+        address_val = address_val.decode('utf-8')
+    elif not isinstance(address_val, str):
+        address_val = str(address_val)
+    else:
+        pass
 
     # Do some string replacements to remove odd characters that we come across
     replacements = {

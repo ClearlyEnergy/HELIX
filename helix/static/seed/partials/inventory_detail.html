@@ -210,18 +210,49 @@
 	<div class="section">
 	    <div class="section_content_container">
 	        <div class="section_content">
-<!-- HELIX REMOVE
             <div style="float:right; width:250px; text-align:right; margin: 10px 10px 0 0;" class="ellipsis">
                  <span popover-placement="top-left" popover-animation="false" popover-trigger="outsideClick" uib-popover="{$:: cycle.name $}">
                      <strong>{$:: 'Cycle' | translate $}:</strong> {$:: cycle.name $}
                  </span>
             </div>
-q
-END HELIX REMOVE -->			
+
+            <div style="margin:10px 250px 10px 0; padding:0 10px; display: flex; justify-content: space-between;">
+                <div uib-dropdown class="btn-group pointer" ng-style="nothing_selected_cursor()">
+                    <button id="btnInventoryActions"
+                            type="button"
+                            uib-dropdown-toggle
+                            class="btn btn-default btn-sm">
+                        {$:: 'Actions' | translate $} <span class="caret"></span>
+                    </button>
+                    <ul id="inventory-detail-actions-dropdown" uib-dropdown-menu class="dropdown-menu" role="menu" aria-labelledby="btnInventoryActions">
+                        <li role="menuitem" ng-if="::inventory_type === 'properties'" class="upload-list-item">
+                            <div sd-uploader sourcetype="BuildingSyncUpdate" sourceprog="" sourcever="" importrecord="item_parent.id" organization-id="organization.id" cycle-id="cycle.id" eventfunc="uploaderfunc(message, file, progress)">{$:: 'Update with BuildingSync' | translate $}</div>
+                        </li>
+
+                        <li ng-if="::inventory_type === 'properties'" role="menuitem">
+                            <a ng-click="export_building_sync()">{$:: 'Export BuildingSync' | translate $}</a>
+                        </li>
+
+                        <li ng-if="::inventory_type === 'properties'" role="menuitem">
+                            <a ng-click="export_building_sync_xlsx()">Export BuildingSync (Excel)</a>
+                        </li>
+
+                        <li role="menuitem">
+                            <a ng-click="open_update_labels_modal()" ng-disabled="selectedCount === 0">{$:: 'Add/Remove Labels' | translate $}</a>
+                        </li>
+
+                        <li role="menuitem" ng-if="::historical_items.length > 1">
+                            <a ng-click="unmerge()" class="yellow-bg">{$:: 'Unmerge Last' | translate $}</a>
+                        </li>
+
+                    </ul>
+                    <div ng-if="::inventory_type === 'properties'" style="margin: 50px 25px 0;">
+                        <div class="alert alert-danger" ng-show="uploader.invalid_xml_extension_alert" translate="INVALID_XML_EXTENSION_ALERT"></div>
+                    </div>
+                </div>
+            </div>
+
             <div style="margin:10px 250px 10px 0; padding:0 10px;">
-                <button type="button" class="btn btn-default" ng-click="open_update_labels_modal()" style="vertical-align: top;">
-                    <i class="fa fa-tag"></i> {$:: 'Add/Remove Labels' | translate $}
-                </button>
                 <span style="display:inline-block; margin-top:9px; padding-left:15px; vertical-align: top;"><strong>{$:: 'Labels' | translate $}:</strong></span>
                 <span ng-if="!labels.length" style="color:#999;display:inline-block;margin-top:7px;" translate>(no labels applied)</span>
                 <div ng-if="labels.length" style="display: inline-block; width: calc(100vw - 570px); vertical-align: top;">
@@ -229,19 +260,27 @@ END HELIX REMOVE -->
                 </div>
             </div>
 
-            <div style="margin:10px 10px 10px 0; padding:0 10px; display: flex; justify-content: space-between;">
-                <span>
-                    <button ng-if="::historical_items.length > 1" type="button" class="btn btn-warning" ng-click="unmerge()" style="vertical-align: top;">
-                        <i class="fa fa-files-o"></i> {$:: 'Unmerge Last' | translate $}
-                    </button>
-                </span>
+            <div class="alert alert-warning" ng-show="edit_form_showing" translate>INDIVIDUAL_MATCH_MERGE_ROUND_ALERT</div>
 
+            <div style="margin:10px 10px 10px 0; padding:0 10px; display: flex; justify-content: space-between;">
                 <span ng-show="profiles.length > 0">
                     <label>{$:: 'Detail Settings Profile' | translate $}:</label>
                     <div style="display: inline-block;">
                         <select class="form-control input-sm" ng-model="currentProfile" ng-options="option.name for option in profiles track by option.id"></select>
                     </div>
                 </span>
+            </div>
+
+            <div ng-if="::inventory_type === 'properties'" style="margin:10px 10px 10px 0; padding:0 10px; display: flex; justify-content: space-between;">
+                <div class="progress_bar_container" ng-show="uploader.in_progress">
+                    <div class="progress_bar_copy_top"
+                             translate="UPLOADING_PROGRESS"
+                             translate-values="{ dataset_filename: uploader.filename }"></div>
+
+                        <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
+                        <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
+                    </div>
+                </div>
             </div>
 
             <div class="table_list_container table_item_detail">
@@ -318,7 +357,7 @@ END HELIX REMOVE -->
         </div>
     </div>
 
-    <!-- Paired Items Section
+    <!-- Paired Items Section -->
     <div class="section">
         <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
             <div class="section_header fixed_height_short has_no_padding">
@@ -335,9 +374,8 @@ END HELIX REMOVE -->
             </div>
         </div>
     </div>
-	-->
     <div class="section_content_container" style="margin-bottom:200px;">
-        <!-- List of paired items
+        <!-- List of paired items -->
         <div class="section_content">
             <div class="table_list_container table_item_detail" style="max-width:700px;">
                 <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
@@ -386,7 +424,6 @@ END HELIX REMOVE -->
                 </table>
             </div>
         </div>
-		-->
         </br>
         </br>
 
@@ -412,12 +449,14 @@ END HELIX REMOVE -->
                                 <tr>
                                     <th sd-resizable>File Type</th>
                                     <th sd-resizable class="ellipsis-resizable">File Name</th>
+                                    <th sd-resizable class="ellipsis-resizable">Created</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr ng-repeat="file in item_state.files">
                                     <td> {$ file.file_type $}</td>
                                     <td><a href='{$ file.file $}'>{$ file.filename $}</a></td>
+                                    <td>{$ file.created | date: 'yyyy-MM-dd h:mm a' $}</a></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -425,21 +464,20 @@ END HELIX REMOVE -->
                 </div>
             </div>
 
-            <!-- Scenarios Section
+            <!-- Scenarios Section -->
             <div class="section">
                 <div class="section_header_container" style="margin-top: 20px; border-bottom: 0;">
                     <div class="section_header fixed_height_short has_no_padding">
                         <div class="section_action_container left" style="width: 50%;">
-                        <span>
-                            <h2><i class="fa fa-sitemap"></i> Scenarios</h2>
-                        </span>
+                            <span>
+                                <h2><i class="fa fa-sitemap"></i> Scenarios</h2>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
-			-->
             <div class="section_content_container">
-                <!-- List of measures
+                <!-- List of measures -->
                 <div class="section_content">
                     <div class="table_list_container table_item_detail">
                         <table class="table table-striped table_highlight_first fixed-layout" style="margin-bottom:-1px;">
@@ -464,7 +502,6 @@ END HELIX REMOVE -->
                         </table>
                     </div>
                 </div>
-				-->
             </div>
         </ng-hide>
     </div>

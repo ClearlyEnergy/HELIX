@@ -5,8 +5,8 @@ import subprocess
 import csv
 import datetime
 import string
-from urlparse import urlparse
-#from urllib.parse import urlparse
+#from urlparse import urlparse
+from urllib.parse import urlparse
 
 from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings
 

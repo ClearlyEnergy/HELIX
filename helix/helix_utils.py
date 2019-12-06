@@ -1,6 +1,6 @@
 import os
 import csv
-import StringIO
+from io import StringIO
 import re
 import datetime
 import json
@@ -49,9 +49,9 @@ def save_and_load(user, dataset, cycle, data, file_name):
         try:
             headers
         except:
-            headers = elem.keys()
+            headers = list(elem.keys())
         else:
-            headers = list(set(headers + elem.keys()))
+            headers = list(headers | elem.keys())
 
     csv_data = save_formatted_data(headers, data)
     resp = upload(file_name, csv_data, dataset, cycle)
@@ -59,7 +59,7 @@ def save_and_load(user, dataset, cycle, data, file_name):
     
 """Create csv record"""
 def save_formatted_data(headers, data):
-    buf = StringIO.StringIO()
+    buf = StringIO()
     writer = csv.DictWriter(buf, fieldnames=headers)
     writer.writeheader()
     for dat in data:
@@ -72,22 +72,22 @@ def save_formatted_data(headers, data):
     
 """Upload a file to the specified import record"""
 def upload(filename, data, dataset, cycle):
-    if 'S3' in settings.DEFAULT_FILE_STORAGE:
-        path = 'data_imports/' + filename + '.'+ str(calendar.timegm(time.gmtime())/1000)
-        temp_file = default_storage.open(path, 'w')
+    #    if 'S3' in settings.DEFAULT_FILE_STORAGE:
+    #        path = 'data_imports/' + filename + '.'+ str(calendar.timegm(time.gmtime())/1000)
+    #        temp_file = default_storage.open(path, 'w')
+    #        temp_file.write(data)
+    #        temp_file.close()
+    #    else:        
+    path = settings.MEDIA_ROOT + "/uploads/" + filename
+    path = FileSystemStorage().get_available_name(path)
+
+    # verify the directory exists
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+
+    # save the file
+    with open(path, 'w+') as temp_file:
         temp_file.write(data)
-        temp_file.close()
-    else:        
-        path = settings.MEDIA_ROOT + "/uploads/" + filename
-        path = FileSystemStorage().get_available_name(path)
-
-        # verify the directory exists
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
-
-        # save the file
-        with open(path, 'wb+') as temp_file:
-            temp_file.write(data)
 
     f = ImportFile.objects.create(
             import_record=dataset,

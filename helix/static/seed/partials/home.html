@@ -3,7 +3,6 @@
     <div class="section_content">
       <div class="home_jump_nav_container">
         <div class="home_jump_nav">
-          <a id="nav-projects" ui-sref="projects" disabled><i class="fa fa-folder-o"></i>Projects</a>
           <a id="nav-inventory" ui-sref="inventory_list({inventory_type: 'properties'})"><i class="fa fa-home"></i>{$:: 'Inventory' | translate $}</a>
           <a id="nav-data" ui-sref="dataset_list" ng-show="::menu.user.organization.user_role !== 'viewer'"><i class="fa fa-sitemap"></i>{$:: 'Data' | translate $}</a>
           <a ui-sref="contact"><i class="fa fa-question-circle"></i>{$:: 'Contact' | translate $}</a>
@@ -19,7 +18,7 @@
       </div>
       <div class="whats_new_container">
         <div class="whats_new">
-          <h2 translate>Highlights of HELIX Database</h2>
+          <h2 translate>Highlights of HELIX Platform</h2>
 
           <div class="row">
             <div class="content_col col-md-4">
@@ -46,7 +45,7 @@
                   <span><i class="fa fa-exchange"></i></span>
                 </div>
                 <div class="content_col_header_right">
-                  <h3 translate>Auto-Load</h3>
+                  <h3 translate>Synchronize Data</h3>
                 </div>
               </div>
               <div class="copy">

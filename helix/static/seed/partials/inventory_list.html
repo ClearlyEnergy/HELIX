@@ -29,6 +29,9 @@
                     {$:: 'Actions' | translate $} <span class="caret"></span>
                 </button>
                 <ul id="inventory-actions-dropdown" uib-dropdown-menu class="dropdown-menu" role="menu" aria-labelledby="btnInventoryActions">
+                    <li role="menuitem">
+                        <a ng-click="open_merge_modal()" ng-disabled="selectedParentCount < 2">Merge Selected</a>
+                    </li>
                     <li role="menuitem" ng-hide="::menu.user.organization.user_role === 'viewer'">
                         <a ng-click="open_delete_modal()" ng-disabled="selectedCount === 0" translate>Delete Selected</a>
                     </li>
@@ -52,6 +55,13 @@
                     </li>
                     <li role="menuitem">
                         <a ng-click="run_data_quality_check()" ng-disabled="selectedCount === 0" translate>Data Quality Check</a>
+                    </li>
+                    <li class="divider"></li>
+                    <li role="menuitem">
+                        <a ng-click="open_geocode_modal()" ng-disabled="selectedCount === 0" translate>Geocode Selected</a>
+                    </li>
+                    <li role="menuitem">
+                        <a ng-click="open_ubid_modal()" ng-disabled="selectedCount === 0" >Decode UBID/ULID for Selected</a>
                     </li>
                     <li class="divider"></li>
                     <li role="menuitem">
@@ -86,16 +96,15 @@
             <label class="btn btn-default btn-sm" style="width:75px;" ng-class="{active: labelLogic === 'exclude'}" ng-click="labelLogicUpdated('exclude')" ng-disabled="!labels.length" translate>EXCLUDE</label>
         </div>
         <div class="form-group btn-group building-list-filter-buttons">
-            <button type="button" ng-click="clear_labels()" class="btn btn-default btn-sm" ng-disabled="!selected_labels.length" translate>Clear Labels</button>
+            <button type="button" ng-click="clear_labels()" class="btn btn-default btn-sm" ng-class="{'btn-info': selected_labels.length, 'btn-default': !selected_labels.length}" translate>Clear Labels</button>
         </div>
         <div class="btn-group">
-            <button type="button" ng-click="gridApi.grid.clearAllFilters();" ng-disabled="!filters_exist()" class="btn btn-default btn-sm" translate>Clear Filters</button>
+            <button type="button" ng-click="gridApi.grid.clearAllFilters();" ng-class="{'btn-info': filters_exist(), 'btn-default': !filters_exist()}" class="btn btn-sm" translate>Clear Filters</button>
         </div>
 
     </form>
 
     <div class="form-group settings_profile" style="padding-top: 20px; display: flex; justify-content: space-between;">
-<!-- HELIX remove cycle selection
         <span>
             <label>{$:: 'Cycle' | translate $}:</label>
             <div style="display: inline-block;">
@@ -104,8 +113,6 @@
                 </select>
             </div>
         </span>
-
--->
         <span ng-show="profiles.length > 0">
             <label>{$:: 'List Settings Profile' | translate $}:</label>
             <div style="display: inline-block;">
@@ -116,7 +123,7 @@
 </div>
 
 <div class="inventory-list-tab-container">
-    <div class="item-count">
+    <div class="item-count" ng-class="{'text-info': (filters_exist() || selected_labels.length)}">
         <span ng-if="::inventory_type === 'properties'">
             <i class="fa fa-building-o"></i>
             <span translate="NUMBER_OF_PROPERTIES" translate-values="{ num: (total | number: 0) }"></span>
@@ -131,11 +138,9 @@
         <li ng-class="::{active: inventory_type==='properties'}" heading="View by Property">
             <a ui-sref="inventory_list(::{inventory_type: 'properties'})" translate>View by Property</a>
         </li>
-<!-- HELIX remove view by tax lot
         <li ng-class="::{active: inventory_type==='taxlots'}" heading="View by Tax Lot">
             <a ui-sref="inventory_list(::{inventory_type: 'taxlots'})" translate>View by Tax Lot</a>
         </li>
--->
     </ul>
 </div>
 

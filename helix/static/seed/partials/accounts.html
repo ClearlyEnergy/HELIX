@@ -10,31 +10,6 @@
     </div>
 </div>
 <div class="section">
-    <!--<div class="section_header_container" ng-if="NEEDS_IMPLEMENTATION">
-        <div class="section_header">
-            <h2><i class="fa fa-users"></i> Pending Organization Invites</h2>
-        </div>
-    </div>
-    <div class="section_content_container" ng-if="NEEDS_IMPLEMENTATION">
-        <div class="section_content">
-            <div class="table_list_container">
-                <table class="table table-striped table_highlight_first">
-                    <thead>
-                        <tr>
-                            <th class="account_pending left">Name of Pending Organization</th>
-                            <th class="account_pending right"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="account_pending left">Julie Daily (<strong>Owner</strong>) would like to add you in the role of <strong>Member</strong> to this organization.</td>
-                            <td class="account_pending right" style="text-align:right;"><a class="btn btn-primary" href="">Accept</a> <a class="btn btn-default" href="">Reject</a></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>-->
     <div class="section_header_container" ng-if="orgs_I_own.length">
         <div class="section_header">
             <h2><i class="fa fa-users"></i> {$:: 'Organizations I Manage' | translate $}</h2>
@@ -43,11 +18,10 @@
     <div class="section_content_container" ng-if="orgs_I_own.length">
         <div class="section_content">
             <div id="org-owned-tables" class="table_list_container">
-                <table class="table table-striped table_highlight_first" ng-repeat="org in orgs_I_own">
+                <table id="organizations-table" class="table table-striped table_highlight_first" ng-repeat="org in orgs_I_own">
                     <thead>
                         <tr>
                             <th colspan="2" translate>Organization</th>
-                            <!-- <th>Org Level</th> -->
                         </tr>
                     </thead>
                     <tbody>
@@ -58,6 +32,8 @@
                             <td class="account_org right">
                                 <a ui-sref="organization_settings(::{organization_id: org.id})"><i class="fa fa-cogs"></i>Settings</a>
                                 <a ui-sref="organization_sharing(::{organization_id: org.id})" ng-if="::org.is_parent"><i class="fa fa-share-square-o"></i>{$:: 'Sharing' | translate $}</a>
+                                <a ui-sref="organization_column_settings(::{organization_id: org.id, inventory_type: 'properties'})" ng-if="::org.is_parent"><i class="fa fa-sliders"></i>{$:: 'Column Settings' | translate $}</a>
+                                <a ui-sref="organization_column_mappings(::{organization_id: org.id, inventory_type: 'properties'})" ng-if="::org.is_parent"><i class="fa fa-sitemap"></i>{$:: 'Column Mappings' | translate $}</a>
                                 <a ui-sref="organization_data_quality(::{organization_id: org.id, inventory_type: 'properties'})" ng-if="::org.is_parent"><i class="fa fa-flag"></i>{$:: 'Data Quality' | translate $}</a>
                                 <a ui-sref="organization_cycles(::{organization_id: org.id})" ng-if="::org.is_parent"><i class="fa fa-calendar"></i>{$:: 'Cycles' | translate $}</a>
                                 <a ui-sref="organization_labels(::{organization_id: org.id})"><i class="fa fa-tags"></i>{$:: 'Labels' | translate $}</a>
@@ -97,14 +73,14 @@
     <div class="section_content_container">
         <div class="section_content">
             <div class="table_list_container" id="org-member-tables">
-                <table class="table table-striped table_highlight_first">
+                <table id="my-organizations-table" class="table table-striped table_highlight_first">
                     <thead>
                         <tr>
                             <th translate>Organization Name</th>
                             <th translate>Your Role</th>
                             <th translate>Organization Owner(s)</th>
                             <th translate>Number of Properties</th>
-                            <th translate>Properties Added Last 30 Days</th>
+                            <th translate>Number of Tax Lots</th>
                             <th translate>Number of Certifications</th>
                             <th translate>Number of Measures</th>
                             <th translate>Number of Users</th>
@@ -122,12 +98,12 @@
                             </td>
                             <td class="align_to_top">
                                 <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_properties $}
+                                    {$ cycle.name $}: {$ cycle.num_properties $}
                                 </div>
                             </td>
-                            <td class="align_to_top" ng-if="org.user_role !== 'viewer'">
-                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_properties">
-                                    {$ cycle.num_properties_30 || "-" $}
+                            <td class="align_to_top">
+                                <div ng-repeat="cycle in org.cycles" ng-if="cycle.num_taxlots">
+                                    {$ cycle.name $}: {$ cycle.num_taxlots $}
                                 </div>
                             </td>
                             <td class="align_to_top" ng-if="org.user_role !== 'viewer'">

@@ -33,7 +33,7 @@
                         <div class="form-group">
                             <label class="col-sm-2 control-label" for="user_emails" translate>User E-mail:</label>
                             <div class="col-sm-4">
-                                <select class="form-control" name="user_emails" id="user_emails" ng-options="u as u.email for u in org.users" ng-model="org.email"> </select>
+                                <select class="form-control" name="user_emails" id="user_emails" ng-options="u as u.email for u in org.users | orderBy:'email'" ng-model="org.email"> </select>
                             </div>
                         </div>
                         <div class="form-group">
@@ -233,6 +233,18 @@
 	                                <input type="text" class="form-control" id="org_leed_geo_id" ng-model="org_leed.leed_geo_id" placeholder="LEED Geographic Identifier, for example 6611 for Vermont">
 	                            </div>
                             </div>
+	                        <div class="form-group">
+	                            <label class="col-sm-2 control-label" for="org_leed_start_date">Start Date:</label>
+	                            <div class="col-sm-4">
+	                                <input type="text" class="form-control" id="org_leed_start_date" ng-model="org_leed.leed_start_date" placeholder="Date to start data retrieval (YYYY-mm-dd)">
+	                            </div>
+	                        </div>
+	                        <div class="form-group">
+	                            <label class="col-sm-2 control-label" for="org_leed_end_date">End Date:</label>
+	                            <div class="col-sm-4">
+	                                <input type="text" class="form-control" id="org_leed_end_date" ng-model="org_leed.leed_end_date" placeholder="Date to end data retrieval (YYYY-mm-dd)">
+	                            </div>
+	                        </div>
                             <div class="form-group">
                                 <div class="col-sm-offset-2 col-sm-10">
                                     <button class="btn btn-primary" type="submit" ng-click="org_leed.add(org_leed)">Add Geographic ID</button>
@@ -249,8 +261,8 @@
             </div>
             <div class="section_content_container org_user_admin container-fluid">
                 <div class="section_content row">
-                    <div class="table_list_container remove_buildings_table col-sm-5" style="width: 100%;">
-                        <table class="table table-striped">
+                    <div class="table_list_container remove_buildings_table col-sm-5">
+                        <table id="admin-organizations-table" class="table table-striped">
                             <thead>
                                 <tr>
                                     <th translate>Parent ID</th>
