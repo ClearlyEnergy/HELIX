@@ -198,6 +198,10 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     }
     for k, v in replacements.items():
         address_val = address_val.replace(k, v)
+    # Remove lots, they are not part of a real address
+    has_lot = re.split(',*\s[lL]ot\s', address_val)
+    if has_lot:
+        address_val = has_lot[0]
 
     # now parse the address into number, street name and street type
     try:
