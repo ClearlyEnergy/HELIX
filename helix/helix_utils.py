@@ -116,8 +116,16 @@ def propertyview_find(request):
 #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
         propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    elif 'street' in request.GET and 'postal_code' in request.GET:
-        normalized_address, extra_data = normalize_address_str(request.GET['street'], '', request.GET['postal_code'],{})
+    elif ('street' in request.GET  or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
+        if 'postal_code' in request.GET:
+            zip = request.GET['postal_code']
+        else:
+            zip = request.GET['zipcode']
+        if 'address_line_1' in request.GET:
+            street = request.GET['address_line_1']
+        else:
+            street = request.GET['street']
+        normalized_address, extra_data = normalize_address_str(street, '', zip,{})
         state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
         propertyview = PropertyView.objects.filter(state_id__in=state_ids)
     else:
@@ -126,17 +134,21 @@ def propertyview_find(request):
     return propertyview
     
 """ Create data dictionary from request variables """
-def data_dict_from_vars(request, txtvars, floatvars, boolvars):
+def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
     data_dict = {}
     for var in txtvars:
-        data_dict[var] = request.GET[var]
-    for var in floatvars:
-        if request.GET[var]:
-            data_dict[var] = float(request.GET[var])
-        else:
+        if var in request.GET and request.GET[var] is not None:
             data_dict[var] = request.GET[var]
+        else:
+            data_dict[var] = None
+    for var in floatvars:
+        if var in request.GET and request.GET[var] is not None:
+            data_dict[var] = float(request.GET[var])
+    for var in intvars:
+        if var in request.GET and request.GET[var] is not None:
+            data_dict[var] = int(request.GET[var])
     for var in boolvars:
-        if request.GET[var] == "true":
+        if var in request.GET and request.GET[var] == "true":
             data_dict[var] = True
         else:
             data_dict[var] = False

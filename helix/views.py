@@ -8,7 +8,7 @@ import string
 #from urlparse import urlparse
 from urllib.parse import urlparse
 
-from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings
+from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings, geocode_buildings_task
 
 from django.conf import settings
 from django.core import serializers
@@ -187,6 +187,68 @@ def helix_csv_export(request):
             [str(getattr(measure.property_state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] + 
             [str(getattr({}, f, '')) for f in fieldnames ] + [measurement_dict.get( m, '') for m in measurenames])
     
+    return response
+
+# Export the property address information for the list of property ids provided, matching up likely duplicates
+# Parameters:
+#   ids: comma separated list of views ids to retrieve
+#   file_name: optional parameter that can be set to have the web browser open
+#              a save dialog with this as the file name. When not set, raw text
+#              is displayed
+# Example:
+#   GET /helix/helix-dups-export/?view_ids=11,12,13,14
+@api_endpoint
+@api_view(['GET','POST'])
+def helix_dups_export(request):
+    property_ids = request.data.get('ids', [])
+    view_ids = PropertyView.objects.filter(property_id__in=property_ids)
+    state_ids = view_ids.values_list('state_id', flat=True)
+    # convert to list to facilitate removal later on
+    states = [s for s in PropertyState.objects.filter(id__in=state_ids).only("id", "address_line_1", "normalized_address", "postal_code", "extra_data")]
+
+    file_name = request.data.get('filename')
+    # Handle optional parameter
+    if (file_name is not None):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
+    else:
+        response = HttpResponse()
+
+    writer = csv.writer(response)
+
+    addressmap = ['id', 'address_line_1', 'city', 'postal_code']
+    writer.writerow(addressmap)
+
+    remaining_states = states
+    skip_states = []
+    for state in states:
+        if state.id in skip_states:
+            continue
+        normalized_address = state.normalized_address
+        for rem_state in remaining_states:
+            # likely matches, same zip code
+            if state.extra_data['StreetNumber'] == rem_state.extra_data['StreetNumber'] and state.extra_data['StreetName'] == rem_state.extra_data['StreetName'] and state.extra_data['UnitNumber'] == rem_state.extra_data['UnitNumber'] and state.postal_code == rem_state.postal_code and state.id != rem_state.id:
+                writer.writerow(['Similar street address, same postal code'])
+                writer.writerow([str(getattr(state, elem, '')) for elem in addressmap])
+                writer.writerow([str(getattr(rem_state, elem, '')) for elem in addressmap])
+#                remaining_states = list(filter(lambda i: i.id != rem_state.id, remaining_states))
+                skip_states.append(rem_state.id)
+                continue
+            # likely matches, no unit number, same zip code
+            if state.extra_data['StreetNumber'] == rem_state.extra_data['StreetNumber'] and state.extra_data['StreetName'] == rem_state.extra_data['StreetName'] and state.postal_code == rem_state.postal_code and state.id != rem_state.id:
+                writer.writerow(['Similar address, excludes unit #, same postal code'])
+                writer.writerow([str(getattr(state, elem, '')) for elem in addressmap])
+                writer.writerow([str(getattr(rem_state, elem, '')) for elem in addressmap])
+                skip_states.append(rem_state.id)
+                continue
+            # likely matches, different zip code
+            if state.extra_data['StreetNumber'] == rem_state.extra_data['StreetNumber'] and state.extra_data['StreetDirPrefix'] == rem_state.extra_data['StreetDirPrefix'] and state.extra_data['StreetName'] == rem_state.extra_data['StreetName'] and state.extra_data['UnitNumber'] == rem_state.extra_data['UnitNumber'] and state.postal_code != rem_state.postal_code and state.id != rem_state.id:
+                writer.writerow(['Same street address, different postal code'])
+                writer.writerow([str(getattr(state, elem, '')) for elem in addressmap])
+                writer.writerow([str(getattr(rem_state, elem, '')) for elem in addressmap])
+                skip_states.append(rem_state.id)
+                continue
+#{ 'StreetSuffix': 'court', 'StreetDirSuffix': '', 'StreetNamePreDirectional': ''}
     return response
 
 # Export List of updated properties in an xml
@@ -411,43 +473,22 @@ def helix_vermont_profile(request):
     user = request.user
     propertyview = utils.propertyview_find(request)
     if not propertyview:
-        cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this        
-        dataset = ImportRecord.objects.get(name="Vermont Profile", super_organization = org)
-        result = [{'Address Line 1': request.GET['street'], #fix that into line 1 & 2
-            'City': request.GET['city'], 
-            'Postal Code': request.GET['zipcode'], 
-            'State': request.GET['state'],
-            'Custom ID 1': request.GET['property_uid']}]
-        file_pk = utils.save_and_load(user, dataset, cycle, result, "vt_profile.csv")
-        #save data
-        resp = save_raw_data(file_pk)   
-        save_prog_key = resp['progress_key']
-        utils.wait_for_task(save_prog_key)
-        #map data
-    #        save_column_mappings(file_id, col_mappings) #perform column mapping
-        resp = map_data(file_pk)
-        map_prog_key = resp['progress_key']
-        utils.wait_for_task(map_prog_key)
-    #       attempt to match with existing records - not needed since new
-        resp = match_buildings(file_pk)
-    #            if (resp['status'] == 'error'):
-    #                return resp
-        match_prog_key = resp['progress_key']
-        utils.wait_for_task(match_prog_key)
-        propertyview = utils.propertyview_find(request)
+        dataset_name = 'Vermont Profile'
+        propertyview = _create_propertyview(request, org, user, dataset_name)
 
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
     
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','author_name','has_audit','auditor']
+    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','author_name','auditor','rating']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
-        'finishedsqft','yearbuilt','hers_score', 'hes_score',
+        'finishedsqft','yearbuilt','hers_score', 'hes_score', 'capacity',
         'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
         'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
-    boolvars = ['estar_wh', 'heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar',]
-    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, boolvars)
+    boolvars = ['estar_wh', 'heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar','has_audit','has_solar']
+    intvars = []
+    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
                     
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
@@ -491,24 +532,27 @@ def helix_massachusetts_scorecard(request, pk=None):
     'Metrics > CO2 Production Improved (Tons/yr)', 'Metrics > CO2 Production Base (Tons/yr)', 'Metrics > CO2 Production Saved (Tons/yr)',
     'Program > Incentive 1',
     'Building > Conditioned Area', 'Building > Year Built', 'Building > Number Of Bedrooms', 'Contractor > Name', 
-    'Green Assessment Property Date']
+    'Green Assessment Property Date', 'HES > Final > Base Score', 'HES > Final > Improved Score']
     
     for var in floatvars:
-        part1 = var.split('>')[-1].lstrip()
-        part2 = part1.split('(')[0].rstrip()
-        part3 = part2.replace(' ','_').lower()
-        data_dict[part3] = property_state.extra_data[var]
+        if var in property_state.extra_data:
+            part1 = var.split('>')[-1].lstrip()
+    #        part2 = part1.replace('/yr)','')
+    #        part2 = part2.replace('(','')
+            part2 = part1.split('(')[0].rstrip()
+            part3 = part2.replace(' ','_').lower()
+            data_dict[part3] = property_state.extra_data[var]
         
     to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
 
     if data_dict['fuel_energy_usage_base'] is not None:
-        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base'] / (data_dict['fuel_energy_usage_base'] + data_dict['electric_energy_usage_base']*to_btu['electric'])
+        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
         data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
     else:
         data_dict['fuel_percentage'] = 0.0
         data_dict['fuel_percentage_co2'] = 0.0
-
+        
     data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
     data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
 
@@ -523,6 +567,72 @@ def helix_massachusetts_scorecard(request, pk=None):
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
     return None
 
+# Create Massachusetts Scorecard (external service)
+# Parameters:
+#    property attributes
+# Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=296%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&green_assessment_property_date=2019-06-07&fuel_energy_cost_base=2000&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_cost_base=1500&electric_energy_usage_base=12000&co2_production_base=25&co2_production_improved=20&base_score=7&improved_score=9&incentive_1=5000
+
+#@login_required
+
+@api_endpoint
+@api_view(['GET'])
+def massachusetts_scorecard(request, pk=None):    
+    user = request.user
+    organizations = Organization.objects.filter(users=user)
+    for org in organizations:
+        assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization=org)
+        if assessment is not None:
+            break        
+    
+# test if property exists
+    propertyview = utils.propertyview_find(request)
+    if not propertyview:
+        dataset_name = 'MA API Sample'
+        propertyview = _create_propertyview(request, org, user, dataset_name)
+        print(propertyview)
+             
+    txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code','primary_heating_fuel_type', 'name','green_assessment_property_date']
+    floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
+        'conditioned_area', 'year_built', 'number_of_bedrooms',
+        'fuel_energy_cost_base','fuel_energy_cost_saved','fuel_energy_cost_improved',
+        'fuel_energy_usage_base', 'fuel_energy_usage_saved', 'fuel_energy_usage_improved',
+        'total_energy_cost_base','total_energy_cost_saved','total_energy_cost_improved',
+        'total_energy_usage_base', 'total_energy_usage_saved', 'total_energy_usage_improved',
+        'electric_energy_cost_base','electric_energy_cost_saved','electric_energy_cost_improved',
+        'electric_energy_usage_base', 'electric_energy_usage_saved', 'electric_energy_usage_improved',
+        'co2_production_base', 'co2_production_saved', 'co2_production_improved',
+        'base_score', 'improved_score', 'incentive_1'
+    ]
+    intvars = ['base_score', 'improved_score']
+    boolvars = []
+        
+    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
+    print(data_dict)
+    to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+    to_co2 = {'electric': 0.00061}
+
+    if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
+        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
+        data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+    else:
+        data_dict['fuel_percentage'] = 0.0
+        data_dict['fuel_percentage_co2'] = 0.0
+        
+    data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
+    data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
+
+
+    lab = label.Label()
+    key = lab.massachusetts_energy_scorecard(data_dict)
+    url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+
+    if propertyview is not None:
+        # need to save data_dict to extra data
+        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
+        return JsonResponse({'status': 'success', 'url': url})       
+    else:
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+    
 @api_endpoint
 @api_view(['GET'])
 def helix_remove_profile(request):
@@ -570,3 +680,38 @@ def helix_remove_profile(request):
         return JsonResponse({'status': 'success'})       
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+        
+def _create_propertyview(request, org, user, dataset_name):
+    cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this
+    dataset = ImportRecord.objects.get(name=dataset_name, super_organization = org)
+    result = [{'City': request.GET['city'], 
+        'State': request.GET['state']}]
+    if 'street' in request.GET:
+        result[0]['Address Line 1'] = request.GET['street']
+    else:
+        result[0]['Address Line 1'] = request.GET['address_line_1']
+    if 'zipcode' in request.GET:
+        result[0]['Postal Code'] = request.GET['zipcode']
+    else:
+        result[0]['Postal Code'] = request.GET['postal_code']
+    if 'property_uid' in request.GET:
+        result[0]['Custom ID 1'] = request.GET['property_uid']
+    file_pk = utils.save_and_load(user, dataset, cycle, result, "profile_data.csv")
+    #save data
+    resp = save_raw_data(file_pk)   
+    save_prog_key = resp['progress_key']
+    utils.wait_for_task(save_prog_key)
+    #map data
+#        save_column_mappings(file_id, col_mappings) #perform column mapping
+    resp = map_data(file_pk)
+    map_prog_key = resp['progress_key']
+    utils.wait_for_task(map_prog_key)
+    resp = match_buildings(file_pk)
+#        resp = geocode_buildings_task(file_pk)
+    if (resp['status'] == 'error'):
+        return resp
+    match_prog_key = resp['progress_key']
+    utils.wait_for_task(match_prog_key)
+    propertyview = utils.propertyview_find(request)
+    return propertyview
+
