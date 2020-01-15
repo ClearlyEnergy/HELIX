@@ -472,11 +472,8 @@ def helix_vermont_profile(request):
     org = Organization.objects.get(name=request.GET['organization_name'])
     user = request.user
     propertyview = utils.propertyview_find(request)
-    print('after find')
-    print(propertyview)
     if not propertyview:
         dataset_name = 'Vermont Profile'
-        print('in create')
         propertyview = _create_propertyview(request, org, user, dataset_name)
 
     if not propertyview:
@@ -493,10 +490,9 @@ def helix_vermont_profile(request):
     intvars = []
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
                     
-    lab = label.Label()
-    key = lab.vermont_energy_profile(data_dict)
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    key = lab.vermont_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
-    print(url)
     
     if propertyview is not None:
         utils.add_certification_label_to_property(propertyview, user, assessment, url)            
@@ -560,8 +556,8 @@ def helix_massachusetts_scorecard(request, pk=None):
     data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
     data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
 
-    lab = label.Label()
-    key = lab.massachusetts_energy_scorecard(data_dict)
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    key = lab.massachusetts_energy_scorecard(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
@@ -593,7 +589,6 @@ def massachusetts_scorecard(request, pk=None):
     if not propertyview:
         dataset_name = 'MA API Sample'
         propertyview = _create_propertyview(request, org, user, dataset_name)
-        print(propertyview)
              
     txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code','primary_heating_fuel_type', 'name','green_assessment_property_date']
     floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
@@ -611,7 +606,6 @@ def massachusetts_scorecard(request, pk=None):
     boolvars = []
         
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-    print(data_dict)
     to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
 
@@ -656,7 +650,7 @@ def helix_remove_profile(request):
 #    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)                    
     org = Organization.objects.get(name='VEIC-Efficiency Vermont') ##Change
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org) ##Change                    
-    lab = label.Label()
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
     
     if propertyview is not None:
         for pv in propertyview:
@@ -671,13 +665,11 @@ def helix_remove_profile(request):
                 ga_urls = GreenAssessmentURL.objects.filter(property_assessment=green_property)
                 for ga_url in ga_urls: 
                     label_link = ga_url.url
-                    print(label_link)
                     o = urlparse(label_link)
                     if o:
                         link_parts = os.path.split(o.path)
                         label_link = link_parts[1]
-                        lab = label.Label()
-                        success = lab.remove_label(label_link)
+                        success = lab.remove_label(label_link, settings.AWS_BUCKET_NAME)
                         ga_url.delete() #delete URL entry in DB
                     else:
                         JsonResponse({'status': 'success', 'message': 'no existing profile'}) 
