@@ -117,6 +117,7 @@ def propertyview_find(request):
         state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
         propertyview = PropertyView.objects.filter(state_id__in=state_ids)
     elif ('street' in request.GET  or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
+        print('street portion')
         if 'postal_code' in request.GET:
             zip = request.GET['postal_code']
         else:
@@ -125,9 +126,14 @@ def propertyview_find(request):
             street = request.GET['address_line_1']
         else:
             street = request.GET['street']
+        print(street)
+        print(zip)
         normalized_address, extra_data = normalize_address_str(street, '', zip,{})
+        print(normalized_address)
         state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
+        print(state_ids)
         propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+        print(propertyview)
     else:
         propertyview = None
         
