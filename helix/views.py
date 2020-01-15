@@ -470,10 +470,10 @@ def helix_green_addendum(request, pk=None):
 @api_view(['GET'])
 def helix_vermont_profile(request):
     org = Organization.objects.get(name=request.GET['organization_name'])
-    print(org)
     user = request.user
     propertyview = utils.propertyview_find(request)
     print('after find')
+    print(propertyview)
     if not propertyview:
         dataset_name = 'Vermont Profile'
         print('in create')
@@ -496,6 +496,7 @@ def helix_vermont_profile(request):
     lab = label.Label()
     key = lab.vermont_energy_profile(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+    print(url)
     
     if propertyview is not None:
         utils.add_certification_label_to_property(propertyview, user, assessment, url)            
@@ -687,7 +688,6 @@ def helix_remove_profile(request):
 def _create_propertyview(request, org, user, dataset_name):
     cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this
     dataset = ImportRecord.objects.get(name=dataset_name, super_organization = org)
-    print(dataset)
     result = [{'City': request.GET['city'], 
         'State': request.GET['state']}]
     if 'street' in request.GET:
@@ -700,7 +700,6 @@ def _create_propertyview(request, org, user, dataset_name):
         result[0]['Postal Code'] = request.GET['postal_code']
     if 'property_uid' in request.GET:
         result[0]['Custom ID 1'] = request.GET['property_uid']
-    print(result)
     file_pk = utils.save_and_load(user, dataset, cycle, result, "profile_data.csv")
     #save data
     resp = save_raw_data(file_pk)   

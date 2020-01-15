@@ -108,34 +108,39 @@ def wait_for_task(key):
 
 """ find propertyview by id, uid or address """
 def propertyview_find(request):
+    propertyview = None
     if 'property_id' in request.GET and request.GET['property_id']:
+        print('A by id')
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    elif 'property_uid' in request.GET and request.GET['property_uid']:
-        property_uid = request.GET['property_uid']
-#        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    elif ('street' in request.GET  or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
-        print('street portion')
-        if 'postal_code' in request.GET:
-            zip = request.GET['postal_code']
-        else:
-            zip = request.GET['zipcode']
-        if 'address_line_1' in request.GET:
-            street = request.GET['address_line_1']
-        else:
-            street = request.GET['street']
-        print(street)
-        print(zip)
-        normalized_address, extra_data = normalize_address_str(street, '', zip,{})
-        print(normalized_address)
-        state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
-        print(state_ids)
-        propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-        print(propertyview)
-    else:
-        propertyview = None
+    
+    if propertyview is None:  
+        print('B by uid')  
+        if 'property_uid' in request.GET and request.GET['property_uid']:
+            property_uid = request.GET['property_uid']
+    #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
+            state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    
+    if propertyview is None:            
+        if ('street' in request.GET  or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
+            print('street portion')
+            if 'postal_code' in request.GET:
+                zip = request.GET['postal_code']
+            else:
+                zip = request.GET['zipcode']
+            if 'address_line_1' in request.GET:
+                street = request.GET['address_line_1']
+            else:
+                street = request.GET['street']
+            print(street)
+            print(zip)
+            normalized_address, extra_data = normalize_address_str(street, '', zip,{})
+            print(normalized_address)
+            state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
+            print(state_ids)
+            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+            print(propertyview)
         
     return propertyview
     
