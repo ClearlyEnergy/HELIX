@@ -345,7 +345,7 @@ class HelixMeasurement(models.Model):
         """
         reso_dict = {}
         if self.measurement_type == 'PROD':
-            for key, val in self.PV_PROD_MAPPING.iteritems():
+            for key, val in self.PV_PROD_MAPPING.items():
                 attr = getattr(self, key)
                 if attr in dict(self.STATUS_CHOICES).keys():
                     attr = dict(self.STATUS_CHOICES)[attr]
@@ -354,11 +354,11 @@ class HelixMeasurement(models.Model):
                 reso_dict[val] = attr
 
         if self.measurement_type == 'CAP':
-            for key, val in self.PV_CAP_MAPPING.iteritems():
+            for key, val in self.PV_CAP_MAPPING.items():
                 reso_dict[val] = getattr(self, key)
 
         if self.measurement_type == 'COST':
-            for key, val in self.PV_COST_MAPPING.iteritems():
+            for key, val in self.PV_COST_MAPPING.items():
                 reso_dict[val] = getattr(self, key)
 
         return reso_dict

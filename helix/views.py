@@ -150,7 +150,7 @@ def helix_csv_export(request):
     measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'PowerProductionYearInstall']
 
     writer = csv.writer(response)
-    arr = [value for key, value in addressmap.iteritems()] + [value for key, value in addressmapxd.iteritems()] + ['Unparsed Address'] + [str(f) for f in fieldnames]
+    arr = [value for key, value in addressmap.items()] + [value for key, value in addressmapxd.items()] + ['Unparsed Address'] + [str(f) for f in fieldnames]
     if matching_measures:
         arr += [str(m) for m in measurenames]
     writer.writerow(arr)
@@ -159,8 +159,8 @@ def helix_csv_export(request):
         unparsedAddress = a.view.state.address_line_1
         if a.view.state.address_line_2:
             unparsedAddress += ' ' + a.view.state.address_line_2
-        writer.writerow([str(getattr(a.view.state, key, '')) for key, value in addressmap.iteritems()] + 
-            [str(getattr(a.view.state, key, '')) for key, value in addressmapxd.iteritems()] + [unparsedAddress] +
+        writer.writerow([str(getattr(a.view.state, key, '')) for key, value in addressmap.items()] + 
+            [str(getattr(a.view.state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] +
             [str(a_dict.get(f,'')) for f in fieldnames])
         # log changes
         a.log(
@@ -324,6 +324,8 @@ def helix_reso_export_list_xml(request):
 @api_view(['GET'])
 def helix_reso_export_xml(request):
     propertyview = utils.propertyview_find(request)
+    print('A')
+    print(propertyview)
             
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
