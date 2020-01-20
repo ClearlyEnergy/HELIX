@@ -324,8 +324,6 @@ def helix_reso_export_list_xml(request):
 @api_view(['GET'])
 def helix_reso_export_xml(request):
     propertyview = utils.propertyview_find(request)
-    print('A')
-    print(propertyview)
             
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
