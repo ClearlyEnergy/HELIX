@@ -117,7 +117,7 @@ def propertyview_find(request):
         if 'property_uid' in request.GET and request.GET['property_uid']:
             property_uid = request.GET['property_uid']
     #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
-            state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+            state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid)).filter(postal_code=request.GET['postal_code'])
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
     
     if propertyview is None:            
@@ -132,9 +132,7 @@ def propertyview_find(request):
             else:
                 street = request.GET['street']
             normalized_address, extra_data = normalize_address_str(street, '', zip,{})
-            print(normalized_address)
             state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
-            print(state_ids)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
         
     return propertyview
