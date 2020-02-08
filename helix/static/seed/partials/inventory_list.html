@@ -56,9 +56,9 @@
                     <li role="menuitem">
                         <a ng-click="open_update_labels_modal()" ng-disabled="selectedParentCount === 0" translate>Add/Remove Labels</a>
                     </li>
-                    <li role="menuitem">
+<!--                    <li role="menuitem">
                         <a ng-click="run_data_quality_check()" ng-disabled="selectedCount === 0" translate>Data Quality Check</a>
-                    </li>
+                    </li> -->
                     <li class="divider"></li>
                     <li role="menuitem">
                         <a ng-click="open_geocode_modal()" ng-disabled="selectedCount === 0" translate>Geocode Selected</a>
@@ -73,6 +73,22 @@
                 </ul>
             </div>
         </div>
+        <div class="form-group">
+            <div uib-dropdown class="btn-group pointer" ng-style="nothing_selected_cursor()">
+                <button id="btnDataQualityActions"
+                        type="button"
+                        uib-dropdown-toggle
+                        class="btn btn-default btn-sm">
+                    {$:: 'Compliance' | translate $} <span class="caret"></span>
+                </button>
+                <ul id="inventory-actions-dropdown" uib-dropdown-menu class="dropdown-menu" role="menu" aria-labelledby="btnInventoryActions">
+					<li ng-repeat="option in data_qualities track by option.id" role="menuitem">
+						<a ng-click="run_data_quality_check(option.id)" ng-disabled="selectedCount === 0">{$ option.name $}</a>
+					</li>
+                </ul>
+            </div>
+        </div>
+		
         <div class="form-group">
             <label for="tagsInput" translate>Filter by label:</label>
             <div class="btn-group">
@@ -119,7 +135,8 @@
 
         <span>
             <div class="form-check">
-                <input type="checkbox" ng-model="showSubOrgData" ng-change="toggle_sub_org_data()">
+                <input type="checkbox" ng-model="showSubOrgData" ng-change="toggle_sub_org_data()" ng-init='showSubOrgData=true' ng-checked='true'
+				>
                 <label>{$:: 'Show data from sub-organizations' | translate $}</label>
             </div>
         </span>

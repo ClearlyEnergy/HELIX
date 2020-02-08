@@ -1,57 +1,34 @@
-import json
-import logging
 import os
-import subprocess
 import csv
 import datetime
-import string
-#from urlparse import urlparse
+# from urlparse import urlparse
 from urllib.parse import urlparse
 
-from seed.data_importer.tasks import helix_hes_to_file, helix_leed_to_file, helix_certification_create, save_raw_data, map_data, match_buildings, geocode_buildings_task
+from seed.data_importer.tasks import save_raw_data, map_data, match_buildings
 
 from django.conf import settings
-from django.core import serializers
-from django.core.files.storage import default_storage
-from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, HttpResponseRedirect, FileResponse
-from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
+from django.shortcuts import render
 
-from seed.decorators import ajax_request, ajax_request_class
-from seed.decorators import get_prog_key
-
-from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.db.models import Q
-from rest_framework import status
-from rest_framework.decorators import api_view, detail_route, list_route, parser_classes, \
-    permission_classes
+from rest_framework.decorators import api_view
 
 from seed.models import Cycle, PropertyView, PropertyState, Property
-from seed.models.data_quality import DataQualityCheck
 
-from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog, GreenAssessmentURL
-from seed.lib.superperms.orgs.decorators import has_perm_class
-from seed.lib.progress_data.progress_data import ProgressData
-from seed.lib.mcm.utils import batch
+from seed.models.certification import GreenAssessmentPropertyAuditLog, GreenAssessmentURL
 from helix.models import HELIXGreenAssessment, HELIXGreenAssessmentProperty, HelixMeasurement, HELIXPropertyMeasure
 from seed.models.auditlog import (
-    AUDIT_USER_EDIT,
-    AUDIT_USER_CREATE,
     AUDIT_USER_EXPORT,
-    DATA_UPDATE_TYPE
 )
 from seed.data_importer.models import ImportRecord
 from helix.models import HELIXOrganization as Organization
-#from seed.lib.superperms.orgs.models import Organization
+# from seed.lib.superperms.orgs.models import Organization
 
-from seed.lib.mcm import cleaners, mapper, reader
-from seed.utils.api import api_endpoint, api_endpoint_class
+from seed.utils.api import api_endpoint
 
 import helix.helix_utils as utils
-from helix.utils.address import normalize_address_str
-from zeep.exceptions import Fault
 
 from label import label
 
@@ -59,6 +36,7 @@ from label import label
 # the seed side bar or at /app/assessments
 # Parameters:
 #   orgs: list of parent organizations
+
 
 @login_required
 def assessment_view(request):
@@ -75,38 +53,6 @@ def assessment_edit(request):
     assessment = HELIXGreenAssessment.objects.get(pk=request.GET['id'])
     return render(request, 'helix/assessment_edit.html', {'assessment': assessment})
 
-
-# Tests HES connectivity. 
-# Retrieve building data for a single building_id from the HES api.
-# responds with status 200 on success, 400 on fail
-# Parameters:
-#   dataset: id of import record that data will be uploaded to
-#   cycle: id of cycle that data will be uploaded to
-#   building_id: building id for a building in the hes database
-#   user_key: hes api key
-#   user_name: hes username
-#   password: hes password
-#@login_required
-def helix_hes(request):
-    dataset = ImportRecord.objects.get(pk=request.POST['dataset'])
-    cycle = Cycle.objects.get(pk=request.POST['cycle'])
-
-    try: 
-        hes_client = hes.HesHelix(request.POST['client_url'], request.POST['user_name'], request.POST['password'], request.POST['user_key'])
-        try:
-            res = hes_client.query_hes(request.POST['building_id'])
-            res["status"] = "success"
-        except Fault as f:
-            res = {"status": "error", "message": f.message}
-    except Fault as f: 
-        res = {"status": "error", "message": f.message}
-    
-    if(res['status'] == 'error'):
-        return JsonResponse(res, status=400)
-    else:
-        return JsonResponse(res, status=200)
- 
-
 # Export the GreenAssessmentProperty information for the list of property ids provided
 # Parameters:
 #   ids: comma separated list of views ids to retrieve
@@ -116,9 +62,9 @@ def helix_hes(request):
 # Example:
 #   GET /helix/helix-csv-export/?view_ids=11,12,13,14
 @api_endpoint
-@api_view(['GET','POST'])
+@api_view(['GET', 'POST'])
 def helix_csv_export(request):
-#    property_ids = map(lambda view_id: int(view_id), request.data.get['ids'].split(','))
+    #    property_ids = map(lambda view_id: int(view_id), request.data.get['ids'].split(','))
     property_ids = request.data.get('ids', [])
     view_ids = PropertyView.objects.filter(property_id__in=property_ids)
     state_ids = view_ids.values_list('state_id', flat=True)
@@ -126,13 +72,13 @@ def helix_csv_export(request):
     # retrieve green assessment properties that belong to one of these ids
     today = datetime.datetime.today()
     organizations = Organization.objects.filter(users=request.user)
-    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
+    reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
     assessments = HELIXGreenAssessmentProperty.objects.filter(
-        view__pk__in=view_ids).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications)
-#    num_certification = assessments.values_list('assessment_id', flat=True)
-    
-    #retrieve measures that belogn to one of these ids
-    matching_measures = HELIXPropertyMeasure.objects.filter(property_state__in=state_ids) #only pv can be exported
+        view__pk__in=view_ids).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).filter(assessment_id__in=reso_certifications)
+    #    num_certification = assessments.values_list('assessment_id', flat=True)
+
+    # retrieve measures that belogn to one of these ids
+    matching_measures = HELIXPropertyMeasure.objects.filter(property_state__in=state_ids)  # only pv can be exported
 
     file_name = request.data.get('filename')
 
@@ -142,10 +88,10 @@ def helix_csv_export(request):
         response['Content-Disposition'] = 'attachment; filename="' + file_name + '"'
     else:
         response = HttpResponse()
-        
+
     # Dump all fields of all retrieved assessments properties into csv
     addressmap = {'custom_id_1': 'UniversalPropertyId', 'city': 'City', 'postal_code': 'PostalCode', 'state': 'State', 'latitude': 'Latitude', 'longitude': 'Longitude'}
-    addressmapxd = {'StreetDirPrefix': 'StreetDirPrefix', 'StreetDirSuffix': 'StreetDirSuffix', 'StreetName': 'StreetName', 'StreetNumber': 'StreetNumber', 'StreetSuffix':'StreetSuffix', 'UnitNumber': 'UnitNumber'}
+    addressmapxd = {'StreetDirPrefix': 'StreetDirPrefix', 'StreetDirSuffix': 'StreetDirSuffix', 'StreetName': 'StreetName', 'StreetNumber': 'StreetNumber', 'StreetSuffix': 'StreetSuffix', 'UnitNumber': 'UnitNumber'}
     fieldnames = ['GreenVerificationBody',  'GreenBuildingVerificationType', 'GreenVerificationRating', 'GreenVerificationMetric', 'GreenVerificationVersion', 'GreenVerificationYear',  'GreenVerificationSource',  'GreenVerificationStatus', 'GreenVerificationURL']
     measurenames = ['PowerProductionSource', 'PowerProductionOwnership', 'Electric', 'PowerProductionAnnualStatus', 'PowerProductionSize', 'PowerProductionType', 'PowerProductionAnnual', 'PowerProductionYearInstall']
 
@@ -159,9 +105,9 @@ def helix_csv_export(request):
         unparsedAddress = a.view.state.address_line_1
         if a.view.state.address_line_2:
             unparsedAddress += ' ' + a.view.state.address_line_2
-        writer.writerow([str(getattr(a.view.state, key, '')) for key, value in addressmap.items()] + 
-            [str(getattr(a.view.state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] +
-            [str(a_dict.get(f,'')) for f in fieldnames])
+        writer.writerow([str(getattr(a.view.state, key, '')) for key, value in addressmap.items()] +
+                        [str(getattr(a.view.state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] +
+                        [str(a_dict.get(f, '')) for f in fieldnames])
         # log changes
         a.log(
             user=request.user,
@@ -172,8 +118,8 @@ def helix_csv_export(request):
     for measure in matching_measures:
         matching_measurements = HelixMeasurement.objects.filter(
             measure_property__pk=measure.propertymeasure_ptr_id,
-            measurement_type__in=['PROD','CAP'],
-            measurement_subtype__in=['PV','WIND']
+            measurement_type__in=['PROD', 'CAP'],
+            measurement_subtype__in=['PV', 'WIND']
         )
         measurement_dict = {}
         for match in matching_measurements:
@@ -182,11 +128,11 @@ def helix_csv_export(request):
         unparsedAddress = measure.property_state.address_line_1
         if measure.property_state.address_line_2:
             unparsedAddress += ' ' + measure.property_state.address_line_2
-        
-        writer.writerow([str(getattr(measure.property_state, key, '')) for key, value in addressmap.items()] + 
-            [str(getattr(measure.property_state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] + 
-            [str(getattr({}, f, '')) for f in fieldnames ] + [measurement_dict.get( m, '') for m in measurenames])
-    
+
+        writer.writerow([str(getattr(measure.property_state, key, '')) for key, value in addressmap.items()] +
+                        [str(getattr(measure.property_state, key, '')) for key, value in addressmapxd.items()] + [unparsedAddress] +
+                        [str(getattr({}, f, '')) for f in fieldnames] + [measurement_dict.get(m, '') for m in measurenames])
+
     return response
 
 # Export the property address information for the list of property ids provided, matching up likely duplicates
@@ -198,7 +144,7 @@ def helix_csv_export(request):
 # Example:
 #   GET /helix/helix-dups-export/?view_ids=11,12,13,14
 @api_endpoint
-@api_view(['GET','POST'])
+@api_view(['GET', 'POST'])
 def helix_dups_export(request):
     property_ids = request.data.get('ids', [])
     view_ids = PropertyView.objects.filter(property_id__in=property_ids)
@@ -224,7 +170,6 @@ def helix_dups_export(request):
     for state in states:
         if state.id in skip_states:
             continue
-        normalized_address = state.normalized_address
         for rem_state in remaining_states:
             # likely matches, same zip code
             if state.extra_data['StreetNumber'] == rem_state.extra_data['StreetNumber'] and state.extra_data['StreetName'] == rem_state.extra_data['StreetName'] and state.extra_data['UnitNumber'] == rem_state.extra_data['UnitNumber'] and state.postal_code == rem_state.postal_code and state.id != rem_state.id:
@@ -248,7 +193,7 @@ def helix_dups_export(request):
                 writer.writerow([str(getattr(rem_state, elem, '')) for elem in addressmap])
                 skip_states.append(rem_state.id)
                 continue
-#{ 'StreetSuffix': 'court', 'StreetDirSuffix': '', 'StreetNamePreDirectional': ''}
+# { 'StreetSuffix': 'court', 'StreetDirSuffix': '', 'StreetNamePreDirectional': ''}
     return response
 
 # Export List of updated properties in an xml
@@ -257,7 +202,7 @@ def helix_dups_export(request):
 #    start_date: A date in the format yyyy-mm-dd specifying the earliest
 #                date to export.
 #    end_date: A date in the same format specifying the last date to export.
-#    private_data: An optional parameter, not included in the official documentation. 
+#    private_data: An optional parameter, not included in the official documentation.
 #                   If equal to True, then all matching
 #                  records are returned. If absent or equal to anything other
 #                  than true, only records with a disclosure are returned.
@@ -278,27 +223,27 @@ def helix_reso_export_list_xml(request):
     if 'end_date' in request.GET:
         end_date = request.GET['end_date']
     organizations = Organization.objects.filter(users=request.user)
-    organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations) #add sub-organizations with same parent
-    
+    organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations)  # add sub-organizations with same parent
+
 #    if propertyview.state.data_quality == 2:
-#        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')   
-    
+#        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
+
     try:
-# select green assessment properties that are in the specified create / update date range
-# and associated with the correct property view
+        # select green assessment properties that are in the specified create / update date range
+        # and associated with the correct property view
         if start_date:
             ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=start_date)
             property_pks = Property.objects.filter(organization_id__in=organizations, updated__gte=start_date)
         if end_date:
-            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=end_date) 
+            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=end_date)
             property_pks = property_pks & Property.objects.filter(organization_id__in=organizations, updated__lte=end_date)
-            
+
         if property_pks:
             property_views = PropertyView.objects.filter(property__in=property_pks)
             content = list(property_views.values_list('id', flat=True))
         if ga_pks:
             content = list(set(content) | set(list(ga_pks.values_list('property_view_id', flat=True))))
-            
+
         if content:
             context = {
                 'content': content
@@ -309,7 +254,7 @@ def helix_reso_export_list_xml(request):
             return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
     except PropertyView.DoesNotExist:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No properties found --!>')
-        
+
 
 # Export GreenAssessmentProperty and Measures information for a property view in an xml
 # format using RESO fields
@@ -319,21 +264,20 @@ def helix_reso_export_list_xml(request):
 #                     in the database, a response code 404 is returned.
 # Example:
 #    http://localhost:8000/helix/helix-reso-export-xml/?property_id=11
-#@login_required
+# @login_required
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_xml(request):
     propertyview = utils.propertyview_find(request)
-            
+
     if not propertyview:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')        
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
     today = datetime.datetime.today()
-    content = []
-    
+
     if 'crsdata' in request.GET:
         propertyview.state.jurisdiction_property_id = propertyview.state.custom_id_1
-        
+
     organizations = Organization.objects.filter(users=request.user)
 
     property_info = {
@@ -344,13 +288,13 @@ def helix_reso_export_xml(request):
 #        if pv.state.data_quality == 2: #exclude records with data quality errors
 #            propertyview.exclude(pv)
 #        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
-    
+
     measurement_dict = {}
-    #assessments
+    # assessments
     matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
-        view__in=propertyview).filter(Q(_expiration_date__gte=today)|Q(_expiration_date=None)).filter(opt_out=False)
-    if matching_assessments:        
-        reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)        
+        view__in=propertyview).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False)
+    if matching_assessments:
+        reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
         property_info["assessments"] = matching_assessments.filter(assessment_id__in=reso_certifications)
         for assessment in matching_assessments.filter(assessment_id__in=reso_certifications):
             matching_measurements = HelixMeasurement.objects.filter(
@@ -360,15 +304,15 @@ def helix_reso_export_xml(request):
                 measurement_dict.update(match.to_reso_dict())
         property_info["measurements"] = measurement_dict
 
-    #measures
+    # measures
     for pv in propertyview:
-        matching_measures = HELIXPropertyMeasure.objects.filter(property_state=pv.state) #only pv can be exported
-        if matching_measures:    
+        matching_measures = HELIXPropertyMeasure.objects.filter(property_state=pv.state)  # only pv can be exported
+        if matching_measures:
             for measure in matching_measures:
                 matching_measurements = HelixMeasurement.objects.filter(
                     measure_property__pk=measure.propertymeasure_ptr_id,
-                    measurement_type__in=['PROD','CAP'],
-                    measurement_subtype__in=['PV','WIND']
+                    measurement_type__in=['PROD', 'CAP'],
+                    measurement_subtype__in=['PV', 'WIND']
                 )
 
             for match in matching_measurements:
@@ -376,23 +320,22 @@ def helix_reso_export_xml(request):
                 measurement_dict.update(measure.to_reso_dict())
 
             property_info["measurements"] = measurement_dict
-    
+
     context = {
         'content': property_info
         }
-        
-        
+
     # log changes
     for a in matching_assessments:
         a.log(
             user=request.user,
             record_type=AUDIT_USER_EXPORT,
             name='Export log',
-            description='Exported via xml')        
+            description='Exported via xml')
     rendered_xml = render_to_string('reso_export_template.xml', context)
-    
+
     return HttpResponse(rendered_xml, content_type='text/xml')
-    
+
 
 @api_endpoint
 @api_view(['GET'])
@@ -402,17 +345,17 @@ def helix_green_addendum(request, pk=None):
 #    try:
     assessment = HELIXGreenAssessment.objects.get(name='Green Addendum', organization_id=org_id)
     property_state = PropertyState.objects.get(pk=pk)
-    property_view = PropertyView.objects.get(state=property_state) 
+    property_view = PropertyView.objects.get(state=property_state)
     assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
 
     data_dict = {
-        'street': property_state.address_line_1, 
-        'street_2': property_state.address_line_1, 
-        'street_3': property_state.address_line_1, 
+        'street': property_state.address_line_1,
+        'street_2': property_state.address_line_1,
+        'street_3': property_state.address_line_1,
         'city': property_state.city,
         'state': property_state.state,
         'zip': property_state.postal_code
-    }   
+    }
     if 'Utility' in property_state.extra_data:
         data_dict['utility_name'] = property_state.extra_data['Utility']
 
@@ -421,16 +364,16 @@ def helix_green_addendum(request, pk=None):
     for assess in assessments:
         data_dict.update(assess.to_label_dict())
 
-    #retrieve measures
+    # retrieve measures
     measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
     for index, meas in enumerate(measures):
-#    for meas in measures:
+        #    for meas in measures:
         data_dict.update(meas.to_label_dict(index))
-        #add _2 for second solar
+        # add _2 for second solar
         measurements = HelixMeasurement.objects.filter(measure_property=meas)
         for measurement in measurements:
             data_dict.update(measurement.to_label_dict(index))
-        
+
     lab = label.Label()
     key = lab.green_addendum(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
@@ -455,17 +398,18 @@ def helix_green_addendum(request, pk=None):
                 changed_fields=assessment_data,
                 ancestor=old_audit_log.ancestor,
                 parent=old_audit_log,
-                user=user)   
-        
+                user=user)
+
     ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
     ga_url.url = url
     ga_url.description = 'Green Addendum Generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     ga_url.save()
 
-    return JsonResponse({'status': 'success', 'url': url})   
+    return JsonResponse({'status': 'success', 'url': url})
 #    except:
 #        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
-    
+
+
 @api_endpoint
 @api_view(['GET'])
 def helix_vermont_profile(request):
@@ -477,28 +421,29 @@ def helix_vermont_profile(request):
         propertyview = _create_propertyview(request, org, user, dataset_name)
 
     if not propertyview:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
-    
-    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org)
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
-    txtvars = ['street', 'city', 'state', 'zipcode','evt','heatingfuel','author_name','auditor','rating']
+    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)
+
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'heatingfuel', 'author_name', 'auditor', 'rating']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
-        'finishedsqft','yearbuilt','hers_score', 'hes_score', 'capacity',
-        'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
-        'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
-    boolvars = ['estar_wh', 'heater_estar','water_estar','ac_estar','fridge_estar','washer_estar','dishwasher_estar','has_audit','has_solar']
+                 'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
+                 'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
+                 'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
+    boolvars = ['estar_wh', 'heater_estar', 'water_estar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'has_audit', 'has_solar']
     intvars = []
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-                    
+
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
     key = lab.vermont_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
-    
+
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
-        return JsonResponse({'status': 'success', 'url': url})       
+        utils.add_certification_label_to_property(propertyview, user, assessment, url)
+        return JsonResponse({'status': 'success', 'url': url})
     else:
-        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})
+
 
 @api_endpoint
 @api_view(['GET'])
@@ -507,43 +452,39 @@ def helix_massachusetts_scorecard(request, pk=None):
     user = request.user
     property_state = PropertyState.objects.get(pk=pk)
     propertyview = PropertyView.objects.filter(state=property_state)
-            
+
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
-        
+
     assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization_id=org_id)
     data_dict = {
-        'address_line_1': property_state.address_line_1, 
-        'address_line_2': property_state.address_line_2, 
+        'address_line_1': property_state.address_line_1,
+        'address_line_2': property_state.address_line_2,
         'city': property_state.city,
         'state': property_state.state,
         'postal_code': property_state.postal_code
-    } 
-        
+    }
+
     floatvars = ['Utility Price > Fuel Oil', 'Utility Price > Electricity', 'Utility Price > Natural Gas', 'Utility Price > Wood', 'Utility Price > Pellets', 'Utility Price > Propane',
-    'Utilities > Primary Heating Fuel Type', 
-    'Metrics > Fuel Energy Cost Base ($/yr)', 'Metrics > Fuel Energy Cost Saved ($/yr)', 'Metrics > Fuel Energy Cost Improved ($/yr)', 
-    'Metrics > Fuel Energy Usage Saved (therms/yr)', 'Metrics > Fuel Energy Usage Improved (therms/yr)', 'Metrics > Fuel Energy Usage Base (therms/yr)', 
-    'Metrics > Total Energy Cost Improved ($/yr)', 'Metrics > Total Energy Cost Base ($/yr)', 'Metrics > Total Energy Cost Saved ($/yr)', 
-    'Metrics > Total Energy Usage Improved (MMBtu/yr)', 'Metrics > Total Energy Usage Saved (MMBtu/yr)', 'Metrics > Total Energy Usage Base (MMBtu/yr)',
-    'Metrics > Electric Energy Usage Improved (kWh/yr)', 'Metrics > Electric Energy Usage Saved (kWh/yr)', 
-    'Metrics > Electric Energy Usage Base (kWh/yr)', 
-    'Metrics > Electric Energy Cost Improved ($/yr)', 'Metrics > Electric Energy Cost Saved ($/yr)', 'Metrics > Electric Energy Cost Base ($/yr)', 
-    'Metrics > CO2 Production Improved (Tons/yr)', 'Metrics > CO2 Production Base (Tons/yr)', 'Metrics > CO2 Production Saved (Tons/yr)',
-    'Program > Incentive 1',
-    'Building > Conditioned Area', 'Building > Year Built', 'Building > Number Of Bedrooms', 'Contractor > Name', 
-    'Green Assessment Property Date', 'HES > Final > Base Score', 'HES > Final > Improved Score']
-    
+                 'Utilities > Primary Heating Fuel Type', 'Metrics > Fuel Energy Usage Base (therms/yr)',
+                 'Metrics > Total Energy Cost Improved ($/yr)', 'Metrics > Total Energy Cost Base ($/yr)',
+                 'Metrics > Total Energy Usage Improved (MMBtu/yr)', 'Metrics > Total Energy Usage Base (MMBtu/yr)',
+                 'Metrics > Electric Energy Usage Base (kWh/yr)',
+                 'Metrics > CO2 Production Improved (Tons/yr)', 'Metrics > CO2 Production Base (Tons/yr)',
+                 'Building > Conditioned Area', 'Building > Year Built', 'Building > Number Of Bedrooms', 'Contractor > Name',
+                 'Green Assessment Property Date', 'HES > Final > Base Score', 'HES > Final > Improved Score']
+
     for var in floatvars:
         if var in property_state.extra_data:
             part1 = var.split('>')[-1].lstrip()
     #        part2 = part1.replace('/yr)','')
     #        part2 = part2.replace('(','')
             part2 = part1.split('(')[0].rstrip()
-            part3 = part2.replace(' ','_').lower()
+            part3 = part2.replace(' ', '_').lower()
             data_dict[part3] = property_state.extra_data[var]
-        
-    to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+    data_dict['assessment_date'] = data_dict['green_assessment_property_date']
+
+    # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
 
     if data_dict['fuel_energy_usage_base'] is not None:
@@ -552,7 +493,7 @@ def helix_massachusetts_scorecard(request, pk=None):
     else:
         data_dict['fuel_percentage'] = 0.0
         data_dict['fuel_percentage_co2'] = 0.0
-        
+
     data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
     data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
 
@@ -561,52 +502,50 @@ def helix_massachusetts_scorecard(request, pk=None):
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
-        return JsonResponse({'status': 'success', 'url': url})       
+        utils.add_certification_label_to_property(propertyview, user, assessment, url)
+        return JsonResponse({'status': 'success', 'url': url})
     else:
-        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})
     return None
 
 # Create Massachusetts Scorecard (external service)
 # Parameters:
 #    property attributes
-# Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=296%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&green_assessment_property_date=2019-06-07&fuel_energy_cost_base=2000&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_cost_base=1500&electric_energy_usage_base=12000&co2_production_base=25&co2_production_improved=20&base_score=7&improved_score=9&incentive_1=5000
+# Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=298%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&assessment_date=2019-06-07&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_usage_base=12000&co2_production_base=12.1&co2_production_improved=9.9&base_score=7&improved_score=9&incentive_1=5000&status=draft
 
-#@login_required
+# @login_required
+
 
 @api_endpoint
 @api_view(['GET'])
-def massachusetts_scorecard(request, pk=None):    
+def massachusetts_scorecard(request, pk=None):
     user = request.user
     organizations = Organization.objects.filter(users=user)
     for org in organizations:
         assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization=org)
         if assessment is not None:
-            break        
-    
+            break
+
 # test if property exists
     propertyview = utils.propertyview_find(request)
     if not propertyview:
         dataset_name = 'MA API Sample'
         propertyview = _create_propertyview(request, org, user, dataset_name)
-             
-    txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code','primary_heating_fuel_type', 'name','green_assessment_property_date']
+
+    txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
     floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
-        'conditioned_area', 'year_built', 'number_of_bedrooms',
-        'fuel_energy_cost_base','fuel_energy_cost_saved','fuel_energy_cost_improved',
-        'fuel_energy_usage_base', 'fuel_energy_usage_saved', 'fuel_energy_usage_improved',
-        'total_energy_cost_base','total_energy_cost_saved','total_energy_cost_improved',
-        'total_energy_usage_base', 'total_energy_usage_saved', 'total_energy_usage_improved',
-        'electric_energy_cost_base','electric_energy_cost_saved','electric_energy_cost_improved',
-        'electric_energy_usage_base', 'electric_energy_usage_saved', 'electric_energy_usage_improved',
-        'co2_production_base', 'co2_production_saved', 'co2_production_improved',
-        'base_score', 'improved_score', 'incentive_1'
-    ]
+                 'conditioned_area', 'year_built', 'number_of_bedrooms',
+                 'fuel_energy_usage_base',
+                 'total_energy_cost_base', 'total_energy_cost_improved',
+                 'total_energy_usage_base', 'total_energy_usage_improved',
+                 'electric_energy_usage_base',
+                 'co2_production_base', 'co2_production_improved',
+                 'base_score', 'improved_score']
     intvars = ['base_score', 'improved_score']
     boolvars = []
-        
+
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-    to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+    # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
 
     if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
@@ -615,10 +554,9 @@ def massachusetts_scorecard(request, pk=None):
     else:
         data_dict['fuel_percentage'] = 0.0
         data_dict['fuel_percentage_co2'] = 0.0
-        
+
     data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
     data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
-
 
     lab = label.Label()
     key = lab.massachusetts_energy_scorecard(data_dict)
@@ -626,15 +564,15 @@ def massachusetts_scorecard(request, pk=None):
 
     if propertyview is not None:
         # need to save data_dict to extra data
-        utils.add_certification_label_to_property(propertyview, user, assessment, url)            
-        return JsonResponse({'status': 'success', 'url': url})       
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, request.GET['status'])
+        return JsonResponse({'status': 'success', 'url': url})
     else:
-        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
-    
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})
+
+
 @api_endpoint
 @api_view(['GET'])
 def helix_remove_profile(request):
-    user = request.user
     if 'property_id' in request.GET:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
@@ -645,43 +583,44 @@ def helix_remove_profile(request):
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
 
     if not propertyview:
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')            
-    
-#    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)                    
-    org = Organization.objects.get(name='VEIC-Efficiency Vermont') ##Change
-    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization = org) ##Change                    
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
+
+#    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)
+    org = Organization.objects.get(name='VEIC-Efficiency Vermont')  # Change
+    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)  # Change
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
-    
+
     if propertyview is not None:
         for pv in propertyview:
-            #consolidate with green addendum
+            # consolidate with green addendum
             priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
                     view=pv,
                     assessment=assessment)
-                    
+
             if priorAssessments:
                 # find most recently created property and a corresponding audit log
                 green_property = priorAssessments.order_by('date').last()
                 ga_urls = GreenAssessmentURL.objects.filter(property_assessment=green_property)
-                for ga_url in ga_urls: 
+                for ga_url in ga_urls:
                     label_link = ga_url.url
                     o = urlparse(label_link)
                     if o:
                         link_parts = os.path.split(o.path)
                         label_link = link_parts[1]
-                        success = lab.remove_label(label_link, settings.AWS_BUCKET_NAME)
-                        ga_url.delete() #delete URL entry in DB
+                        lab.remove_label(label_link, settings.AWS_BUCKET_NAME)
+                        ga_url.delete()  # delete URL entry in DB
                     else:
-                        JsonResponse({'status': 'success', 'message': 'no existing profile'}) 
-        return JsonResponse({'status': 'success'})       
+                        JsonResponse({'status': 'success', 'message': 'no existing profile'})
+        return JsonResponse({'status': 'success'})
     else:
-        return JsonResponse({'status': 'error', 'message': 'no existing home'})       
-        
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})
+
+
 def _create_propertyview(request, org, user, dataset_name):
-    cycle = Cycle.objects.filter(organization=org).last() #might need to hardcode this
-    dataset = ImportRecord.objects.get(name=dataset_name, super_organization = org)
-    result = [{'City': request.GET['city'], 
-        'State': request.GET['state']}]
+    cycle = Cycle.objects.filter(organization=org).last()  # might need to hardcode this
+    dataset = ImportRecord.objects.get(name=dataset_name, super_organization=org)
+    result = [{'City': request.GET['city'],
+              'State': request.GET['state']}]
     if 'street' in request.GET:
         result[0]['Address Line 1'] = request.GET['street']
     else:
@@ -693,11 +632,11 @@ def _create_propertyview(request, org, user, dataset_name):
     if 'property_uid' in request.GET:
         result[0]['Custom ID 1'] = request.GET['property_uid']
     file_pk = utils.save_and_load(user, dataset, cycle, result, "profile_data.csv")
-    #save data
-    resp = save_raw_data(file_pk)   
+    # save data
+    resp = save_raw_data(file_pk)
     save_prog_key = resp['progress_key']
     utils.wait_for_task(save_prog_key)
-    #map data
+    # map data
 #        save_column_mappings(file_id, col_mappings) #perform column mapping
     resp = map_data(file_pk)
     map_prog_key = resp['progress_key']
@@ -710,4 +649,3 @@ def _create_propertyview(request, org, user, dataset_name):
     utils.wait_for_task(match_prog_key)
     propertyview = utils.propertyview_find(request)
     return propertyview
-
