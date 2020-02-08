@@ -4,11 +4,8 @@
 :copyright (c) 2014 - 2017, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Department of Energy) and contributors. All rights reserved.  # NOQA
 :author
 """
-
 import re
-
 import usaddress
-# from past.builtins import basestring
 from streetaddress import StreetAddressFormatter
 
 STATE_MAP = {
@@ -70,6 +67,7 @@ STATE_MAP = {
         'West Virginia': 'WV',
         'Wyoming': 'WY'
 }
+
 
 def _normalize_subaddress_type(subaddress_type):
     subaddress_type = subaddress_type.lower().replace('.', '')
@@ -154,8 +152,9 @@ def _normalize_address_number(address_number):
 
     # some addresses have leading zeros, strip them here
     return address_number.lstrip("0")
-    
-def _normalize_secondary_address(secondary):    
+
+
+def _normalize_secondary_address(secondary):
     secondary = secondary.lower().replace('.', '')
     secondary_map = {
         'apartment': 'apt',
@@ -167,8 +166,9 @@ def _normalize_secondary_address(secondary):
     }
     for k, v in secondary_map.items():
         secondary = secondary.replace(k, v)
-    
-    return secondary    
+
+    return secondary
+
 
 def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     """
@@ -206,11 +206,11 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
     # now parse the address into number, street name and street type
     try:
         # Add in the mapping of CornerOf to the AddressNumber.
-        if address_val_2 and ('lot' not in address_val_2) :
+        if address_val_2 and ('lot' not in address_val_2):
             addr = usaddress.tag(str(address_val + ' ' + address_val_2), tag_mapping={'CornerOf': 'AddressNumber'})[0]
         else:
-            addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]  
-            
+            addr = usaddress.tag(str(address_val), tag_mapping={'CornerOf': 'AddressNumber'})[0]
+
     except usaddress.RepeatedLabelError:
         # usaddress can't parse this at all
         normalized_address = str(address_val)
@@ -222,14 +222,14 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
         normalized_address = ''
         street_name = ''
         extra_data['StreetNumber'] = extra_data['StreetName'] = extra_data['StreetNamePreDirectional'] = extra_data['StreetSuffix'] = extra_data['StreetDirSuffix'] = extra_data['UnitNumber'] = ''
-    
+
         if 'AddressNumber' in addr and addr['AddressNumber'] is not None:
             normalized_address = _normalize_address_number(
                 addr['AddressNumber'])
-                
+
         if 'AddressNumberSuffix' in addr and addr['AddressNumberSuffix'] is not None:
             normalized_address = normalized_address + addr['AddressNumberSuffix']
-            
+
         extra_data['StreetNumber'] = normalized_address
 
         if 'StreetNamePreDirectional' in addr and addr['StreetNamePreDirectional'] is not None:
@@ -259,13 +259,13 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
             normalized_address = normalized_address + ' ' + _normalize_address_direction(
                 addr['StreetNamePostDirectional'])  # NOQA
             extra_data['StreetDirSuffix'] = _normalize_address_direction(addr['StreetNamePostDirectional'])
-                
+
         if 'SubaddressType' in addr and addr['SubaddressType'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_secondary_address(addr['SubaddressType'])
-            
+
         if 'SubaddressIdentifier' in addr and addr['SubaddressIdentifier'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_address_number(addr['SubaddressIdentifier'])
- 
+
         if 'OccupancyType' in addr and addr['OccupancyType'] is not None:
             normalized_address = normalized_address + ' ' + _normalize_secondary_address(addr['OccupancyType'])
 
@@ -281,17 +281,19 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
 
     return normalized_address.lower().strip(), extra_data
 
+
 def normalize_postal_code(postal_code_val):
     """
     Normalize the postal code to have a minimum of 5 digits
-    
+
     If excel has for example changed 05720 to 5720, the normalization will return 05720
     """
     normalized_postal_code = str(postal_code_val).strip()
     if len(normalized_postal_code) < 5:
         normalized_postal_code = normalized_postal_code.zfill(5)
     return normalized_postal_code[:5]
-    
+
+
 def normalize_state(state_val):
     """
     Normalize the state to a two letter abbreviation
@@ -303,4 +305,3 @@ def normalize_state(state_val):
             return state_val
     else:
         return state_val.upper()
-    

@@ -1,28 +1,16 @@
 from django.test import TestCase
-from django.core.urlresolvers import reverse
 from django.core import management
 from django.utils import timezone
-import datetime
-import json
 
 from seed.landing.models import SEEDUser as User
-#from seed.lib.superperms.orgs.models import Organization, OrganizationUser
+# from seed.lib.superperms.orgs.models import Organization, OrganizationUser
 from seed.lib.superperms.orgs.models import OrganizationUser
 from helix.models import HELIXOrganization as Organization
-from seed.models import Cycle, PropertyView
+from seed.models import Cycle
 
-#from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
-from seed.models.certification import GreenAssessmentPropertyAuditLog
-#from seed.models.certification import GreenAssessment
+# from seed.models.certification import GreenAssessmentProperty, GreenAssessmentPropertyAuditLog
+# from seed.models.certification import GreenAssessment
 from seed.data_importer.models import ImportRecord
-from seed.test_helpers.fake import (
-    FakeGreenAssessmentFactory,
-    FakeGreenAssessmentPropertyFactory, FakeGreenAssessmentURLFactory,
-)
-
-from helix.models import HELIXGreenAssessment as GreenAssessment
-from helix.models import HELIXGreenAssessmentProperty as GreenAssessmentProperty
-from helix.models import HelixMeasurement
 
 
 class TestHelixView(TestCase):
@@ -62,4 +50,3 @@ class TestHelixView(TestCase):
                 super_organization=self.org,
                 owner=self.user
         )
-
