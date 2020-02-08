@@ -1,50 +1,36 @@
 import os
 import csv
 from io import StringIO
-import re
 import datetime
-import json
-import time, calendar
+import time
 
-from django.core.files.storage import default_storage, FileSystemStorage
+from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.db.models import Q
 
 from seed.data_importer.models import (
     ImportFile,
-    ImportRecord
 )
 
-from seed.lib.mcm import cleaners
-from seed.lib.mcm.utils import batch
-from seed.lib.superperms.orgs.models import Organization
-from seed.models.certification import GreenAssessment, GreenAssessmentPropertyAuditLog, GreenAssessmentURL 
+from seed.models.certification import GreenAssessmentPropertyAuditLog, GreenAssessmentURL
 from seed.models import (
-    ASSESSED_RAW,
-    ColumnMapping,
     PropertyState,
-    PropertyView,
-    Cycle,
-    DATA_STATE_IMPORT,
-    DATA_STATE_UNKNOWN, 
-    DATA_STATE_MATCHING,
-    MERGE_STATE_MERGED,
-    MERGE_STATE_NEW)
-    
-from seed.models.auditlog import (
-    AUDIT_USER_EDIT,
-    AUDIT_USER_CREATE,
-    AUDIT_USER_EXPORT,
-    DATA_UPDATE_TYPE
-)    
+    PropertyView
+)
 
-from helix.models import HelixMeasurement, HELIXGreenAssessmentProperty
+from seed.models.auditlog import (
+    AUDIT_USER_EXPORT,
+)
+
+from helix.models import HELIXGreenAssessmentProperty
 from helix.utils.address import normalize_address_str
 from seed.utils.cache import get_cache
-    
-"""Create csv output format"""
+
+
 def save_and_load(user, dataset, cycle, data, file_name):
-    # write output file headers
+    """
+    Create csv output format
+    """
     for elem in data:
         try:
             headers
@@ -55,10 +41,13 @@ def save_and_load(user, dataset, cycle, data, file_name):
 
     csv_data = save_formatted_data(headers, data)
     resp = upload(file_name, csv_data, dataset, cycle)
-    return resp    
-    
-"""Create csv record"""
+    return resp
+
+
 def save_formatted_data(headers, data):
+    """
+    Create csv output format
+    """
     buf = StringIO()
     writer = csv.DictWriter(buf, fieldnames=headers)
     writer.writeheader()
@@ -67,17 +56,20 @@ def save_formatted_data(headers, data):
 
     csv_file = buf.getvalue()
     buf.close()
-    
+
     return csv_file
-    
-"""Upload a file to the specified import record"""
+
+
 def upload(filename, data, dataset, cycle):
+    """
+    Upload a file to the specified import record
+    """
     #    if 'S3' in settings.DEFAULT_FILE_STORAGE:
     #        path = 'data_imports/' + filename + '.'+ str(calendar.timegm(time.gmtime())/1000)
     #        temp_file = default_storage.open(path, 'w')
     #        temp_file.write(data)
     #        temp_file.close()
-    #    else:        
+    #    else:
     path = settings.MEDIA_ROOT + "/uploads/" + filename
     path = FileSystemStorage().get_available_name(path)
 
@@ -96,9 +88,12 @@ def upload(filename, data, dataset, cycle):
             cycle=cycle,
             source_type="Assessed Raw")
     return f.pk
-    
-""" wait for a celery task to finish running"""
+
+
 def wait_for_task(key):
+    """
+    wait for a celery task to finish running
+    """
     prog = 0
     while prog < 100:
         prog = int(get_cache(key)['progress'])
@@ -106,23 +101,24 @@ def wait_for_task(key):
         time.sleep(0.5)
 
 
-""" find propertyview by id, uid or address """
 def propertyview_find(request):
+    """
+    find propertyview by id, uid or address
+    """
     propertyview = None
     if 'property_id' in request.GET and request.GET['property_id']:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    
-    if propertyview is None:  
+
+    if propertyview is None:
         if 'property_uid' in request.GET and request.GET['property_uid']:
             property_uid = request.GET['property_uid']
-    #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})    
+    #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})
             state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid)).filter(postal_code=request.GET['postal_code'])
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-    
-    if propertyview is None:            
-        if ('street' in request.GET  or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
-            print('search by address')
+
+    if propertyview is None:
+        if ('street' in request.GET or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
             if 'postal_code' in request.GET:
                 zip = request.GET['postal_code']
             else:
@@ -131,14 +127,17 @@ def propertyview_find(request):
                 street = request.GET['address_line_1']
             else:
                 street = request.GET['street']
-            normalized_address, extra_data = normalize_address_str(street, '', zip,{})
+            normalized_address, extra_data = normalize_address_str(street, '', zip, {})
             state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
-        
+
     return propertyview
-    
-""" Create data dictionary from request variables """
+
+
 def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
+    """
+    Create data dictionary from request variables
+    """
     data_dict = {}
     for var in txtvars:
         if var in request.GET and request.GET[var] is not None:
@@ -157,17 +156,19 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
         else:
             data_dict[var] = False
     return data_dict
-    
-    
-""" Add profile or scorecard URL to property """
-def add_certification_label_to_property(propertyview, user, assessment, url):
+
+
+def add_certification_label_to_property(propertyview, user, assessment, url, status=None):
+    """
+    Add profile or scorecard URL to property
+    """
     for pv in propertyview:
         assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
-        #consolidate with green addendum
+        # consolidate with green addendum
         priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
                 view=pv,
                 assessment=assessment)
-                
+
         if(not priorAssessments.exists()):
             # If the property does not have an assessment in the database
             # for the specifed assesment type create a new one.
@@ -184,14 +185,16 @@ def add_certification_label_to_property(propertyview, user, assessment, url):
                         changed_fields=assessment_data,
                         ancestor=old_audit_log.ancestor,
                         parent=old_audit_log,
-                        user=user)   
+                        user=user)
             else:
                 green_property.initialize_audit_logs(user=user)
-                green_property.save()                    
-    
+                green_property.save()
+        if status is not None:
+            green_property.status = status
+            green_property.status_date = datetime.date.today()
+            green_property.save()
+
         ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
         ga_url.url = url
         ga_url.description = 'Vermont profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         ga_url.save()
-    
-        
