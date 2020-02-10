@@ -374,7 +374,7 @@ def helix_green_addendum(request, pk=None):
         for measurement in measurements:
             data_dict.update(measurement.to_label_dict(index))
 
-    lab = label.Label()
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
     key = lab.green_addendum(data_dict)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
