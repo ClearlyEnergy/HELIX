@@ -462,7 +462,8 @@ def helix_massachusetts_scorecard(request, pk=None):
         'address_line_2': property_state.address_line_2,
         'city': property_state.city,
         'state': property_state.state,
-        'postal_code': property_state.postal_code
+        'postal_code': property_state.postal_code,
+        'year_built': property_state.year_built,
     }
 
     floatvars = ['Utility Price > Fuel Oil', 'Utility Price > Electricity', 'Utility Price > Natural Gas', 'Utility Price > Wood', 'Utility Price > Pellets', 'Utility Price > Propane',
