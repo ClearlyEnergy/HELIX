@@ -375,8 +375,7 @@ def helix_green_addendum(request, pk=None):
             data_dict.update(measurement.to_label_dict(index))
 
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
-    key = lab.green_addendum(data_dict)
-    print(settings.AWS_BUCKET_NAME)
+    key = lab.green_addendum(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
@@ -486,6 +485,8 @@ def helix_massachusetts_scorecard(request, pk=None):
     data_dict['assessment_date'] = data_dict['green_assessment_property_date']
     if 'year_built' not in data_dict:
         data_dict['year_built'] = property_state.year_built
+    if 'conditioned_area' not in data_dict:
+        data_dict['conditioned_area'] = property_state.conditioned_floor_area
 
     # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
     to_co2 = {'electric': 0.00061}
