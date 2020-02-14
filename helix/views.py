@@ -1,3 +1,4 @@
+import simplejson
 import os
 import csv
 import datetime
@@ -336,6 +337,39 @@ def helix_reso_export_xml(request):
 
     return HttpResponse(rendered_xml, content_type='text/xml')
 
+@api_endpoint
+@api_view(['GET'])
+def helix_solar_production(request, pk=None):
+    org_id = request.GET['organization_id']
+    user = request.user
+    property_state = PropertyState.objects.get(pk=pk)
+    lat = None
+    lng = None
+    capacity = 0
+    errors = []
+    if 'Lat' in property_state.extra_data:
+        lat = property_state.extra_data['Lat']
+    else:
+        errors.append('Property has no Lat column defined')
+    if 'Long' in property_state.extra_data:
+        lng = property_state.extra_data['Long']
+    else:
+        errors.append('Property has no Long column defined')
+    if 'CAP Electric PV' in property_state.extra_data:
+        capacity = property_state.extra_data['CAP Electric PV']
+        capacity = simplejson.loads(capacity)['quantity']
+    else:
+        errors.append('Property has no CAP Electric PV column defined')
+    if len(errors) > 0:
+        return JsonResponse({'status': 'error', 'errors': errors}, status=422)
+    r = utils.get_pvwatts_production(lat, lng, capacity)
+    if r['success']:
+        production = r['production']
+        return JsonResponse({
+            'status': 'success',
+            'production': production,
+            'units': 'kWh'})
+    return JsonResponse({'status': 'error', 'errors': r['body']}, status=r['code'])
 
 @api_endpoint
 @api_view(['GET'])

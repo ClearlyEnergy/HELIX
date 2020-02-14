@@ -1,1 +1,3 @@
 zeep==2.3.0
+simplejson
+requests

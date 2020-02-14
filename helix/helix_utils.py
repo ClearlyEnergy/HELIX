@@ -1,4 +1,5 @@
 import os
+import requests
 import csv
 from io import StringIO
 import datetime
@@ -198,3 +199,21 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
         ga_url.url = url
         ga_url.description = 'Vermont profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         ga_url.save()
+
+def get_pvwatts_production(latitude, longitude, capacity, module_type=1, losses=5,
+                           array_type=1, tilt=5, azimuth=180):
+    params = {
+        'api_key': settings.PVWATTS_API_KEY,
+        'system_capacity': capacity,
+        'losses': losses,
+        'array_type': array_type,
+        'tilt': tilt,
+        'azimuth': azimuth,
+        'module_type': module_type,
+        'lat': latitude,
+        'lon': longitude,
+    }
+    response = requests.get('https://developer.nrel.gov/api/pvwatts/v6.json', params=params)
+    if response.status_code == requests.codes.ok:
+        return {'success': True, 'production': response.json()['outputs']['ac_annual']}
+    return {'success': False, 'code': response.status_code, 'body': response.json()['errors']}
