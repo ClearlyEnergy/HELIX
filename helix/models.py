@@ -248,8 +248,9 @@ class HelixMeasurement(models.Model):
 
     PV_CAP_MAPPING = {
         # attribute: RESO field, need to add YearInstall
+        'measurement_subtype': 'PowerProductionType',
         'quantity': 'PowerProductionSize',
-        'year': 'YearInstall'
+        'year': 'PoweProductionYearInstall'
     }
 
     HES_FUEL_TYPES = {
@@ -358,7 +359,10 @@ class HelixMeasurement(models.Model):
 
         if self.measurement_type == 'CAP':
             for key, val in self.PV_CAP_MAPPING.items():
-                reso_dict[val] = getattr(self, key)
+                attr = getattr(self, key)
+                if attr in dict(self.MEASUREMENT_SUBTYPE_CHOICES).keys():
+                    attr = dict(self.MEASUREMENT_SUBTYPE_CHOICES)[attr]
+                reso_dict[val] = attr
 
         if self.measurement_type == 'COST':
             for key, val in self.PV_COST_MAPPING.items():
