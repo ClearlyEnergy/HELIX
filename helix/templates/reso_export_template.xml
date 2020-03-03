@@ -4,7 +4,7 @@
 		<UniversalPropertyId>{{content.property.jurisdiction_property_id}}</UniversalPropertyId>
 		<Location>
 			<Address>
-				<City>{{content.city}}</City>
+				<City>{{content.property.city}}</City>
 				<Country>US</Country>
 				{% if content.property.extra_data.County %}
 					<CountyOrParish>{{content.property.extra_data.County}}</CountyOrParish>
