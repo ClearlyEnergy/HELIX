@@ -190,7 +190,7 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
                 green_property.initialize_audit_logs(user=user)
                 green_property.save()
         if status is not None:
-            green_property.status = status
+            green_property.status = status.lower()
             green_property.status_date = datetime.date.today()
             green_property.save()
 

@@ -292,7 +292,7 @@ def helix_reso_export_xml(request):
     measurement_dict = {}
     # assessments
     matching_assessments = HELIXGreenAssessmentProperty.objects.filter(
-        view__in=propertyview).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False)
+        view__in=propertyview).filter(Q(_expiration_date__gte=today) | Q(_expiration_date=None)).filter(opt_out=False).exclude(status__in=['draft','test','preliminary'])
     if matching_assessments:
         reso_certifications = HELIXGreenAssessment.objects.filter(organization_id__in=organizations).filter(is_reso_certification=True)
         property_info["assessments"] = matching_assessments.filter(assessment_id__in=reso_certifications)
@@ -425,12 +425,12 @@ def helix_vermont_profile(request):
 
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'heatingfuel', 'author_name', 'auditor', 'rating']
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'auditor', 'rating', 'low_cost_action']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
-                 'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet']
-    boolvars = ['estar_wh', 'heater_estar', 'water_estar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'has_audit', 'has_solar']
+                 'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet', 'high_cost_action']
+    boolvars = ['estar_wh', 'iap', 'zerh', 'phius', 'heater_estar', 'water_estar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'lighting_estar', 'has_audit', 'has_solar', 'has_storage']
     intvars = []
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
 
