@@ -425,7 +425,7 @@ def helix_vermont_profile(request):
 
     assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'auditor', 'rating', 'low_cost_action']
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
