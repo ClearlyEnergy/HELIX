@@ -1,0 +1,52 @@
+<div class="modal-header">
+    <h4 class="modal-title" id="exportModalLabel" ng-show="pvwatts_state === 'verify'">Calculate solar production</h4>
+    <h4 class="modal-title" id="exportModalLabel" ng-show="pvwatts_state === 'calculate'">Calculating solar production now...</h4>
+    <h4 class="modal-title" id="exportModalLabel" ng-show="pvwatts_state === 'result'">Solar production calculation Complete</h4>
+</div>
+<div class="modal-body">
+
+  <strong>Total Selected: {$ total_selected_count|number:0 $}</strong>
+  
+  <!-- Comments to the user hinting the state the user is in. -->
+  <div ng-show="pvwatts_state === 'verify'">
+    <div>Here's a summary of the properties selected to have their solar production calculated. Please verify before continuing.</div>
+  </div>
+
+  <div ng-show="pvwatts_state === 'calculate'">
+    <div>Currently calculating</div>
+  </div>
+
+  <br>
+
+    <div ng-show="pvwatts_state === 'result'">
+        <div class="alert alert-info">
+            <div ng-if="properties_calculated">
+                <div>{$:: 'Properties' | translate $}:</div>
+                <li ng-if="properties_calculated">{$ properties_not_calculated|number:0 $} solar production estimates not added</li>
+            </div>
+
+            <div ng-if="tax_lots_calculated">
+                <div>{$:: 'Tax Lots' | translate $}:</div>
+                <li ng-if="tax_lots_calculated">{$ tax_lots_not_calculated|number:0 $} solar production estimates not added</li>
+            </div>
+        </div>
+		
+        <div class="alert alert-success">
+            <div ng-if="properties_calculated">
+                <div>{$:: 'Properties' | translate $}:</div>
+                <li ng-if="properties_calculated">{$ properties_calculated|number:0 $} solar production estimates added</li>
+            </div>
+
+            <div ng-if="tax_lots_calculated">
+                <div>{$:: 'Tax Lots' | translate $}:</div>
+                <li ng-if="tax_lots_calculated">{$ tax_lots_calculated|number:0 $} solar production estimates added</li>
+            </div>
+        </div>
+    </div>
+  
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-primary" ng-click="calculate_production()" ng-show="pvwatts_state === 'verify'">Calculate Solar Production</button>
+  <button type="button" class="btn btn-default" ng-show="pvwatts_state === 'verify'" ng-click="cancel()">Cancel</button>
+  <button type="button" class="btn btn-default" ng-show="pvwatts_state === 'result'" ng-click="close()">Close</button>
+</div>
