@@ -17,29 +17,29 @@
   </div>
 
   <br>
-
     <div ng-show="pvwatts_state === 'result'">
-        <div class="alert alert-info">
-            <div ng-if="properties_calculated">
-                <div>{$:: 'Properties' | translate $}:</div>
+        <div ng-if="properties_calculated > 0">
+	        <div class="alert alert-info">
                 <li ng-if="properties_calculated">{$ properties_not_calculated|number:0 $} solar production estimates not added</li>
             </div>
 
-            <div ng-if="tax_lots_calculated">
-                <div>{$:: 'Tax Lots' | translate $}:</div>
-                <li ng-if="tax_lots_calculated">{$ tax_lots_not_calculated|number:0 $} solar production estimates not added</li>
-            </div>
         </div>
-		
-        <div class="alert alert-success">
-            <div ng-if="properties_calculated">
-                <div>{$:: 'Properties' | translate $}:</div>
-                <li ng-if="properties_calculated">{$ properties_calculated|number:0 $} solar production estimates added</li>
+        <div ng-if="properties_exists > 0">
+	        <div class="alert alert-info">
+                <li ng-if="properties_exists">{$ properties_exists|number:0 $} solar production already exists</li>
             </div>
 
-            <div ng-if="tax_lots_calculated">
-                <div>{$:: 'Tax Lots' | translate $}:</div>
-                <li ng-if="tax_lots_calculated">{$ tax_lots_calculated|number:0 $} solar production estimates added</li>
+        </div>
+        <div ng-if="properties_calculated > 0">
+	        <div class="alert alert-success">
+                <li ng-if="properties_calculated">{$ properties_calculated|number:0 $} solar production estimates added</li>
+            </div>
+        </div>
+        <div ng-if="properties_errors.length > 0">
+	        <div class="alert alert-danger">
+				<div ng-repeat="error in properties_errors">
+	                <li>{$ error $}</li>					
+				</div>
             </div>
         </div>
     </div>
