@@ -305,7 +305,7 @@ class HelixMeasurement(models.Model):
         ("CWOOD", "Cord Wood"),
         ("PWOOD", "Pellet Wood"))
     UNIT_CHOICES = (
-        ("KWH", "Kilowatt Hours"),
+        ("KWH", "Kilowatt Hours per Year"),
         ("KW", "Kilowatt"),
         ("GAL", "Gallon"),
         ("MMBTU", "mmbtu"),

@@ -18,7 +18,7 @@
 
   <br>
     <div ng-show="pvwatts_state === 'result'">
-        <div ng-if="properties_calculated > 0">
+        <div ng-if="properties_not_calculated > 0">
 	        <div class="alert alert-info">
                 <li ng-if="properties_calculated">{$ properties_not_calculated|number:0 $} solar production estimates not added</li>
             </div>
