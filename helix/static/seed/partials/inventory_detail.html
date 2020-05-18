@@ -139,6 +139,9 @@
                     <h2><i class="fa fa-cogs"></i> Measures</h2>
                 </span>
                 </div>
+                <div class="section_action_container right" ng-show="menu.user.organization.user_role !== 'viewer'" style="width: 50%;">
+					<a class="create_link" ng-click="confirm_create_measure()">Create New Measure</a>
+                </div>
             </div>
         </div>
     </div>
@@ -153,6 +156,7 @@
                             <th sd-resizable>Category</th>
                             <th sd-resizable class="ellipsis-resizable">Measure Name</th>
                             <th sd-resizable class="ellipsis-resizable">Measure Information</th>
+							<th sd-resizable width="40" ng-show="::user_role !== 'viewer'"></th>
                         </tr>
                     </thead>
                     <tbody ng-repeat="measure in measures">
@@ -180,6 +184,7 @@
                                 Reference ID: {$ measure.reference_id $} <br>
                                 Source: {$ measure.source $} <br>
                             </td>
+							<td ng-show="::user_role !== 'viewer'"><a class="delete_link" ng-click="confirm_delete_measure(measure)"><i class='fa fa-trash-o'></i></a></td>
                         </tr>
 						<tr ng-if="isOpen">
 							<th></th>
