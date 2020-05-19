@@ -196,5 +196,5 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
 
         ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
         ga_url.url = url
-        ga_url.description = 'Vermont profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        ga_url.description = 'Profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         ga_url.save()

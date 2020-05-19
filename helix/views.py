@@ -363,6 +363,12 @@ def helix_green_addendum(request, pk=None):
     assessments = HELIXGreenAssessmentProperty.objects.filter(view=property_view).filter(opt_out=False)
     for assess in assessments:
         data_dict.update(assess.to_label_dict())
+        measurements = HelixMeasurement.objects.filter(assessment_property=assess)
+        for measurement in measurements:
+            if assess.name == 'HERS Index Score':
+                data_dict.update(measurement.to_label_dict(0, 'hers'))
+            elif assess.name == 'Home Energy Score':
+                data_dict.update(measurement.to_label_dict(0, 'hes'))
 
     # retrieve measures
     measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
@@ -416,14 +422,14 @@ def helix_vermont_profile(request):
     org = Organization.objects.get(name=request.GET['organization_name'])
     user = request.user
     propertyview = utils.propertyview_find(request)
+    dataset_name = request.GET['dataset_name']
     if not propertyview:
-        dataset_name = 'Vermont Profile'
         propertyview = _create_propertyview(request, org, user, dataset_name)
 
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
-    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)
+    assessment = HELIXGreenAssessment.objects.get(name=dataset_name, organization=org)
 
     txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
@@ -435,7 +441,10 @@ def helix_vermont_profile(request):
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
 
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
-    key = lab.vermont_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
+    if request.GET['state'] == 'VT':
+        key = lab.vermont_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
+    else:
+        key = lab.generic_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
