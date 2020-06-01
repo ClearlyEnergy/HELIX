@@ -250,7 +250,7 @@ class HelixMeasurement(models.Model):
         # attribute: RESO field, need to add YearInstall
         'measurement_subtype': 'PowerProductionType',
         'quantity': 'PowerProductionSize',
-        'year': 'PoweProductionYearInstall'
+        'year': 'PowerProductionYearInstall'
     }
 
     HES_FUEL_TYPES = {
@@ -370,7 +370,7 @@ class HelixMeasurement(models.Model):
 
         return reso_dict
 
-    def to_label_dict(self, index=0):
+    def to_label_dict(self, index=0, prefix=''):
         ga_dict = {}
         ext = '' if index == 0 else '_'+str(index+1)
         if self.measurement_type == 'PROD':
@@ -379,4 +379,6 @@ class HelixMeasurement(models.Model):
         if self.measurement_type == 'CAP':
             ga_dict['solar_size'+ext] = str(self.quantity)
             ga_dict['solar_age'+ext] = str(self.year)
+        if self.measurement_type == 'SAVE':
+            ga_dict[prefix+'_estimated_savings'] = str(round(self.quantity))
         return ga_dict
