@@ -158,7 +158,7 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
     return data_dict
 
 
-def add_certification_label_to_property(propertyview, user, assessment, url, status=None):
+def add_certification_label_to_property(propertyview, user, assessment, url, status=None, reference_id=None):
     """
     Add profile or scorecard URL to property
     """
@@ -192,6 +192,9 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
         if status is not None:
             green_property.status = status.lower()
             green_property.status_date = datetime.date.today()
+            green_property.save()
+        if reference_id is not None:
+            green_property.reference_id = reference_id
             green_property.save()
 
         ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)

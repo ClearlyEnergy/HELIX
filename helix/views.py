@@ -533,51 +533,58 @@ def helix_massachusetts_scorecard(request, pk=None):
 @api_view(['GET'])
 def massachusetts_scorecard(request, pk=None):
     user = request.user
-    organizations = Organization.objects.filter(users=user)
-    for org in organizations:
+    try:
+        org = Organization.objects.get(users=user, name=request.GET['organization'])
+    except:
+        return JsonResponse({'status': 'error', 'message': 'organization does not exist'})
+    
+    try:
         assessment = HELIXGreenAssessment.objects.get(name='Massachusetts Scorecard', organization=org)
-        if assessment is not None:
-            break
+    except:
+        return JsonResponse({'status': 'error', 'message': 'Please create certification with name: Massachusetts Scorecard'})
 
 # test if property exists
     propertyview = utils.propertyview_find(request)
     if not propertyview:
-        dataset_name = 'MA API Sample'
+        dataset_name = 'MA API'
         propertyview = _create_propertyview(request, org, user, dataset_name)
 
-    txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
-    floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
-                 'conditioned_area', 'year_built', 'number_of_bedrooms',
-                 'fuel_energy_usage_base',
-                 'total_energy_cost_base', 'total_energy_cost_improved',
-                 'total_energy_usage_base', 'total_energy_usage_improved',
-                 'electric_energy_usage_base',
-                 'co2_production_base', 'co2_production_improved',
-                 'base_score', 'improved_score']
-    intvars = ['base_score', 'improved_score']
-    boolvars = []
-
-    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-    # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
-    to_co2 = {'electric': 0.00061}
-
-    if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
-        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
-        data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+    if request.GET['url']:
+        url = request.GET['url']
     else:
-        data_dict['fuel_percentage'] = 0.0
-        data_dict['fuel_percentage_co2'] = 0.0
+        txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
+        floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
+                     'conditioned_area', 'year_built', 'number_of_bedrooms',
+                     'fuel_energy_usage_base',
+                     'total_energy_cost_base', 'total_energy_cost_improved',
+                     'total_energy_usage_base', 'total_energy_usage_improved',
+                     'electric_energy_usage_base',
+                     'co2_production_base', 'co2_production_improved',
+                     'base_score', 'improved_score']
+        intvars = ['base_score', 'improved_score']
+        boolvars = []
 
-    data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
-    data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
+        data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
+        # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+        to_co2 = {'electric': 0.00061}
 
-    lab = label.Label()
-    key = lab.massachusetts_energy_scorecard(data_dict)
-    url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
+        if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
+            data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
+            data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+        else:
+            data_dict['fuel_percentage'] = 0.0
+            data_dict['fuel_percentage_co2'] = 0.0
+
+        data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
+        data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
+
+        lab = label.Label()
+        key = lab.massachusetts_energy_scorecard(data_dict)
+        url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
         # need to save data_dict to extra data
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, request.GET['status'])
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, request.GET.get('status', None), request.GET.get('reference_id', None))
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
