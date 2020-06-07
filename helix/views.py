@@ -214,17 +214,19 @@ def helix_dups_export(request):
 @api_endpoint
 @api_view(['GET'])
 def helix_reso_export_list_xml(request):
-    start_date = end_date = None
     content = []
     ga_pks = GreenAssessmentPropertyAuditLog.objects.none()
     property_pks = Property.objects.none()
-    if 'start_date' in request.GET:
-        start_date = request.GET['start_date']
-    if 'end_date' in request.GET:
-        end_date = request.GET['end_date']
-    organizations = Organization.objects.filter(users=request.user)
-    organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations)  # add sub-organizations with same parent
-
+    start_date = request.GET.get('start_date', None)
+    end_date = request.GET.get('end_date', None)
+    organization = request.GET.get('organization', None)
+    if organization:
+        organizations = Organization.objects.filter(users=request.user, name=organization)
+        organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations)  # add sub-organizations with same parent
+    else:
+        organizations = Organization.objects.filter(users=request.user)
+        organizations = organizations | Organization.objects.filter(parent_org_id__in=organizations)  # add sub-organizations with same parent
+    
 #    if propertyview.state.data_quality == 2:
 #        return HttpResponse('<errors><error>Property has errors and cannot be exported</error></errors>', content_type='text/xml')
 
@@ -549,7 +551,7 @@ def massachusetts_scorecard(request, pk=None):
         dataset_name = 'MA API'
         propertyview = _create_propertyview(request, org, user, dataset_name)
 
-    if request.GET['url']:
+    if request.GET.get('url', None):
         url = request.GET['url']
     else:
         txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
