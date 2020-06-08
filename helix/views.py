@@ -580,8 +580,9 @@ def massachusetts_scorecard(request, pk=None):
         data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
         data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
 
-        lab = label.Label()
-        key = lab.massachusetts_energy_scorecard(data_dict)
+
+        lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+        key = lab.massachusetts_energy_scorecard(data_dict, settings.AWS_BUCKET_NAME)
         url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
