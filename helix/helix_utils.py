@@ -101,7 +101,7 @@ def wait_for_task(key):
         time.sleep(0.5)
 
 
-def propertyview_find(request):
+def propertyview_find(request, org=None):
     """
     find propertyview by id, uid or address
     """
@@ -128,7 +128,10 @@ def propertyview_find(request):
             else:
                 street = request.GET['street']
             normalized_address, extra_data = normalize_address_str(street, '', zip, {})
-            state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
+            if org:
+                state_ids = PropertyState.objects.filter(normalized_address=normalized_address, organization=org)
+            else:
+                state_ids = PropertyState.objects.filter(normalized_address=normalized_address)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
 
     return propertyview
@@ -168,7 +171,6 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
         priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
                 view=pv,
                 assessment=assessment)
-
         if(not priorAssessments.exists()):
             # If the property does not have an assessment in the database
             # for the specifed assesment type create a new one.
