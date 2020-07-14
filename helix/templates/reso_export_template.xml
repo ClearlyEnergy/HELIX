@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <document>
 	<Property>
-		<UniversalPropertyId>{{content.property.jurisdiction_property_id}}</UniversalPropertyId>
 		<Location>
 			<Address>
 				<City>{{content.property.city}}</City>
@@ -27,6 +26,9 @@
 				<Longitude>{{content.property.longitude}}</Longitude>
 			</GIS>
 		</Location>	
+		<Tax>
+			<ParcelNumber>{{content.property.custom_id_1}}</ParcelNumber>
+		</Tax>
 		{% if content.assessments %}
 		<Structure>
 			<Performance>

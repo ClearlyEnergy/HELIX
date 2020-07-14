@@ -106,6 +106,10 @@ def propertyview_find(request, org=None):
     find propertyview by id, uid or address
     """
     propertyview = None
+    zip = request.GET.get('postal_code', None)
+    if zip is None:
+        zip = request.GET.get('zipcode', None)
+        
     if 'property_id' in request.GET and request.GET['property_id']:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
@@ -113,20 +117,16 @@ def propertyview_find(request, org=None):
     if propertyview is None:
         if 'property_uid' in request.GET and request.GET['property_uid']:
             property_uid = request.GET['property_uid']
-    #        property_uid = request.GET['property_uid'].translate({ord(i): None for i in '-_()'})
-            state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid)).filter(postal_code=request.GET['postal_code'])
+            state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+            if zip:
+                state_ids = state_ids.filter(postal_code=zip)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
 
     if propertyview is None:
-        if ('street' in request.GET or 'address_line_1' in request.GET) and ('postal_code' in request.GET or 'zipcode' in request.GET):
-            if 'postal_code' in request.GET:
-                zip = request.GET['postal_code']
-            else:
-                zip = request.GET['zipcode']
-            if 'address_line_1' in request.GET:
-                street = request.GET['address_line_1']
-            else:
-                street = request.GET['street']
+        street = request.GET.get('address_line_1', None)
+        if street is None:
+            street = request.GET.get('street',None)
+        if street and zip:
             normalized_address, extra_data = normalize_address_str(street, '', zip, {})
             if org:
                 state_ids = PropertyState.objects.filter(normalized_address=normalized_address, organization=org)
