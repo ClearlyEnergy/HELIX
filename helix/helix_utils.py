@@ -22,7 +22,7 @@ from seed.models.auditlog import (
     AUDIT_USER_EXPORT,
 )
 
-from helix.models import HELIXGreenAssessmentProperty
+from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
 from helix.utils.address import normalize_address_str
 from seed.utils.cache import get_cache
 
@@ -161,7 +161,7 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
     return data_dict
 
 
-def add_certification_label_to_property(propertyview, user, assessment, url, status=None, reference_id=None):
+def add_certification_label_to_property(propertyview, user, assessment, url, mmbtu=None, cost=None, status=None, reference_id=None):
     """
     Add profile or scorecard URL to property
     """
@@ -203,3 +203,14 @@ def add_certification_label_to_property(propertyview, user, assessment, url, sta
         ga_url.url = url
         ga_url.description = 'Profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         ga_url.save()
+        
+        if mmbtu is not None:
+            measurement_data = {'assessment_property_id': green_property.id, 'measurement_type': 'CONS', 'unit': 'MMBTU', 'year': datetime.datetime.now().year}
+            measurement_record, created = HelixMeasurement.objects.get_or_create(**measurement_data)
+            measurement_record.quantity = int(mmbtu)
+            measurement_record.save()
+        if cost is not None:
+            measurement_data = {'assessment_property_id': green_property.id, 'measurement_type': 'COST', 'unit': '$', 'year': datetime.datetime.now().year}
+            measurement_record, created = HelixMeasurement.objects.get_or_create(**measurement_data)
+            measurement_record.quantity = int(cost)
+            measurement_record.save()

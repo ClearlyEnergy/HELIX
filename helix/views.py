@@ -1,5 +1,6 @@
 import os
 import csv
+import re
 import datetime
 # from urlparse import urlparse
 from urllib.parse import urlparse
@@ -281,9 +282,13 @@ def helix_reso_export_xml(request):
         propertyview.state.jurisdiction_property_id = propertyview.state.custom_id_1
 
     organizations = Organization.objects.filter(users=request.user)
+    property = propertyview.first().state
+    match = re.search(r'.*\d{5}',property.normalized_address)
+    if match:
+        property.normalized_address = property.normalized_address[0:property.normalized_address.rindex(' ')]
 
     property_info = {
-        "property": propertyview.first().state,
+        "property": property,
     }
 
 #    for pv in propertyview:
@@ -450,7 +455,7 @@ def helix_vermont_profile(request):
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url)
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['cons_mmbtu'], data_dict['score'])
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
@@ -517,7 +522,7 @@ def helix_massachusetts_scorecard(request, pk=None):
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url)
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['fuel_energy_usage_base'], data_dict['total_energy_cost_base'])
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
@@ -587,7 +592,7 @@ def massachusetts_scorecard(request, pk=None):
 
     if propertyview is not None:
         # need to save data_dict to extra data
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, request.GET.get('status', None), request.GET.get('reference_id', None))
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['fuel_energy_usage_base'], data_dict['total_energy_cost_base'], request.GET.get('status', None), request.GET.get('reference_id', None))
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
@@ -596,21 +601,15 @@ def massachusetts_scorecard(request, pk=None):
 @api_endpoint
 @api_view(['GET'])
 def helix_remove_profile(request):
-    if 'property_id' in request.GET:
-        propertyview_pk = request.GET['property_id']
-        propertyview = PropertyView.objects.filter(pk=propertyview_pk)
-    elif 'property_uid' in request.GET:
-        property_uid = request.GET['property_uid']
-        state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
-        if state_ids:
-            propertyview = PropertyView.objects.filter(state_id__in=state_ids)
+    org = Organization.objects.get(name=request.GET['organization_name'])
+    propertyview = utils.propertyview_find(request, org=None)
 
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
-#    assessment = HELIXGreenAssessment.objects.get(name=request.GET['profile_name'], organization = org)
-    org = Organization.objects.get(name='VEIC-Efficiency Vermont')  # Change
-    assessment = HELIXGreenAssessment.objects.get(name='Vermont Profile', organization=org)  # Change
+    certification_name = request.GET['certification_name']
+    assessment = HELIXGreenAssessment.objects.get(name=certification_name, organization=org)
+    
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
 
     if propertyview is not None:

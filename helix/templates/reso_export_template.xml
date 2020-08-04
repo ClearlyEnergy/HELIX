@@ -16,10 +16,7 @@
 				<StreetNumber>{{content.property.extra_data.StreetNumber}}</StreetNumber>
 				<StreetSuffix>{{content.property.extra_data.StreetSuffix}}</StreetSuffix>
 				<UnitNumber>{{content.property.extra_data.UnitNumber}}</UnitNumber>
-				<UnparsedAddress>{{content.property.address_line_1}}
-					{% if content.property.address_line_2 %}
-					, {{ content.property.address_line_2}}
-					{% endif %}</UnparsedAddress>
+				<UnparsedAddress>{{content.property.normalized_address}}</UnparsedAddress>
 			</Address>
 			<GIS>
 				<Latitude>{{content.property.latitude}}</Latitude>
