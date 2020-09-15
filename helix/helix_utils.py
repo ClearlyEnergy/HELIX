@@ -161,12 +161,15 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
     return data_dict
 
 
-def add_certification_label_to_property(propertyview, user, assessment, url, mmbtu=None, cost=None, status=None, reference_id=None):
+def add_certification_label_to_property(propertyview, user, assessment, url, data_dict=None, status=None, reference_id=None):
     """
     Add profile or scorecard URL to property
-    """
+    """   
     for pv in propertyview:
         assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
+        if data_dict and 'source' in data_dict:
+            assessment_data['source'] = data_dict['source']
+            
         # consolidate with green addendum
         priorAssessments = HELIXGreenAssessmentProperty.objects.filter(
                 view=pv,
@@ -180,6 +183,7 @@ def add_certification_label_to_property(propertyview, user, assessment, url, mmb
         else:
             # find most recently created property and a corresponding audit log
             green_property = priorAssessments.order_by('date').last()
+            green_property.date = assessment_data['date']
             old_audit_log = GreenAssessmentPropertyAuditLog.objects.filter(greenassessmentproperty=green_property).exclude(record_type=AUDIT_USER_EXPORT).order_by('created').last()
             if old_audit_log is not None:
                 # log changes
@@ -190,27 +194,27 @@ def add_certification_label_to_property(propertyview, user, assessment, url, mmb
                         user=user)
             else:
                 green_property.initialize_audit_logs(user=user)
-                green_property.save()
         if status is not None:
             green_property.status = status.lower()
             green_property.status_date = datetime.date.today()
-            green_property.save()
         if reference_id is not None:
             green_property.reference_id = reference_id
-            green_property.save()
+        if 'source' in assessment_data:
+            green_property.source = assessment_data['source']
+        green_property.save()        
 
         ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
         ga_url.url = url
         ga_url.description = 'Profile generated on ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         ga_url.save()
         
-        if mmbtu is not None:
+        if data_dict and 'mmbtu' in data_dict:
             measurement_data = {'assessment_property_id': green_property.id, 'measurement_type': 'CONS', 'unit': 'MMBTU', 'year': datetime.datetime.now().year}
             measurement_record, created = HelixMeasurement.objects.get_or_create(**measurement_data)
-            measurement_record.quantity = int(mmbtu)
+            measurement_record.quantity = int(data_dict["mmbtu"])
             measurement_record.save()
-        if cost is not None:
+        if data_dict and 'score' in data_dict:
             measurement_data = {'assessment_property_id': green_property.id, 'measurement_type': 'COST', 'unit': '$', 'year': datetime.datetime.now().year}
             measurement_record, created = HelixMeasurement.objects.get_or_create(**measurement_data)
-            measurement_record.quantity = int(cost)
+            measurement_record.quantity = int(data_dict["score"])
             measurement_record.save()

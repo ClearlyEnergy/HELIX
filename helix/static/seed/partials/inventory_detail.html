@@ -58,6 +58,7 @@
 	                        <th sd-resizable id="assessment_score">Certification Date</th>
 	                        <th sd-resizable id="assessment_score">Expiration Date</th>
 	                        <th sd-resizable id="assessment_score">Status</th>
+	                        <th sd-resizable id="assessment_score">Source</th>
 	                        <th sd-resizable id="assessment_score">Reference ID</th>
 	                        <th sd-resizable id="assessment_score">Opt-Out?</th>
 							<th sd-resizable width="120"></th>
@@ -76,6 +77,7 @@
 	                        <td>{$ certification.date $}</td>
 	                        <td>{$ certification.expiration_date $}</td>
 	                        <td>{$ certification.status $}</td>
+	                        <td>{$ certification.source $}</td>
 	                        <td>{$ certification.reference_id $}</td>
 	                        <td><span ng-show="!certification.edit_form_showing">{$ certification.opt_out $}</span>							
                             <div class="form-check" ng-show="certification.edit_form_showing">

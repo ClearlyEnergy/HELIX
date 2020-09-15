@@ -438,12 +438,12 @@ def helix_vermont_profile(request):
 
     assessment = HELIXGreenAssessment.objects.get(name=dataset_name, organization=org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization']
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization', 'source']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_max', 'cons_mmbtu_min', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
                  'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet', 'high_cost_action', 'bill']
-    boolvars = ['estar_wh', 'iap', 'zerh', 'phius', 'heater_estar', 'water_estar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'lighting_estar', 'has_audit', 'has_solar', 'has_storage', 'evcar']
+    boolvars = ['estar_wh', 'iap', 'zerh', 'phius', 'heater_estar', 'water_estar', 'water_solar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'lighting_estar', 'has_audit', 'has_solar', 'has_storage', 'evcharger', 'has_cert']
     intvars = []
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
 
@@ -453,9 +453,9 @@ def helix_vermont_profile(request):
     else:
         key = lab.generic_energy_profile(data_dict, settings.AWS_BUCKET_NAME)
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
-
+    
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['cons_mmbtu'], data_dict['score'])
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict)
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
@@ -522,7 +522,7 @@ def helix_massachusetts_scorecard(request, pk=None):
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['fuel_energy_usage_base'], data_dict['total_energy_cost_base'])
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None))
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
@@ -531,7 +531,7 @@ def helix_massachusetts_scorecard(request, pk=None):
 # Create Massachusetts Scorecard (external service)
 # Parameters:
 #    property attributes
-# Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=298%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&assessment_date=2019-06-07&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_usage_base=12000&co2_production_base=12.1&co2_production_improved=9.9&base_score=7&improved_score=9&incentive_1=5000&status=draft&organization=Snugg%20Pro&reference_id=myref124&url=https://mysnuggurl.com
+# Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=298%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&assessment_date=2019-06-07&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_usage_base=12000&co2_production_base=12.1&co2_production_improved=9.9&base_score=7&improved_score=9&incentive_1=5000&status=draft&organization=Snugg%20Pro&reference_id=myref124&url=https://mysnuggurl.com&organization=ClearlyEnergy
 
 # @login_required
 
@@ -558,6 +558,7 @@ def massachusetts_scorecard(request, pk=None):
 
     if request.GET.get('url', None):
         url = request.GET['url']
+        data_dict = None
     else:
         txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
         floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
@@ -592,7 +593,7 @@ def massachusetts_scorecard(request, pk=None):
 
     if propertyview is not None:
         # need to save data_dict to extra data
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict['fuel_energy_usage_base'], data_dict['total_energy_cost_base'], request.GET.get('status', None), request.GET.get('reference_id', None))
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None))
         return JsonResponse({'status': 'success', 'url': url})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
