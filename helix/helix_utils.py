@@ -118,6 +118,10 @@ def propertyview_find(request, org=None):
         if 'property_uid' in request.GET and request.GET['property_uid']:
             property_uid = request.GET['property_uid']
             state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
+            
+            if org: 
+                state_ids = state_ids.filter(organization=org)
+
             if zip:
                 state_ids = state_ids.filter(postal_code=zip)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)

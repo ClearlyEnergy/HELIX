@@ -534,8 +534,6 @@ def helix_massachusetts_scorecard(request, pk=None):
 # Example: http://localhost:8000/helix/massachusetts-scorecard/?address_line_1=298%20Highland%20Ave&city=Cambridge&postal_code=02139&state=MA&propane=2.3&fuel_oil=2.4&natural_gas=0.1&electricity=0.1&wood=200&pellets=0.5&conditioned_area=2000&year_built=1945&number_of_bedrooms=3&primary_heating_fuel_type=propane&name=JoeContractor&assessment_date=2019-06-07&fuel_energy_usage_base=120&total_energy_cost_base=2500&total_energy_cost_improved=1500&total_energy_usage_base=150&total_energy_usage_improved=120&electric_energy_usage_base=12000&co2_production_base=12.1&co2_production_improved=9.9&base_score=7&improved_score=9&incentive_1=5000&status=draft&organization=Snugg%20Pro&reference_id=myref124&url=https://mysnuggurl.com&organization=ClearlyEnergy
 
 # @login_required
-
-
 @api_endpoint
 @api_view(['GET'])
 def massachusetts_scorecard(request, pk=None):
@@ -555,6 +553,8 @@ def massachusetts_scorecard(request, pk=None):
     if not propertyview:
         dataset_name = 'MA API'
         propertyview = _create_propertyview(request, org, user, dataset_name)
+    if not propertyview:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
     if request.GET.get('url', None):
         url = request.GET['url']
@@ -594,7 +594,7 @@ def massachusetts_scorecard(request, pk=None):
     if propertyview is not None:
         # need to save data_dict to extra data
         utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None))
-        return JsonResponse({'status': 'success', 'url': url})
+        return JsonResponse({'status': 'success', 'url': url, 'property_id': propertyview.id})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
 
