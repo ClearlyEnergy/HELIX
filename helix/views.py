@@ -594,7 +594,7 @@ def massachusetts_scorecard(request, pk=None):
     if propertyview is not None:
         # need to save data_dict to extra data
         utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None))
-        return JsonResponse({'status': 'success', 'url': url, 'property_id': propertyview.id})
+        return JsonResponse({'status': 'success', 'url': url, 'property_id': propertyview.first().id})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
 
