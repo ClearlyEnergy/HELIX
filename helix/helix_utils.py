@@ -205,6 +205,8 @@ def add_certification_label_to_property(propertyview, user, assessment, url, dat
             green_property.reference_id = reference_id
         if 'source' in assessment_data:
             green_property.source = assessment_data['source']
+        if data_dict and 'opt_out' in data_dict:
+            green_property.opt_out = data_dict['opt_out']
         green_property.save()        
 
         ga_url, _created = GreenAssessmentURL.objects.get_or_create(property_assessment=green_property)
