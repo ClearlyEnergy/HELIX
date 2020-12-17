@@ -347,12 +347,32 @@ def helix_reso_export_xml(request):
 @api_endpoint
 @api_view(['GET'])
 def helix_green_addendum(request, pk=None):
-    org_id = request.GET['organization_id']
+    if 'organization_id' in request.GET:
+        org_id = request.GET['organization_id']
+    elif 'organization_name' in request.GET:
+        org = Organization.objects.get(name=request.GET['organization_name'])
+        org_id = org.id
+    else:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No organization found --!>')
+
     user = request.user
 #    try:
     assessment = HELIXGreenAssessment.objects.get(name='Green Addendum', organization_id=org_id)
-    property_state = PropertyState.objects.get(pk=pk)
-    property_view = PropertyView.objects.get(state=property_state)
+    
+    if 'pk' in request.GET:
+        property_state = PropertyState.objects.get(pk=pk)
+        property_view = PropertyView.objects.get(state=property_state)
+    else:
+        property_view = utils.propertyview_find(request, org)
+        if not property_view:
+            property_view = _create_propertyview(request, org, user, dataset_name)
+
+    if not property_view:
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
+    elif 'pk' not in request.GET:
+        property_view = property_view[0]
+        property_state = property_view.state
+
     assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
 
     data_dict = {
@@ -438,7 +458,7 @@ def helix_vermont_profile(request):
 
     assessment = HELIXGreenAssessment.objects.get(name=dataset_name, organization=org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization', 'source']
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization', 'source', 'third_party']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_avg', 'cons_mmbtu_max', 'cons_mmbtu_min', 'cons_mmbtu_avg', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
