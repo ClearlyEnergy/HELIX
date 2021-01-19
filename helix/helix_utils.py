@@ -109,7 +109,7 @@ def propertyview_find(request, org=None):
     zip = request.GET.get('postal_code', None)
     if zip is None:
         zip = request.GET.get('zipcode', None)
-        
+
     if 'property_id' in request.GET and request.GET['property_id']:
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
