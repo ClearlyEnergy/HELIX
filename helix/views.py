@@ -476,7 +476,7 @@ def helix_vermont_profile(request):
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
                  'rate_elec', 'rate_ng', 'rate_ho', 'rate_propane', 'rate_wood_cord', 'rate_wood_pellet', 'high_cost_action', 'bill']
-    boolvars = ['estar_wh', 'iap', 'zerh', 'phius', 'heater_estar', 'water_estar', 'water_solar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'lighting_estar', 'has_audit', 'has_solar', 'has_storage', 'evcharger', 'has_cert', 'opt_out']
+    boolvars = ['estar_wh', 'iap', 'zerh', 'phius', 'heater_estar', 'water_estar', 'water_solar', 'ac_estar', 'fridge_estar', 'washer_estar', 'dishwasher_estar', 'lighting_estar', 'has_audit', 'has_solar', 'has_storage', 'evcharger', 'has_cert', 'certified_bill', 'opt_out']
     intvars = []
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
 
