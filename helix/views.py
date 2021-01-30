@@ -413,13 +413,21 @@ def helix_green_addendum(request, pk=None):
     if dataset_name == "Green Addendum":
         key = lab.green_addendum(data_dict, settings.AWS_BUCKET_NAME)        
     elif dataset_name == "Project Summary":
-        data_dict ={'address_line_1': '34 Somerset Rd', 'address_line_2': None, 'city': 'Montpelier', 'state': 'VT', 'postal_code': '05602', 
-        'hes_pre': 5, 'hes_post': 10, 'cost_pre': 3000, 'cost_post': 1000, 
-        'coach_name': 'Richard Faesy', 'coach_phone': '444-444-4444', 
-        'originator_name': 'Joe Banker', 'originator_phone': '555-555-5555',
-        'contractor_name': 'Gabrielle Contractor', 'contractor_company': 'Contractor Co.', 'contractor_phone': '123-456-7890', 
-        'customer_name': 'Handy Andy', 'customer_phone': '111-111-1111', 'customer_email': 'handy@andy.com', 
-        'measures': {'Solar Photovoltaic': 25000, 'Garage Insulation': 2345}, 'mortgage': 100000} 
+        txtvars = ['address_line_1', 'city', 'state', 'postal_code', 
+            'customer_name', 'customer_phone', 'customer_email', 
+            'contractor_name', 'contractor_company', 'contractor_phone', 
+            'coach_name', 'coach_phone', 
+            'originator_name', 'originator_phone',
+            'measure_name_1', 'measure_name_2','measure_name_3', 'measure_name_4', 'measure_name_5', 'measure_name_6','measure_name_7', 'measure_name_8']
+        floatvars = ['mortgage', 'measure_cost_1', 'measure_cost_2', 'measure_cost_3', 'measure_cost_4', 
+            'measure_cost_5', 'measure_cost_6', 'measure_cost_7', 'measure_cost_8',
+            'cost_pre', 'cost_post']
+        boolvars = []
+        intvars = ['hes_pre','hes_post']
+        source_data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
+        
+        data_dict.update(source_data_dict)
+        
         key = lab.energy_first_mortgage(data_dict, settings.AWS_BUCKET_NAME)
         
     url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
