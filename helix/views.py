@@ -31,6 +31,8 @@ from seed.utils.api import api_endpoint
 
 import helix.helix_utils as utils
 
+from hes import hes
+
 from label import label
 
 # Return the green assessment front end page. This can be accessed through
@@ -418,7 +420,8 @@ def helix_green_addendum(request, pk=None):
             'contractor_name', 'contractor_company', 'contractor_phone', 
             'coach_name', 'coach_phone', 
             'originator_name', 'originator_phone',
-            'measure_name_1', 'measure_name_2','measure_name_3', 'measure_name_4', 'measure_name_5', 'measure_name_6','measure_name_7', 'measure_name_8']
+            'measure_name_1', 'measure_name_2','measure_name_3', 'measure_name_4', 'measure_name_5', 'measure_name_6','measure_name_7', 'measure_name_8',
+            'notes']
         floatvars = ['mortgage', 'measure_cost_1', 'measure_cost_2', 'measure_cost_3', 'measure_cost_4', 
             'measure_cost_5', 'measure_cost_6', 'measure_cost_7', 'measure_cost_8',
             'cost_pre', 'cost_post']
@@ -463,6 +466,32 @@ def helix_green_addendum(request, pk=None):
 #    except:
 #        return JsonResponse({'status': 'error', 'msg': 'Green Addendum generation failed'})
 
+
+@api_endpoint
+@api_view(['GET'])
+def helix_home_energy_score(request):
+    user = request.user
+    org = Organization.objects.get(name=request.GET['organization_name'])
+    hes_id = request.GET['hes_id']
+    # instantiate HES client for external API
+    hes_auth = {'user_key': settings.HES_USER_KEY,
+                'user_name': org.hes_partner_name,
+                'password': org.hes_partner_password,
+                'client_url': settings.HES_CLIENT_URL}
+    print(hes_auth)
+    
+    hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
+    hes_data = hes_client.query_hes(hes_id)
+    print(hes_data)
+    if hes_data['status'] == 'error':
+        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
+    else:
+        del hes_data['status']
+            
+    if(hes_client is not None):
+        hes_client.end_session()
+        
+    return JsonResponse({'status': 'success', 'data': hes_data})
 
 @api_endpoint
 @api_view(['GET'])

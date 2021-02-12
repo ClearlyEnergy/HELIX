@@ -152,10 +152,10 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
         else:
             data_dict[var] = None
     for var in floatvars:
-        if var in request.GET and request.GET[var] is not None:
+        if var in request.GET and (request.GET[var] not in [None,""]):
             data_dict[var] = float(request.GET[var])
     for var in intvars:
-        if var in request.GET and request.GET[var] is not None:
+        if var in request.GET and (request.GET[var] not in [None,""]):
             data_dict[var] = int(request.GET[var])
     for var in boolvars:
         if var in request.GET and request.GET[var] == "true":
