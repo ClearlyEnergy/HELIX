@@ -275,7 +275,8 @@ def normalize_address_str(address_val, address_val_2, postal_code, extra_data):
 
         formatter = StreetAddressFormatter()
         normalized_address = formatter.abbrev_street_avenue_etc(normalized_address)
-        normalized_address = normalized_address + ' ' + postal_code
+        if postal_code is not None:
+            normalized_address = normalized_address + ' ' + postal_code
         street_name = formatter.abbrev_street_avenue_etc(street_name)
         extra_data['StreetName'] = street_name
 
