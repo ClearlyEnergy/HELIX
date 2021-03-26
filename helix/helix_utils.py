@@ -14,6 +14,7 @@ from seed.data_importer.models import (
 
 from seed.models.certification import GreenAssessmentPropertyAuditLog, GreenAssessmentURL
 from seed.models import (
+    Column,
     PropertyState,
     PropertyView
 )
@@ -165,10 +166,10 @@ def data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars):
     return data_dict
 
 
-def add_certification_label_to_property(propertyview, user, assessment, url, data_dict=None, status=None, reference_id=None):
+def add_certification_label_to_property(propertyview, user, assessment, url, data_dict=None, status=None, reference_id=None, org=None):
     """
     Add profile or scorecard URL to property
-    """   
+    """
     for pv in propertyview:
         assessment_data = {'assessment': assessment, 'view': pv, 'date': datetime.date.today()}
         if data_dict and 'source' in data_dict:
@@ -224,3 +225,19 @@ def add_certification_label_to_property(propertyview, user, assessment, url, dat
             measurement_record, created = HelixMeasurement.objects.get_or_create(**measurement_data)
             measurement_record.quantity = int(data_dict["score"])
             measurement_record.save()
+
+        state_keys = pv.state.__dict__.keys()
+        extra_data_keys = pv.state.extra_data.keys()
+        
+        column_data = []
+        for key, value in data_dict.items():
+            if (key not in state_keys) and (key not in extra_data_keys):
+                pv.state.extra_data[key] = value
+                column_data.append({
+                "from_field": key,
+                "to_field": key,
+                "to_table_name": "PropertyState"
+                })
+        pv.state.save()
+        if org:
+            Column.create_mappings(column_data, org, user)

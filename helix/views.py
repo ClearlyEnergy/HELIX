@@ -424,9 +424,9 @@ def helix_green_addendum(request, pk=None):
             'notes']
         floatvars = ['mortgage', 'measure_cost_1', 'measure_cost_2', 'measure_cost_3', 'measure_cost_4', 
             'measure_cost_5', 'measure_cost_6', 'measure_cost_7', 'measure_cost_8',
-            'cost_pre', 'cost_post']
+            'cost_pre', 'cost_post', 'hes_pre', 'hes_post']
         boolvars = []
-        intvars = ['hes_pre','hes_post']
+        intvars = []
         source_data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
         
         data_dict.update(source_data_dict)
@@ -469,6 +469,7 @@ def helix_green_addendum(request, pk=None):
 
 @api_endpoint
 @api_view(['GET'])
+# Test with /helix-home-energy-score?organization_name=ClearlyEnergy&hes_id=332297
 def helix_home_energy_score(request):
     user = request.user
     org = Organization.objects.get(name=request.GET['organization_name'])
@@ -478,13 +479,11 @@ def helix_home_energy_score(request):
                 'user_name': org.hes_partner_name,
                 'password': org.hes_partner_password,
                 'client_url': settings.HES_CLIENT_URL}
-    print(hes_auth)
     
     hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     hes_data = hes_client.query_hes(hes_id)
-    print(hes_data)
     if hes_data['status'] == 'error':
-        return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
+        return JsonResponse({'status': 'error', 'message': 'no existing home'})
     else:
         del hes_data['status']
             
@@ -626,44 +625,44 @@ def massachusetts_scorecard(request, pk=None):
     if not propertyview:
         return HttpResponseNotFound('<?xml version="1.0"?>\n<!--No property found --!>')
 
+    data_dict = None 
+
+    txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
+    floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
+                 'conditioned_area', 'year_built', 'number_of_bedrooms',
+                 'fuel_energy_usage_base',
+                 'total_energy_cost_base', 'total_energy_cost_improved',
+                 'total_energy_usage_base', 'total_energy_usage_improved',
+                 'electric_energy_usage_base',
+                 'co2_production_base', 'co2_production_improved',
+                 'base_score', 'improved_score']
+    intvars = ['base_score', 'improved_score']
+    boolvars = []
+
+    data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
+    # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+    to_co2 = {'electric': 0.00061}
+
+    if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
+        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
+        data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+    else:
+        data_dict['fuel_percentage'] = 0.0
+        data_dict['fuel_percentage_co2'] = 0.0
+
+    data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
+    data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
+
     if request.GET.get('url', None):
         url = request.GET['url']
-        data_dict = None
     else:
-        txtvars = ['address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'primary_heating_fuel_type', 'name', 'assessment_date']
-        floatvars = ['fuel_oil', 'electricity', 'natural_gas', 'wood', 'pellets', 'propane',
-                     'conditioned_area', 'year_built', 'number_of_bedrooms',
-                     'fuel_energy_usage_base',
-                     'total_energy_cost_base', 'total_energy_cost_improved',
-                     'total_energy_usage_base', 'total_energy_usage_improved',
-                     'electric_energy_usage_base',
-                     'co2_production_base', 'co2_production_improved',
-                     'base_score', 'improved_score']
-        intvars = ['base_score', 'improved_score']
-        boolvars = []
-
-        data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-        # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
-        to_co2 = {'electric': 0.00061}
-
-        if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
-            data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
-            data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
-        else:
-            data_dict['fuel_percentage'] = 0.0
-            data_dict['fuel_percentage_co2'] = 0.0
-
-        data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
-        data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
-
-
         lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
         key = lab.massachusetts_energy_scorecard(data_dict, settings.AWS_BUCKET_NAME)
         url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
 
     if propertyview is not None:
         # need to save data_dict to extra data
-        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None))
+        utils.add_certification_label_to_property(propertyview, user, assessment, url, data_dict, request.GET.get('status', None), request.GET.get('reference_id', None), org)
         return JsonResponse({'status': 'success', 'url': url, 'property_id': propertyview.first().id})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
