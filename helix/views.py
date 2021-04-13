@@ -640,22 +640,22 @@ def massachusetts_scorecard(request, pk=None):
     boolvars = []
 
     data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
-    # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
-    to_co2 = {'electric': 0.00061}
-
-    if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
-        data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
-        data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
-    else:
-        data_dict['fuel_percentage'] = 0.0
-        data_dict['fuel_percentage_co2'] = 0.0
-
-    data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
-    data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
 
     if request.GET.get('url', None):
         url = request.GET['url']
     else:
+        # to_btu = {'electric': 0.003412, 'fuel_oil': 0.1, 'propane': 0.1, 'natural_gas': 0.1, 'wood': 0.1, 'pellets': 0.1}
+        to_co2 = {'electric': 0.00061}
+
+        if data_dict['fuel_energy_usage_base'] is not None and data_dict['electric_energy_usage_base'] is not None:
+            data_dict['fuel_percentage'] = 100.0 * data_dict['fuel_energy_usage_base']*0.1 / (data_dict['fuel_energy_usage_base']*0.1 + data_dict['electric_energy_usage_base']*0.003412)
+            data_dict['fuel_percentage_co2'] = 100.0 * (data_dict['co2_production_base'] - to_co2['electric'] * data_dict['electric_energy_usage_base']) / data_dict['co2_production_base']
+        else:
+            data_dict['fuel_percentage'] = 0.0
+            data_dict['fuel_percentage_co2'] = 0.0
+
+        data_dict['electric_percentage'] = 100.0 - data_dict['fuel_percentage']
+        data_dict['electric_percentage_co2'] = 100.0 - data_dict['fuel_percentage_co2']
         lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
         key = lab.massachusetts_energy_scorecard(data_dict, settings.AWS_BUCKET_NAME)
         url = 'https://s3.amazonaws.com/' + settings.AWS_BUCKET_NAME + '/' + key
