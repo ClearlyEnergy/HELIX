@@ -222,6 +222,8 @@ def helix_reso_export_list_xml(request):
     property_pks = Property.objects.none()
     start_date = request.GET.get('start_date', None)
     end_date = request.GET.get('end_date', None)
+    print(start_date)
+    print(end_date)
     organization = request.GET.get('organization', None)
     if organization:
         organizations = Organization.objects.filter(users=request.user, name=organization)
@@ -237,10 +239,10 @@ def helix_reso_export_list_xml(request):
         # select green assessment properties that are in the specified create / update date range
         # and associated with the correct property view
         if start_date:
-            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(created__gte=start_date)
+            ga_pks = GreenAssessmentPropertyAuditLog.objects.filter(organization_id__in=organizations, created__gte=start_date)
             property_pks = Property.objects.filter(organization_id__in=organizations, updated__gte=start_date)
         if end_date:
-            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(created__lte=end_date)
+            ga_pks = ga_pks & GreenAssessmentPropertyAuditLog.objects.filter(organization_id__in=organizations, created__lte=end_date)
             property_pks = property_pks & Property.objects.filter(organization_id__in=organizations, updated__lte=end_date)
 
         if property_pks:
