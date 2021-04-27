@@ -351,6 +351,7 @@ def helix_reso_export_xml(request):
 @api_endpoint
 @api_view(['GET'])
 def helix_green_addendum(request, pk=None):
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
     if 'organization_id' in request.GET:
         org_id = request.GET['organization_id']
         org = Organization.objects.get(pk=org_id)
@@ -379,8 +380,6 @@ def helix_green_addendum(request, pk=None):
         property_view = property_view[0]
         property_state = property_view.state
 
-    assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
-
     data_dict = {
         'street': property_state.address_line_1,
         'street_2': property_state.address_line_1,
@@ -389,32 +388,56 @@ def helix_green_addendum(request, pk=None):
         'state': property_state.state,
         'zip': property_state.postal_code
     }
-    if 'Utility' in property_state.extra_data:
-        data_dict['utility_name'] = property_state.extra_data['Utility']
-
-    # retrieve green assessment properties
-    assessments = HELIXGreenAssessmentProperty.objects.filter(view=property_view).filter(opt_out=False)
-    for assess in assessments:
-        data_dict.update(assess.to_label_dict())
-        measurements = HelixMeasurement.objects.filter(assessment_property=assess)
-        for measurement in measurements:
-            if assess.name == 'HERS Index Score':
-                data_dict.update(measurement.to_label_dict(0, 'hers'))
-            elif assess.name == 'Home Energy Score':
-                data_dict.update(measurement.to_label_dict(0, 'hes'))
-
-    # retrieve measures
-    measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
-    for index, meas in enumerate(measures):
-        #    for meas in measures:
-        data_dict.update(meas.to_label_dict(index))
-        # add _2 for second solar
-        measurements = HelixMeasurement.objects.filter(measure_property=meas)
-        for measurement in measurements:
-            data_dict.update(measurement.to_label_dict(index))
-
-    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    assessment_data = {'assessment': assessment, 'view': property_view, 'date': datetime.date.today()}
     if dataset_name == "Green Addendum":
+        if 'ga_from_ee' in request.GET and request.GET['ga_from_ee'] is not None: #Green Addendum from external data
+            txtvars = ['indoor_air_plus', 'water_sense', 'energy_star', 'zerh', 
+                'ngbs_bronze', 'ngbs_silver', 'ngbs_gold', 'ngbs_emerald', 
+                'living_building_certified', 'petal_certification', 'phi_low_energy', 'energy_phit', 'passive_house', 'phius_2015'
+                'leed_certified', 'leed_silver', 'leed_gold', 'leed_platinum', 'green_certification_date_verified', 
+                'verification_reviewed_on_site', 'verification_attached', 'green_certification_version', 'green_certification_organization_url',
+                'hers_rating', 'hers_sampling_rating', 'hers_projected_rating', 'hers_confirmed_rating', 'hers_estimated_savings', 'hers_rate',
+                'hes_score', 'hes_official', 'hes_unofficial', 'hes_estimated_savings', 'hes_rate', 'score_date_verified', 'score_version']
+            floatvars = []
+            boolvars = []
+            intvars = []
+            # energy_improvement_description, cost_of_energy_improvement
+            # resnet_url, hes_url, other_score_url_check, other_score_url
+            # score_reviewed_on_site, score_attached
+            # solar_leased, solar_owned, solar_loan_ucc, solar_ppa
+            # solar_size, solar_production, solar_production_type, solar_age
+            # solar_fixed_mount, solar_tracking_mount
+            # same with _2]
+    
+            source_data_dict = utils.data_dict_from_vars(request, txtvars, floatvars, intvars, boolvars)
+            for key in source_data_dict:
+                if source_data_dict[key] is None:
+                    source_data_dict[key] = ''
+            data_dict.update(source_data_dict)
+        else: #Green Addendum from HELIX data
+            if 'Utility' in property_state.extra_data:
+                data_dict['utility_name'] = property_state.extra_data['Utility']
+
+            # retrieve green assessment properties
+            assessments = HELIXGreenAssessmentProperty.objects.filter(view=property_view).filter(opt_out=False)
+            for assess in assessments:
+                data_dict.update(assess.to_label_dict())
+                measurements = HelixMeasurement.objects.filter(assessment_property=assess)
+                for measurement in measurements:
+                    if assess.name == 'HERS Index Score':
+                        data_dict.update(measurement.to_label_dict(0, 'hers'))
+                    elif assess.name == 'Home Energy Score':
+                        data_dict.update(measurement.to_label_dict(0, 'hes'))
+
+            # retrieve measures
+            measures = HELIXPropertyMeasure.objects.filter(property_state=property_state)
+            for index, meas in enumerate(measures):
+                #    for meas in measures:
+                data_dict.update(meas.to_label_dict(index))
+                # add _2 for second solar
+                measurements = HelixMeasurement.objects.filter(measure_property=meas)
+                for measurement in measurements:
+                    data_dict.update(measurement.to_label_dict(index))
         key = lab.green_addendum(data_dict, settings.AWS_BUCKET_NAME)        
     elif dataset_name == "Project Summary":
         txtvars = ['address_line_1', 'city', 'state', 'postal_code', 
