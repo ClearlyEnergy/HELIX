@@ -504,7 +504,6 @@ def helix_home_energy_score(request):
                 'user_name': org.hes_partner_name,
                 'password': org.hes_partner_password,
                 'client_url': settings.HES_CLIENT_URL}
-    
     hes_client = hes.HesHelix(hes_auth['client_url'], hes_auth['user_name'], hes_auth['password'], hes_auth['user_key'])
     hes_data = hes_client.query_hes(hes_id)
     if hes_data['status'] == 'error':
@@ -532,7 +531,7 @@ def helix_vermont_profile(request):
 
     assessment = HELIXGreenAssessment.objects.get(name=dataset_name, organization=org)
 
-    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization', 'source', 'third_party', 'bill']
+    txtvars = ['street', 'city', 'state', 'zipcode', 'evt', 'leed', 'ngbs', 'heatingfuel', 'author_name', 'author_company', 'auditor', 'rating', 'low_cost_action', 'heater_type', 'water_type', 'solar_ownership', 'weatherization', 'source', 'third_party', 'bill', 'comments']
     floatvars = ['cons_mmbtu', 'cons_mmbtu_avg', 'cons_mmbtu_max', 'cons_mmbtu_min', 'cons_mmbtu_avg', 'score', 'elec_score', 'ng_score', 'ho_score', 'propane_score', 'wood_cord_score', 'wood_pellet_score', 'solar_score',
                  'finishedsqft', 'yearbuilt', 'hers_score', 'hes_score', 'capacity',
                  'cons_elec', 'cons_ng', 'cons_ho', 'cons_propane', 'cons_wood_cord', 'cons_wood_pellet', 'cons_solar',
