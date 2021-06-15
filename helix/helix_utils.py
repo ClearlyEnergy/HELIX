@@ -115,7 +115,7 @@ def propertyview_find(request, org=None):
         propertyview_pk = request.GET['property_id']
         propertyview = PropertyView.objects.filter(pk=propertyview_pk)
 
-    if propertyview is None:
+    if not propertyview:
         if 'property_uid' in request.GET and request.GET['property_uid']:
             property_uid = request.GET['property_uid']
             state_ids = PropertyState.objects.filter(Q(ubid__icontains=property_uid) | Q(custom_id_1__icontains=property_uid))
@@ -127,7 +127,7 @@ def propertyview_find(request, org=None):
                 state_ids = state_ids.filter(postal_code=zip)
             propertyview = PropertyView.objects.filter(state_id__in=state_ids)
 
-    if propertyview is None:
+    if not propertyview:
         street = request.GET.get('address_line_1', None)
         if street is None:
             street = request.GET.get('street',None)
