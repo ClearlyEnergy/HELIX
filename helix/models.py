@@ -289,6 +289,8 @@ class HelixMeasurement(models.Model):
         ("PROD", "Production"),
         ("CONS", "Consumption"),
         ("COST", "Cost"),
+        ("REPL", "Replacement Cost"),
+        ("NPV", "Net Present Value"),
         ("SAVE", "Savings"),
         ("EMIT", "Emissions"),
         ("CAP", "Capacity"))
@@ -313,7 +315,7 @@ class HelixMeasurement(models.Model):
         ("LB", "pound"),
         ("CORD", "cord"),
         ("THERM", "therm"),
-        ("DOLLAR", "dollars"),
+        ("DOLLR", "dollars"),
         ("GHG", "Greenhouse Gas"),
         #        ("CO2","Carbon Dioxide"),
         ("CO2e", "Carbon Dioxide Equivalent"))
