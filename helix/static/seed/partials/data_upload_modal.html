@@ -83,7 +83,7 @@
         <div class="progress_bar_container" ng-show="uploader.in_progress">
             <div class="progress_bar_copy_top"
                  translate="UPLOADING_PROGRESS"
-                 translate-values="{ dataset_filename: dataset.filename }"></div>
+                 translate-values="{ dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
 
             <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
             <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
@@ -100,7 +100,7 @@
         <div class="row">
             <div class="alert alert-success"
             translate="DATASET_FILENAME_UPLOADED_TO"
-            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename }"></div>
+            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
         </div>
     </div>
     <!-- Step 4: load Portfolio Manager report data -->
@@ -112,7 +112,7 @@
                 <div class="progress_bar_container" ng-show="uploader.in_progress">
                     <div class="progress_bar_copy_top"
                          translate="UPLOADING_PROGRESS"
-                         translate-values="{ dataset_filename: dataset.filename }"></div>
+                         translate-values="{ dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
 
                     <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
                     <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
@@ -125,7 +125,7 @@
         <div class="row">
             <div class="alert alert-success"
             translate="DATASET_FILENAME_UPLOADED_TO"
-            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename }"></div>
+            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
         </div>
     </div>
     <!-- Step 6 -->
@@ -296,7 +296,7 @@
         <div class="row">
             <div class="alert alert-success"
             translate="DATASET_FILENAME_UPLOADED_TO"
-            translate-values="{ dataset_name: dataset.name, dataset_filename: dataset.filename }"></div>
+            translate-values="{ dataset_name: dataset.name, dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
              <div class="col-sm-12">
                 <div ng-if="step_14_message.length > 0">
                     <p translate>Warnings:</p>
@@ -313,7 +313,7 @@
         <div class="progress_bar_container" ng-show="uploader.in_progress">
             <div class="progress_bar_copy_top"
                  translate="UPLOADING_PROGRESS"
-                 translate-values="{ dataset_filename: dataset.filename }"></div>
+                 translate-values="{ dataset_filename: dataset.filename, cycle_name: selectedCycle.name }"></div>
 
             <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
             <div class="progress_bar_copy_bottom">{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</div>
