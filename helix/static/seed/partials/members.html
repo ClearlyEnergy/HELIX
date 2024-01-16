@@ -17,7 +17,11 @@
     <div class="section_header_container">
         <div class="section_header fixed_height_short">
             <div class="left section_action_container"><h2><i class="fa fa-user"></i> {$:: 'Members' | translate $}</h2></div>
-            <div class="right_wide section_action_container"><a ng-click="new_member_modal()" ng-if="::auth.can_invite_member" translate>Invite a new member</a></div>
+            <div class="right_wide section_action_container">
+                <a ng-click="reset_all_passwords('Really reset all passwords?  This will sign you out of SEED.' | translate)" ng-if="auth.can_remove_member" title="{$:: 'Sends the reset password email to all users.' | translate $}" translate>Reset all passwords</a>
+                <span ng-if="auth.can_remove_member && auth.can_invite_member">—</span>
+                <a ng-click="new_member_modal()" ng-if="auth.can_invite_member" translate>Invite a new member</a>
+            </div>
         </div>
     </div>
         <div class="section_content_container">
@@ -28,11 +32,10 @@
                         <tr>
                             <th translate>Member Name</th>
                             <th translate>Member Email</th>
-							<th translate>Last Login</th>
                             <th translate>Member Role</th>
-							<th translate ng-if="org.user_role !== 'viewer'">Certifications Added</th>
+                            <th translate ng-if="org.user_role !== 'viewer'">Certifications Added</th>
 							<th translate ng-if="org.user_role !== 'viewer'">Certifications Exported</th>
-                            <th translate ng-if="::auth.can_remove_member"></th>
+                            <th ng-if="auth.can_remove_member"></th>
                         </tr>
                         <tr class="sub_head">
                             <th class="sub_head">
@@ -40,9 +43,6 @@
                             </th>
                             <th class="sub_head">
                                 <input type="text" placeholder="{$:: 'member email' | translate $}" class="form-control input-sm" ng-model="filter_params.email" ng-class="{active: filter_params.email.length}">
-                            </th>
-                            <th class="sub_head">
-                                <input type="text" placeholder="member last login" class="form-control input-sm" ng-model="filter_params.last_login" ng-class="{active: filter_params.last_login.length}">
                             </th>
                             <th class="sub_head">
                                 <input type="text" placeholder="{$:: 'member role' | translate $}" class="form-control input-sm" ng-model="filter_params.role" ng-class="{active: filter_params.role.length}">
@@ -53,19 +53,16 @@
                             <th class="sub_head" ng-if="org.user_role !== 'viewer'">
                                 <input type="text" placeholder="member certifications exported" class="form-control input-sm" ng-model="filter_params.certifications_exported" ng-class="{active: filter_params.certifications_exported.length}">
                             </th>
-                            <th class="sub_head" ng-if="::auth.can_remove_member"></th>
+                            <th class="sub_head" ng-if="auth.can_remove_member"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr ng-repeat="u in users  | filter:filter_params:strict">
+                        <tr ng-repeat="u in users | filter:filter_params:strict">
                             <td>
                                 {$:: u.name $}
                             </td>
                             <td>
                                 {$:: u.email $}
-                            </td>
-                            <td>
-                                {$:: u.last_login $}
                             </td>
                             <td>
                                 <div class="row">
@@ -84,8 +81,8 @@
                             <td ng-if="org.user_role !== 'viewer'">
                                 {$:: u.certifications_exported $}
                             </td>
-                            <td ng-if="::auth.can_remove_member">
-                                <a ng-if="!is_last_owner || u.email !== user_profile.email" ng-click="remove_member(u)" translate>Remove</a>
+                            <td ng-if="auth.can_remove_member">
+                                <a ng-if="!only_one_owner || u.email !== user_profile.email" ng-click="remove_member(u)" translate>Remove</a>
                             </td>
                         </tr>
                     </tbody>

@@ -12,7 +12,6 @@
     <h4 class="modal-title" ng-switch-when="11" translate>Confirm Save Mappings?</h4>
     <h4 class="modal-title" ng-switch-when="12" translate>Error Processing Data</h4>
     <h4 class="modal-title" ng-switch-when="13" translate>Portfolio Manager Import</h4>
-    <h4 class="modal-title" ng-switch-when="14" translate>Successful upload!</h4>
     <h4 class="modal-title" ng-switch-when="15" translate>UPLOAD_PM_READINGS_MODAL_TITLE</h4>
     <h4 class="modal-title" ng-switch-when="16" translate>PM_METER_IMPORT_RESULTS</h4>
 
@@ -40,10 +39,20 @@
             <uib-tab index="0" heading="{$:: 'Property and Tax Lot Data' | translate $}">
                 <div class="tab-content-section" ng-hide="uploader.in_progress">
                     <div class="row">
-                        <label class="col-sm-4 control-label" for="selected-cycle" style="margin-top: 5px;" translate>Cycle</label>
+                        <label class="col-sm-4 control-label" for="selected-cycle" style="margin-top: 5px;">{$ multipleCycleUpload ? 'default_cycle' : 'Cycle' | translate $}</label>
                         <div class="col-sm-8">
                             <select id="selected-cycle" name="selected-cycle" class="form-control input-sm" ng-change="cycleChanged(selectedCycle)" ng-model="selectedCycle" ng-options="cycle.name for cycle in cycles track by cycle.id" style="width:100%;"></select>
                             <a ui-sref="organization_cycles(::{organization_id: organization.id})" ng-click="cancel()" translate>Manage available cycles.</a>
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" ng-model="multipleCycleUpload" ng-click="toggleMultipleCycleUpload()" />
+                                    <span>Multiple Cycle Upload</span>
+                                </label>
+                                <i class="ui-grid-icon-info-circled" ng-mouseover="show_help = true" ng-mouseout="show_help = false"></i>
+                                <div class="alert alert-info" ng-show="show_help" style="position: absolute; z-index: 1;" translate>
+                                    When checked, properties/taxlots will be matched to existing cycles based on the 'year_ending' column or the default cycle if there is no match.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -65,7 +74,7 @@
                                 <span class="grow">Upload a GeoJSON File</span>
                             </div>
                         </div>
-                        <div class="col-sm-8" style="margin-bottom: 10px;" ng-disabled="!selectedCycle">
+                        <div class="col-sm-8" ng-disabled="!selectedCycle">
                             <div class="btn btn-primary upload-btn flex-centered" sd-uploader  organization-id="organization.org_id" sourcetype="BuildingSync Raw" sourceprog="" sourcever="" importrecord="dataset.id" eventfunc="uploaderfunc(message, file, progress)" ng-disabled="!selectedCycle">
                                 <i class="fa fa-file-code-o fa-2x"></i>
                                 <span class="grow">{$:: 'Upload BuildingSync Data' | translate $}</span>
@@ -168,8 +177,8 @@
     <div class="data_upload_steps" ng-switch-when="3">
         <div class="row">
             <div class="alert alert-success"
-            translate="DATASET_FILENAME_UPLOADED_TO"
-            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename , cycle_name: selectedCycle.name }"></div>
+                 ng-attr-translate="{$ multipleCycleUpload ? 'DATASET_FILENAME_UPLOADED_TO_MULTIPLE_CYCLE' : 'DATASET_FILENAME_UPLOADED_TO' $}"
+                 translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename , cycle_name: selectedCycle.name }"></div>
             <div class="alert alert-danger" ng-if="buildingsync_issues != null && buildingsync_issues.length > 0" style="display:flex;align-items:baseline;">
                 <div style="flex-grow:1">There were errors and/or warnings for the file(s) uploaded.</div>
                 <button type="button" class="btn btn-primary" ng-click="export_issues(buildingsync_issues)"><i class="fa fa-download" aria-hidden="true"></i><span class="pad-left-5" translate>Export CSV<span></button>
@@ -203,8 +212,8 @@
     <div class="data_upload_steps" ng-switch-when="5">
         <div class="row">
             <div class="alert alert-success"
-            translate="DATASET_FILENAME_UPLOADED_TO"
-            translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename , cycle_name: selectedCycle.name }"></div>
+                 ng-attr-translate="{$ multipleCycleUpload ? 'DATASET_FILENAME_UPLOADED_TO_MULTIPLE_CYCLE' : 'DATASET_FILENAME_UPLOADED_TO' $}"
+                 translate-values="{ dataset_name: dataset.name , dataset_filename: dataset.filename , cycle_name: selectedCycle.name }"></div>
         </div>
     </div>
     <!-- Step 6 -->
@@ -225,11 +234,11 @@
                         {$ dataset.filename $}</strong></div>
                     <uib-progressbar class="progress-striped active" value="uploader.progress" type="success"></uib-progressbar>
                     <div class="progress_bar_copy_bottom"><strong>{$ uploader.progress | number:0 $}% {$:: 'Complete' | translate $} {$ uploader.status_message ? ': ' + uploader.status_message : '' $}</strong></div>
-                    <!-- Show a hint that BEAM is still working when the progress data hasn't been updated in 1 minute -->
+                    <!-- Show a hint that SEED is still working when the progress data hasn't been updated in 1 minute -->
                     <div ng-if="uploader.progress_last_updated != null && uploader.progress_last_checked != null && (uploader.progress_last_checked - uploader.progress_last_updated) / 1000 > 60"
                          class="progress_bar_copy_bottom">
                         <i class="fa fa-spinner fa-pulse fa-fw" style="padding-right: 0"></i>
-                        BEAM is still working. Please do not refresh or leave this page. (Last updated at {$ uploader.progress_last_checked | date:'hh:mm a' $})
+                        HELIX is still working. Please do not refresh or leave this page. (Last updated at {$ uploader.progress_last_checked | date:'hh:mm a' $})
                     </div>
                 </div>
                 <!-- Sub progress bar -->
@@ -246,7 +255,7 @@
         <div class="row">
             <div class="alert alert-success">
                 <ul>
-                    <li>{$:: 'Current cycle' | translate $}: {$ selectedCycle.name $}</li>
+                    <li>{$:: multipleCycleUpload ? 'default_cycle' : 'Cycle' | translate $}: {$ selectedCycle.name $}</li>
                     <li>{$:: 'Total rows in the import file' | translate $}: {$ import_file_records|number:0 $}</li>
                     <li ng-if="property_new">{$:: 'New properties' | translate $}: {$ property_new|number:0 $}</li>
                     <li ng-if="tax_lot_new">{$:: 'New tax lots' | translate $}: {$ tax_lot_new|number:0 $}</li>
@@ -293,7 +302,7 @@
         <div class="row">
             <div class="alert alert-success" ng-hide="step_10_error_message">
                 <ul>
-                    <li>{$:: 'Current cycle' | translate $}: {$ selectedCycle.name $}</li>
+                    <li>{$:: multipleCycleUpload ? 'default_cycle' : 'Cycle' | translate $}: {$ selectedCycle.name $}</li>
                     <li>{$:: 'Total rows in the import file' | translate $}: {$ import_file_records|number:0 $}</li>
                     <li ng-if="property_new">{$:: 'New properties' | translate $}: {$ property_new|number:0 $}</li>
                     <li ng-if="tax_lot_new">{$:: 'New tax lots' | translate $}: {$ tax_lot_new|number:0 $}</li>

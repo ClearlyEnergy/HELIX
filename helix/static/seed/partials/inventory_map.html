@@ -23,31 +23,31 @@
                 </button>
                 <ul id="inventory-actions-dropdown" uib-dropdown-menu class="dropdown-menu" role="menu" aria-labelledby="btnInventoryActions">
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.hexbin_layer.zIndex)">Toggle Hexbins</a>
+                        <a ng-click="toggle_layer(layers.hexbin_layer.zIndex)" translate>Toggle Hexbins</a>
                     </li>
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.points_layer.zIndex)">Toggle Points</a>
+                        <a ng-click="toggle_layer(layers.points_layer.zIndex)" translate>Toggle Points</a>
                     </li>
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.building_bb_layer.zIndex)">Toggle UBID Bounding Boxes</a>
+                        <a ng-click="toggle_layer(layers.building_bb_layer.zIndex)" translate>Toggle Property UBID Bounding Boxes</a>
                     </li>
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.building_centroid_layer.zIndex)">Toggle UBID Centroids</a>
+                        <a ng-click="toggle_layer(layers.building_centroid_layer.zIndex)" translate>Toggle Property UBID Centroids</a>
                     </li>
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.taxlot_bb_layer.zIndex)">Toggle ULID Bounding Boxes</a>
+                        <a ng-click="toggle_layer(layers.taxlot_bb_layer.zIndex)" translate>Toggle Taxlot UBID Bounding Boxes</a>
                     </li>
                     <li role="menuitem">
-                        <a ng-click="toggle_layer(layers.taxlot_centroid_layer.zIndex)">Toggle ULID Centroids</a>
+                        <a ng-click="toggle_layer(layers.taxlot_centroid_layer.zIndex)" translate>Toggle Taxlot UBID Centroids</a>
                     </li>
 
                 </ul>
             </div>
         </div>
         <div class="form-group">
-            <label for="tagsInput" translate>Filter by label:</label>
+            <label for="tags-input" translate>Filter by label:</label>
             <div class="btn-group">
-                <tags-input id="tagsInput" ng-model="selected_labels" min-length="1" placeholder="{$:: 'Add a label' | translate $}" replace-spaces-with-dashes="false" add-from-autocomplete-only="true" ng-disabled="!labels.length">
+                <tags-input id="tags-input" ng-model="selected_labels" min-length="1" placeholder="{$:: 'Add a label' | translate $}" replace-spaces-with-dashes="false" add-from-autocomplete-only="true" ng-disabled="!labels.length">
                     <auto-complete source="loadLabelsForFilter($query)" max-results-to-show="255" min-length="0" load-on-empty="true" load-on-focus="true" ng-disabled="!labels.length"></auto-complete>
                 </tags-input>
             </div>
@@ -63,6 +63,14 @@
     </form>
 
     <div class="form-group settings_profile" style="padding-top: 20px; display: flex; justify-content: space-between;">
+        <span>
+            <label>{$:: 'Cycle' | translate $}:</label>
+            <div style="display: inline-block;">
+                <select class="form-control input-sm pointer" ng-model="cycle.selected_cycle" ng-change="update_cycle(cycle.selected_cycle)" ng-options="option.name for option in ::cycle.cycles track by option.id">
+                </select>
+            </div>
+        </span>
+
         <span ng-show="layerVisible(1)" style="width: 500px">
             <p class="text-center">Total Site EUI (kBtu/ft2)</p>
             <div>
@@ -101,10 +109,10 @@
     <div class="label-tabs">
         <label class="pad-left-20 pad-right-20"> <input type="checkbox" name="hexbin" ng-model="layers.hexbin_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.hexbin_layer.zIndex)" ng-disabled="::inventory_type === 'taxlots'">&nbsp;&nbsp;Hexagonal Bins</label>
         <label class="pad-right-20"> <input type="checkbox" name="points" ng-model="layers.points_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.points_layer.zIndex)">{$:: inventory_type === 'properties'?'  Building Points':'  Tax Lot Points' $}</label>
-        <label class="pad-right-20"> <input type="checkbox" name="building_bb" ng-model="layers.building_bb_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.building_bb_layer.zIndex)">&nbsp;&nbsp;UBIDs</label>
-        <label class="pad-right-20"> <input type="checkbox" name="building_centroid" ng-model="layers.building_centroid_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.building_centroid_layer.zIndex)">&nbsp;&nbsp;UBID Centroids</label>
-        <label class="pad-right-20"> <input type="checkbox" name="taxlot_bb" ng-model="layers.taxlot_bb_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.taxlot_bb_layer.zIndex)">&nbsp;&nbsp;ULIDs</label>
-        <label class="pad-right-20"> <input type="checkbox" name="taxlot_centroid" ng-model="layers.taxlot_centroid_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.taxlot_centroid_layer.zIndex)">&nbsp;&nbsp;ULID Centroids</label>
+        <label class="pad-right-20"> <input type="checkbox" name="building_bb" ng-model="layers.building_bb_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.building_bb_layer.zIndex)">&nbsp;&nbsp;Property UBIDs</label>
+        <label class="pad-right-20"> <input type="checkbox" name="building_centroid" ng-model="layers.building_centroid_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.building_centroid_layer.zIndex)">&nbsp;&nbsp;Property UBID Centroids</label>
+        <label class="pad-right-20"> <input type="checkbox" name="taxlot_bb" ng-model="layers.taxlot_bb_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.taxlot_bb_layer.zIndex)">&nbsp;&nbsp;Taxlot UBIDs</label>
+        <label class="pad-right-20"> <input type="checkbox" name="taxlot_centroid" ng-model="layers.taxlot_centroid_layer.visible" ng-true-value=1 ng-false-value=0 ng-change="toggle_layer(layers.taxlot_centroid_layer.zIndex)">&nbsp;&nbsp;Taxlot UBID Centroids</label>
     </div>
 </div>
 <div id="map">
