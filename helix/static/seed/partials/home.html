@@ -1,22 +1,16 @@
 <div class="section">
   <div class="section_content_container">
     <div class="section_content">
-      <div uib-alert class="alert-danger http_error" ng-if="http_error == 404" close="closeAlert()" ><span translate>HTTP Error! Status Code: 404. The requested URL was not found.</span></div>
-      <div uib-alert class="alert-danger http_error" ng-if="http_error == 500" close="closeAlert()" ><span translate>HTTP Error! Status Code: 500. Internal Server Error.</span></div>
+      <div uib-alert class="alert-danger http_error" ng-if="http_error == 404" close="closeAlert()"><span translate>HTTP Error! Status Code: 404. The requested URL was not found.</span></div>
+      <div uib-alert class="alert-danger http_error" ng-if="http_error == 500" close="closeAlert()"><span translate>HTTP Error! Status Code: 500. Internal Server Error.</span></div>
 
-      <div class="home_jump_nav_container">
-        <div class="home_jump_nav">
-          <a id="nav-inventory" ui-sref="inventory_list({inventory_type: 'properties'})"><i class="fa fa-home"></i>{$:: 'Inventory' | translate $}</a>
-          <a id="nav-data" ui-sref="dataset_list" ng-show="::menu.user.organization.user_role !== 'viewer'"><i class="fa fa-sitemap"></i>{$:: 'Data' | translate $}</a>
-          <a ui-sref="contact"><i class="fa fa-question-circle"></i>{$:: 'Contact' | translate $}</a>
-        </div>
-      </div>
-
-      <div class="bg jumbotron" style="background: url('/static/seed/images/HELIX-SEED-banner-2049x402.jpg') no-repeat;">>
+      <div class="bg jumbotron">
         <div class="home_hero_content_container">
-          <h1 translate>HELIX</h1>
-		  <p translate>The Home Energy Labeling Information Exchange (HELIX) is a database which automatically populates real estate listings with home energy information from the U.S. Department of Energy’s Home Energy Score and other sources. The database was developed by regional stakeholders as a free software tool to allow home buyers access to home energy information in the real estate purchasing process. Learn how to get started.</p>
-
+          <h1 translate>The SEED Platform™</h1>
+          <div translate>
+            The DOE developed the Standard Energy Efficiency Data (SEED) Platform™ as a free software tool that provides a standardized format for collecting, storing and analyzing building energy
+            performance information about large portfolios.
+          </div>
           <div class="row">
             <div class="content_col col-md-4">
               <div class="content_col_header">
@@ -53,7 +47,6 @@
               </div>
               <div class="copy" translate>MARKETING_BULLET_3</div>
             </div>
-
           </div>
         </div>
       </div>
@@ -64,22 +57,25 @@
 
           <div>
             <div>
-              <a ng-href="{$ urls.static_url $}seed/pdf/SEED_Platform_V2_18_Getting_Started_Guide.pdf" target="_blank" rel="noopener noreferrer" title="SEED_v2.13_User_Guide" class="btn btn-warning btn-lg" role="button" style="white-space:normal !important;"><i class="fa fa-file-text"></i>&nbsp;&nbsp;{$:: 'Getting Started Guide' | translate $}</a>
+              <a ng-href="{$ urls.static_url $}seed/pdf/HELIX_V1_2 Getting Started Guide.pdf" target="_blank" title="HELIX_v1_User_Guide" class="btn btn-warning btn-lg" role="button"><i class="fa fa-file-text"></i>&nbsp;&nbsp;Getting Started Guide</a>
             </div>
 
             <div>
-                <a ng-href="{$ urls.static_url $}seed/sample-data/helix-sample-data.zip" class="btn btn-info" role="button"><i class="fa fa-cloud-download"></i>&nbsp;&nbsp;Download Sample Data</a>
+                <a ng-href="{$ urls.static_url $}seed/sample-data/helix-sample-data.zip" class="btn btn-info btn-lg" role="button"><i class="fa fa-cloud-download"></i>&nbsp;&nbsp;Download Sample Data</a>
             </div>
 
             <div>
-              <a data-toggle="modal" data-target="#dataUploadModal" ng-click="open_data_upload_modal()" class="btn btn-primary btn-lg" role="button" ng-hide="menu.user.organization.user_role === 'viewer'"><i class="fa fa-cloud-upload"></i>&nbsp;&nbsp;Upload your buildings list</a> <a ng-href="{$ urls.static_url $}seed/pdf/HELIX_V1_2 Getting Started Guide.pdf" target="_blank" title="HELIX_v1_User_Guide" class="btn btn-warning btn-lg" role="button"><i class="fa fa-file-text"></i>&nbsp;&nbsp;Getting Started Guide</a>
-              <a href="https://drive.google.com/open?id=1HN67bed2e6nGeLuLuo_jNjgDXqnDE5T-" target="_blank" title="Instructional Video" class="btn btn-warning btn-lg" role="button"><i class="fa fa-file-video-o"></i>&nbsp;&nbsp;Instructional Video</a>
+              <a data-toggle="modal" data-target="#dataUploadModal" ng-click="open_data_upload_modal()" class="btn btn-primary btn-lg" role="button" ng-hide="menu.user.organization.user_role === 'viewer'"><i class="fa fa-cloud-upload"></i>&nbsp;&nbsp;Upload your buildings list</a>
             </div>
           </div>
-
-          <div ng-if="menu.user.organization && menu.user.organization.user_role !== 'viewer'">
+          <div>
             <div>
-              <a data-toggle="modal" ng-click="open_sample_data_modal()" class="btn btn-success btn-lg" role="button" style="white-space:normal !important;"><i class="fa fa-server"></i>&nbsp;&nbsp;{$:: 'Auto-Populate Sample Data' | translate $}</a>
+              <a href="https://drive.google.com/open?id=1HN67bed2e6nGeLuLuo_jNjgDXqnDE5T-" target="_blank" title="Instructional Video" class="btn btn-warning btn-lg" role="button"><i class="fa fa-file-video-o"></i>&nbsp;&nbsp;Instructional Video</a>
+            </div>
+            <div ng-if="menu.user.organization && menu.user.organization.user_role !== 'viewer'">
+              <a data-toggle="modal" ng-click="open_sample_data_modal()" class="btn btn-success btn-lg" role="button" style="white-space: normal !important"
+                ><i class="fa fa-server"></i>&nbsp;&nbsp;{$:: 'Auto-Populate Sample Data' | translate $}</a
+              >
             </div>
           </div>
 
