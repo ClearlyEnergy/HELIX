@@ -527,7 +527,7 @@
                                         {$:: file.filename $} - {$:: file.id $}
                                     </td>
                                     <td style="border-left:0px; text-align:right;">
-                                        <a style="margin-right: 8px;" href="{$ file.file $}" download="{$ file.filename $}"><i class="fa fa-download" aria-hidden="true"></i></a>
+                                        <a style="margin-right: 8px;" href="{$ file.download_url $}" download="{$ file.filename $}"><i class="fa fa-download" aria-hidden="true"></i></a>
                                         <a class="delete_link" ng-click="confirm_delete(file)"><i class="fa fa-trash-o"></i></a>
                                     </td>
                                     <td> {$ file.file_type $}</td>
@@ -565,7 +565,7 @@
                             <tbody>
                                 <tr ng-repeat="file in item_state.files">
                                     <td> {$ file.file_type $}</td>
-                                    <td><a href="{$ file.file $}" download="{$ file.filename $}">{$ file.filename $}</a></td>
+                                    <td><a href="{$ file.download_file $}" download="{$ file.filename $}">{$ file.filename $}</a></td>
                                     <td>{$ file.created | date: 'yyyy-MM-dd h:mm a' $}</td>
                                 </tr>
                             </tbody>
