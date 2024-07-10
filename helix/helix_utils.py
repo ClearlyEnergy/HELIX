@@ -6,6 +6,7 @@ import time
 
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db.models import Q
 
 from seed.data_importer.models import (
@@ -72,14 +73,15 @@ def upload(filename, data, dataset, cycle):
     #        temp_file.close()
     #    else:
     path = settings.MEDIA_ROOT + "/uploads/" + filename
-    path = FileSystemStorage().get_available_name(path)
+    path = default_storage.get_available_name(path)
 
-    # verify the directory exists
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
+    if settings.USE_S3 is False:
+        # verify the directory exists
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
 
     # save the file
-    with open(path, 'w+') as temp_file:
+    with default_storage.open(path, mode='w+') as temp_file:
         temp_file.write(data)
 
     f = ImportFile.objects.create(
