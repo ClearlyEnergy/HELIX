@@ -76,12 +76,14 @@ def upload(filename, data, dataset, cycle):
     path = default_storage.get_available_name(path)
 
     if settings.USE_S3 is False:
+        print("S3 is not being used")
         # verify the directory exists
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
 
     # save the file
     with default_storage.open(path, mode='w+') as temp_file:
+        print("temp_file is: ", temp_file)
         temp_file.write(data)
 
     f = ImportFile.objects.create(
@@ -90,6 +92,7 @@ def upload(filename, data, dataset, cycle):
             file=path,
             cycle=cycle,
             source_type="Assessed Raw")
+    print("f for importFile is:", f)
     return f.pk
 
 
