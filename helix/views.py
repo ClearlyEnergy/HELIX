@@ -2,6 +2,7 @@ import os
 import csv
 import re
 import datetime
+import json
 # from urlparse import urlparse
 from urllib.parse import urlparse
 
@@ -730,6 +731,79 @@ def helix_remove_profile(request):
         return JsonResponse({'status': 'success'})
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
+
+
+@api_endpoint
+@api_view(['POST'])
+def remotely_label(request):
+    """
+    Generates PDF Label for the Remotely IPC programs.
+
+    Expected JSON request body:
+    
+    ```json
+    {
+        "program_display_name": "IPC SMARTE",
+        "ce_api_id": "0123456789",
+        "street": "77 MASSACHUSETTS AVE",
+        "city": "CAMBRIDGE",
+        "state": "MA",
+        "zipcode": "02139",
+        "year_built": 1895,
+        "program_name": "SMARTEPV",
+        "question_answers": [...]
+    }
+    ```
+    
+    The question_answers objects should be like the following.
+    (See label.remotely_ipc_pdf for more examples)
+    
+    ```json
+    {
+        "question_group": "Installations",
+        "question": "Select all systems which have been installed for this home.",
+        "options": ["Air Sealing", "Air source heat pump", "Central air conditioning", ...],
+        "answer": ["Other hot water heaters", "Window retrofits"]
+    }
+    ```
+
+    Returns:
+    ```json
+    {'status': 'success', 'url': <pdf_label_url>}
+    ```
+    """
+    if not request.body:
+        return JsonResponse({'status': 'error', 'message': 'Empty request body'}, status=400)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON body'}, status=400)
+
+    required_keys =  [
+        "program_display_name",
+        "ce_api_id",
+        "street",
+        "city",
+        "state",
+        "zipcode",
+        "year_built",
+        "program_name",
+        "question_answers"
+    ]
+    missing_keys = set(required_keys) - set(data.keys())
+    if missing_keys:
+        response = {'status': 'error', 'message': f'Missing keys: {", ".join(missing_keys)}'}
+        return JsonResponse(response, status=400)
+
+    lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    try:
+        file_url = lab.remotely_ipc_pdf(data, 'ce-pictures')
+        return JsonResponse({'status': 'success', 'url': file_url})
+    except ValueError as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    except KeyError as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 def _create_propertyview(request, org, user, dataset_name):
