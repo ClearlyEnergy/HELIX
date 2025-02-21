@@ -11,7 +11,8 @@ from helix.views import (
     helix_vermont_profile,
     helix_massachusetts_scorecard,
     massachusetts_scorecard,
-    helix_remove_profile
+    helix_remove_profile,
+    remotely_label
 )
 
 urlpatterns = [
@@ -27,4 +28,5 @@ urlpatterns = [
     url(r'^massachusetts-scorecard/$', massachusetts_scorecard, name="massachusetts_scorecard"),
     url(r'^helix-massachusetts-scorecard/$', helix_massachusetts_scorecard, name="helix_massachusetts_scorecard"),
     url(r'^helix-remove-profile/$', helix_remove_profile, name="helix_remove_profile"),
+    url(r'^remotely_label/$', remotely_label, name="remotely_label"),
 ]
