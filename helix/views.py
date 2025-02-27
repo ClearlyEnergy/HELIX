@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
-
+from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.db.models import Q
 from rest_framework.decorators import api_view
@@ -732,7 +732,7 @@ def helix_remove_profile(request):
     else:
         return JsonResponse({'status': 'error', 'message': 'no existing home'})
 
-
+@csrf_exempt
 @api_endpoint
 @api_view(['POST'])
 def remotely_label(request):
@@ -772,11 +772,9 @@ def remotely_label(request):
     {'status': 'success', 'url': <pdf_label_url>}
     ```
     """
-    if not request.body:
-        return JsonResponse({'status': 'error', 'message': 'Empty request body'}, status=400)
 
     try:
-        data = json.loads(request.body.decode('utf-8'))
+        data = json.loads(request.data.decode('utf-8'))
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON body'}, status=400)
 
