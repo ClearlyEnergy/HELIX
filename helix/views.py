@@ -773,11 +773,7 @@ def remotely_label(request):
     ```
     """
 
-    try:
-        data = json.loads(request.data.decode('utf-8'))
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON body'}, status=400)
-
+    data = request.data
     required_keys =  [
         "program_display_name",
         "ce_api_id",
