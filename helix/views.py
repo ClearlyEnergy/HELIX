@@ -796,7 +796,7 @@ def remotely_label(request):
 
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
     try:
-        file_url = lab.remotely_ipc_pdf(data, 'ce-pictures')
+        file_url = lab.remotely_ipc_pdf(data, settings.AWS_BUCKET_NAME)
         return JsonResponse({'status': 'success', 'url': file_url})
     except ValueError as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
