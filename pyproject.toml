@@ -21,7 +21,7 @@ classifiers = [
     "Framework :: Django"
 ]
 dependencies = [
-"zeep==2.3.0",
+"zeep",
 "usaddress",
 "street-address"
 ]
