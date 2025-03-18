@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["helix*"]
+
+[project]
+name = "helix"
+version = "1.0"
+description = "helix is a django application to implement helix"
+authors = [{name = "ClearlyEnergy", email = "info@clearlyenergy.com"}]
+license = {text = "BSD-3-Clause"}
+requires-python = ">=3.9"
+readme = { file = "README.rst", content-type = "text/x-rst"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Framework :: Django"
+]
+dependencies = [
+"zeep==2.3.0",
+"usaddress",
+"street-address"
+]
+
+[project.urls]
+Repository = "https://github.com/ClearlyEnergy/HELIX/tree/master"
