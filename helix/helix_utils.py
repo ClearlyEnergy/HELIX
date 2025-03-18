@@ -25,7 +25,7 @@ from seed.models.auditlog import (
 )
 
 from helix.models import HELIXGreenAssessmentProperty, HelixMeasurement
-from helix.utils.helix_address import normalize_address_str
+from helix.utils.address import normalize_address_str
 from seed.utils.cache import get_cache
 
 
