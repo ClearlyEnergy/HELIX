@@ -737,66 +737,42 @@ def helix_remove_profile(request):
 @api_view(['POST'])
 def remotely_label(request):
     """
-    Generates PDF Label for the Remotely IPC programs.
+    Generates PDF Labels for the Remotely.
 
     Expected JSON request body:
     
     ```json
     {
-        "program_display_name": "IPC SMARTE",
-        "ce_api_id": "0123456789",
-        "street": "77 MASSACHUSETTS AVE",
-        "city": "CAMBRIDGE",
-        "state": "MA",
-        "zipcode": "02139",
-        "year_built": 1895,
-        "program_name": "SMARTEPV",
-        "question_answers": [...]
+        "label_type": "ipc_label",
+        "data": { "key": "value" }
     }
-    ```
-    
-    The question_answers objects should be like the following.
-    (See label.remotely_ipc_pdf for more examples)
-    
-    ```json
-    {
-        "question_group": "Installations",
-        "question": "Select all systems which have been installed for this home.",
-        "options": ["Air Sealing", "Air source heat pump", "Central air conditioning", ...],
-        "answer": ["Other hot water heaters", "Window retrofits"]
-    }
-    ```
 
     Returns:
     ```json
-    {'status': 'success', 'url': <pdf_label_url>}
+    { 'status': 'success', 'url': <label_url> }
     ```
     """
 
-    data = request.data
-    required_keys =  [
-        "program_display_name",
-        "ce_api_id",
-        "street",
-        "city",
-        "state",
-        "zipcode",
-        "year_built",
-        "program_name",
-        "question_answers"
-    ]
-    missing_keys = set(required_keys) - set(data.keys())
-    if missing_keys:
-        response = {'status': 'error', 'message': f'Missing keys: {", ".join(missing_keys)}'}
-        return JsonResponse(response, status=400)
-
+    request_data = request.data
+    label_type = request_data['label_type']
+    data = request_data['data']
     lab = label.Label(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    label_methods = {
+        'ipc_label': lab.remotely_ipc_pdf,
+        'berkeley_elec_checklist': lab.electrification_checklist,
+    }
+    method = label_methods.get(label_type)
+    if not method:
+        return JsonResponse({'status': 'error', 'message': f'Unknown label_type: {label_type}'}, status=400)
+
     try:
-        file_url = lab.remotely_ipc_pdf(data, settings.AWS_BUCKET_NAME)
+        file_url = method(data, settings.AWS_BUCKET_NAME)
         return JsonResponse({'status': 'success', 'url': file_url})
     except ValueError as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     except KeyError as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    except TypeError as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
